@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lelouch-harness"
+version = "0.1.0"
+description = "Lelouch: an Orca orchestrator harness, and geass, the command that casts it onto a project."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["claude-code", "orca", "agents", "orchestration", "skills"]
+
+# No runtime dependencies on purpose. geass copies files and shells out to git;
+# anything heavier would be a dependency the target project has to care about.
+dependencies = []
+
+[project.scripts]
+geass = "geass.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/m3dus444/lelouch-harness"
+
+[tool.setuptools]
+# Only geass is importable. harness/ and skills/ ride along as package data.
+packages = ["geass"]
+
+[tool.setuptools.package-data]
+geass = [
+    "harness/**/*",
+    "skills/**/*",
+]

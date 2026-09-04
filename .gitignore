@@ -1,3 +1,13 @@
 # Lavish review artifacts: transient per-session review surfaces.
-# Remove this line if you want design docs like the orchestrator roadmap versioned.
 .lavish/
+
+# Exported agent transcripts kept for local analysis.
+*-you-are-working-inside-orca-*.txt
+
+# Python build + cache
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+.venv/
