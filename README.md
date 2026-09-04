@@ -29,6 +29,13 @@ geass cast
 
 That's it. Open an agent session in the project and Lelouch takes over.
 
+## The system map
+
+A visual walkthrough of the whole system — the layers, the pipeline, what
+persists and who reads it, and how the skills articulate — lives at
+[`docs/system-map.html`](docs/system-map.html). Open it in a browser; it is a
+single self-contained file. Most people find it a faster way in than this README.
+
 ## Why a cast, and not a folder you work inside
 
 Other agent distros make you `cd` into the distro's own directory and keep your
