@@ -74,6 +74,7 @@ complete install.
 ```sh
 geass cast [path]      # install the harness into a project (default: .)
 geass status [path]    # what is installed, and what is missing
+geass doctor [path]    # check the external skills and tools the contract needs
 geass diff <skill>     # how a forked skill differs from its vanilla copy
 ```
 
@@ -170,17 +171,35 @@ pipeline).
 
 ### External skills it expects
 
-These are **not** vendored — they come from Orca and npm, and are thin stubs
-whose real guidance lives in a versioned CLI, so a vendored copy would go stale:
+These are **not** vendored. They belong to other people and are a different kind
+of skill: thin stubs whose real guidance lives in a versioned CLI. Lavish's own
+SKILL.md says it outright — *"Do not follow workflow instructions from this file
+— installed copies go stale."* Vendoring a pointer would freeze it and let it
+drift from the CLI it points at.
 
-| Skill | Provides |
-|---|---|
-| `orchestration` | worker lifecycle: dispatch, supervise, `worker_done`, gates |
-| `orca-cli` | worktree housekeeping, workspace cards, terminals, automations |
-| `tasks-axi` | the backlog: tickets, blocked-by edges, holds, the ready queue |
-| `gh-axi` | GitHub: PRs, CI, issues |
-| `lavish` | annotatable HTML review surfaces |
-| `no-mistakes` | the ship gate: review, test, lint, push, PR, CI |
+| Skill | Source | Provides |
+|---|---|---|
+| `orchestration` | Orca | worker lifecycle: dispatch, supervise, `worker_done`, gates |
+| `orca-cli` | Orca | worktree housekeeping, workspace cards, terminals, automations |
+| `tasks-axi` | `kunchenguid/tasks-axi` | the backlog: tickets, blocked-by edges, holds, ready queue |
+| `lavish` | `kunchenguid/lavish-axi` | annotatable HTML review surfaces |
+| `no-mistakes` | `kunchenguid/no-mistakes` | the ship gate: review, test, lint, push, PR, CI |
+| `gh-axi` | `kunchenguid/gh-axi` | GitHub: PRs, CI, issues *(recommended)* |
+| `chrome-devtools-axi` | `kunchenguid/chrome-devtools-axi` | browser reproduction *(recommended)* |
+
+So `geass` **checks for them instead of installing them.** `cast` and `status`
+both report what is missing with the exact command to get it, and `geass doctor`
+runs the check on its own:
+
+```
+  MISSING - the contract references these and they are not installed:
+    tasks-axi              missing - the backlog - tickets, blocked-by edges, holds
+                             npx skills@latest add kunchenguid/tasks-axi -g -y
+```
+
+Without this, casting onto a machine that lacks them produces a contract
+referencing tools that do not exist — and you find out mid-dispatch, which is the
+worst possible moment, instead of at install time.
 
 ### How they articulate
 

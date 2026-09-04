@@ -2,6 +2,7 @@
 
     geass cast [path]     install the harness (default: current directory)
     geass status [path]   report what is installed and whether it has drifted
+    geass doctor [path]   check the external skills and tools the contract needs
     geass diff <skill>    show how a forked skill differs from its vanilla copy
 
 Design notes worth knowing before changing this file:
@@ -158,6 +159,72 @@ def merge_settings(project: Path) -> str:
     return "merged"
 
 
+# -------------------------------------------------------------- dependencies
+
+
+def _skill_installed(name: str, project: Path) -> bool:
+    """A skill counts as present if any agent scope can see it.
+
+    Checked narrowest first: project-scoped, then Claude Code's user scope, then
+    the shared ~/.agents store that every agent symlinks into.
+    """
+    candidates = [
+        project / ".claude" / "skills" / name,
+        Path.home() / ".claude" / "skills" / name,
+        Path.home() / ".agents" / "skills" / name,
+    ]
+    return any(c.is_dir() for c in candidates)
+
+
+def check_dependencies(project: Path) -> tuple[list[str], list[str]]:
+    """Report what the contract needs and the machine does not have.
+
+    Returns (blocking, advisory) as printable lines.
+    """
+    blocking: list[str] = []
+    advisory: list[str] = []
+
+    for tool, why in manifest.REQUIRED_TOOLS.items():
+        if shutil.which(tool) is None:
+            blocking.append(f"{tool:22} not on PATH - {why}")
+    for tool, why in manifest.RECOMMENDED_TOOLS.items():
+        if shutil.which(tool) is None:
+            advisory.append(f"{tool:22} not on PATH - {why}")
+
+    for name, (source, why) in manifest.REQUIRED_SKILLS.items():
+        if not _skill_installed(name, project):
+            blocking.append(f"{name:22} missing - {why}")
+            blocking.append(f"{'':22}   {manifest.install_hint(source)}")
+    for name, (source, why) in manifest.RECOMMENDED_SKILLS.items():
+        if not _skill_installed(name, project):
+            advisory.append(f"{name:22} missing - {why}")
+            advisory.append(f"{'':22}   {manifest.install_hint(source)}")
+
+    return blocking, advisory
+
+
+def report_dependencies(project: Path) -> int:
+    """Print the dependency state. Returns the count of blocking problems."""
+    blocking, advisory = check_dependencies(project)
+
+    if not blocking and not advisory:
+        n = len(manifest.REQUIRED_SKILLS) + len(manifest.RECOMMENDED_SKILLS)
+        print(f"  ok    all {n} external skills and every tool are present")
+        return 0
+
+    if blocking:
+        print("  MISSING - the contract references these and they are not installed:")
+        for line in blocking:
+            print(f"    {line}")
+    if advisory:
+        if blocking:
+            print()
+        print("  optional - the harness works without these, with less reach:")
+        for line in advisory:
+            print(f"    {line}")
+    return len([b for b in blocking if not b.startswith(" " * 22)])
+
+
 def update_gitignore(project: Path) -> str:
     path = project / ".gitignore"
     current = path.read_text(encoding="utf-8") if path.exists() else ""
@@ -213,10 +280,18 @@ def cast(project: Path, force: bool) -> int:
     print(f"  settings    .claude/settings.json ({merge_settings(project)})")
     print(f"  gitignore   {update_gitignore(project)}")
 
+    print("\nDependencies")
+    unmet = report_dependencies(project)
+
     print("\nDone. Next:")
-    print("  1. Review CLAUDE.md — it is yours to edit, not a black box.")
-    print("  2. Commit it, so the contract is versioned with the code it governs.")
-    print("  3. Start a fresh agent session in this directory. Lelouch takes over.")
+    step = 1
+    if unmet:
+        print(f"  {step}. Install the missing skills above — the contract references")
+        print("     them, so Lelouch will reach for tools that are not there.")
+        step += 1
+    print(f"  {step}. Review CLAUDE.md — it is yours to edit, not a black box.")
+    print(f"  {step + 1}. Commit it, so the contract is versioned with the code it governs.")
+    print(f"  {step + 2}. Start a fresh agent session here. Lelouch takes over.")
     return 0
 
 
@@ -244,11 +319,30 @@ def status(project: Path) -> int:
             print(f"          missing: {name}")
         missing += bool(absent)
 
+    print("\nDependencies")
+    unmet = report_dependencies(project)
+
     print()
     if missing:
         print("Not fully cast. Run: geass cast")
         return 1
+    if unmet:
+        print("Cast, but dependencies are missing. See above.")
+        return 1
     print("Fully cast.")
+    return 0
+
+
+def doctor(project: Path) -> int:
+    """Dependencies only — the check on its own, for an already-cast project."""
+    values = detect(project)
+    print(f"{values['PROJECT']}  (platform {platform.system()})\n")
+    unmet = report_dependencies(project)
+    print()
+    if unmet:
+        print(f"{unmet} blocking problem(s).")
+        return 1
+    print("Ready.")
     return 0
 
 
@@ -294,6 +388,9 @@ def main() -> int:
     p_status = sub.add_parser("status", help="report what is installed")
     p_status.add_argument("path", nargs="?", default=".")
 
+    p_doctor = sub.add_parser("doctor", help="check external skills and tools only")
+    p_doctor.add_argument("path", nargs="?", default=".")
+
     p_diff = sub.add_parser("diff", help="show a fork against its vanilla copy")
     p_diff.add_argument("skill")
 
@@ -302,6 +399,8 @@ def main() -> int:
         return cast(Path(args.path), args.force)
     if args.command == "status":
         return status(Path(args.path))
+    if args.command == "doctor":
+        return doctor(Path(args.path))
     if args.command == "diff":
         return diff(args.skill)
     parser.print_help()
