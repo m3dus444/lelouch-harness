@@ -52,6 +52,48 @@ EXCLUDED = {
     "to-questionnaire": "not part of the orchestrator pipeline",
 }
 
+# Skills the contract depends on but does NOT vendor. They are owned by other
+# people and are CLI-backed stubs: the real guidance lives in a versioned binary,
+# so a vendored copy would freeze a pointer and drift from what it points at.
+#
+# geass therefore checks for them rather than installing them. Casting a contract
+# that references tools which are not present produces a harness that fails
+# mid-dispatch instead of at install time, which is the worst place to find out.
+#
+#   name: (source, why the contract needs it)
+REQUIRED_SKILLS = {
+    "orchestration": ("stablyai/orca", "worker lifecycle: dispatch, supervise, worker_done"),
+    "orca-cli": ("stablyai/orca", "worktree housekeeping, workspace cards, terminals"),
+    "tasks-axi": ("kunchenguid/tasks-axi", "the backlog - tickets, blocked-by edges, holds"),
+    "lavish": ("kunchenguid/lavish-axi", "annotatable review surfaces for plans and reports"),
+    "no-mistakes": ("kunchenguid/no-mistakes", "the ship gate every Build and Fix ends with"),
+}
+
+RECOMMENDED_SKILLS = {
+    "gh-axi": ("kunchenguid/gh-axi", "GitHub PRs and CI; without it the ship gate stops at a branch"),
+    "chrome-devtools-axi": ("kunchenguid/chrome-devtools-axi", "browser reproduction for diagnosing-bugs"),
+}
+
+# Executables the harness shells out to. The -axi CLIs are NOT here: they are
+# fetched on demand by npx, so npx itself is the only requirement for them.
+REQUIRED_TOOLS = {
+    "git": "geass reads the target repo to fill the contract in; workers branch",
+    "npx": "the -axi skills fetch their CLIs on demand",
+    "orca": "the runtime workers actually run in",
+}
+
+RECOMMENDED_TOOLS = {
+    "gh": "the pull-request flow at the end of the ship gate",
+}
+
+
+def install_hint(source: str) -> str:
+    """How to obtain a missing skill."""
+    if source == "stablyai/orca":
+        return "ships with Orca - enable it in Orca's Agent skills panel"
+    return f"npx skills@latest add {source} -g -y"
+
+
 # Files copied into the target project, as (source in harness/, destination).
 PAYLOAD = [
     ("CLAUDE.md", "CLAUDE.md"),
