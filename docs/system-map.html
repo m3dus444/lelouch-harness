@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Lelouch System</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :where(.grid, .flex) > * { min-width: 0; }
+  :where(p, h1, h2, h3, h4, li, dd, td, th, .badge) { overflow-wrap: anywhere; }
+  :where(img, svg, video, canvas) { max-width: 100%; height: auto; }
+  body { background: var(--color-base-200); color: var(--color-base-content); }
+  code.inl { background: var(--color-base-300); padding: .1rem .35rem; border-radius: .25rem; font-size: .85em; }
+  pre.blk { background: var(--color-base-300); padding: .9rem; border-radius: .5rem; overflow-x: auto; font-size: .8rem; line-height: 1.5; }
+  .fig { background: var(--color-base-100); border: 1px solid color-mix(in oklch, var(--color-base-content) 12%, transparent); border-radius: .75rem; padding: 1.25rem; }
+  .lead { font-size: 1.05rem; line-height: 1.7; }
+  .q { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; opacity: .55; }
+  svg text { font-family: ui-sans-serif, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<div class="max-w-6xl mx-auto px-4 py-10 md:px-8">
+
+<header class="mb-14">
+  <div class="flex flex-wrap gap-2 mb-3">
+    <span class="badge badge-primary badge-soft">System map</span>
+    <span class="badge badge-ghost">lelouch-harness</span>
+  </div>
+  <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">The Lelouch system</h1>
+  <p class="lead max-w-3xl opacity-80">
+    You talk to one agent. It interviews you until the work is pinned down, writes the decisions
+    where other agents can read them, slices the work into dependency-ordered tickets, and dispatches
+    supervised workers — then reports one plain outcome. This page is how all of that fits together,
+    explained from zero.
+  </p>
+</header>
+
+<!-- ============================ 1. THE STACK ============================ -->
+<section class="mb-16">
+  <p class="q mb-1">Question one</p>
+  <h2 class="text-2xl font-bold mb-3">What actually runs, and where?</h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    Four layers. The important and non-obvious one: <strong>Lelouch and its workers are the same
+    software reading the same contract file</strong> — they differ only by the role each is assigned
+    at startup.
+  </p>
+
+  <div class="fig mb-5">
+    <svg viewBox="0 0 940 430" width="100%" role="img" aria-labelledby="stack-t">
+      <title id="stack-t">The four layers: you, the sessions, the agent harness, and the Orca runtime</title>
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+        </marker>
+      </defs>
+
+      <g id="layer-you">
+        <title>You. You only ever talk to Lelouch.</title>
+        <rect x="30" y="18" width="150" height="52" rx="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <text x="105" y="42" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor">You</text>
+        <text x="105" y="59" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.65">plain language</text>
+      </g>
+
+      <!-- sessions layer -->
+      <g id="layer-sessions">
+        <title>Agent sessions: one orchestrator, N workers</title>
+        <rect x="24" y="96" width="892" height="148" rx="12" fill="currentColor" fill-opacity="0.04" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" />
+        <text x="40" y="116" font-size="10.5" fill="currentColor" opacity="0.55">AGENT SESSIONS</text>
+      </g>
+
+      <g id="lelouch">
+        <title>Lelouch: the orchestrator session. Never writes project code.</title>
+        <rect x="44" y="128" width="228" height="100" rx="10" fill="currentColor" fill-opacity="0.10" stroke="currentColor" stroke-width="2.2" />
+        <text x="158" y="155" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor">Lelouch</text>
+        <text x="158" y="175" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.75">orchestrator</text>
+        <text x="158" y="194" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.75">writes no project code</text>
+        <text x="158" y="213" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.75">stays talkable</text>
+      </g>
+
+      <g id="workers">
+        <title>Worker sessions, dispatched by Lelouch. These write the code.</title>
+        <rect x="360" y="128" width="540" height="100" rx="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 3" />
+        <text x="630" y="147" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">workers — these write the code</text>
+        <g font-size="12" font-weight="600" fill="currentColor">
+          <rect x="378" y="158" width="160" height="54" rx="8" fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.4" />
+          <text x="458" y="182" text-anchor="middle">Scout</text>
+          <text x="458" y="199" text-anchor="middle" font-size="9.5" font-weight="400" opacity="0.7">investigates</text>
+          <rect x="550" y="158" width="160" height="54" rx="8" fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.4" />
+          <text x="630" y="182" text-anchor="middle">Build</text>
+          <text x="630" y="199" text-anchor="middle" font-size="9.5" font-weight="400" opacity="0.7">ships a slice</text>
+          <rect x="722" y="158" width="160" height="54" rx="8" fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.4" />
+          <text x="802" y="182" text-anchor="middle">Fix</text>
+          <text x="802" y="199" text-anchor="middle" font-size="9.5" font-weight="400" opacity="0.7">kills a bug</text>
+        </g>
+      </g>
+
+      <g id="layer-harness">
+        <title>The agent harness: Claude Code today. Loads CLAUDE.md and the skills.</title>
+        <rect x="24" y="264" width="892" height="66" rx="10" fill="currentColor" fill-opacity="0.06" stroke="currentColor" stroke-width="1.8" />
+        <text x="44" y="290" font-size="13.5" font-weight="700" fill="currentColor">Agent harness</text>
+        <text x="44" y="311" font-size="10.5" fill="currentColor" opacity="0.7">Claude Code — loads CLAUDE.md and the skills. Swappable in principle.</text>
+        <text x="898" y="292" text-anchor="end" font-size="10.5" fill="currentColor" opacity="0.55">same contract for every session</text>
+      </g>
+
+      <g id="layer-orca">
+        <title>Orca: the runtime that owns worktrees, terminals, and dispatch state.</title>
+        <rect x="24" y="348" width="892" height="66" rx="10" fill="currentColor" fill-opacity="0.10" stroke="currentColor" stroke-width="1.8" />
+        <text x="44" y="374" font-size="13.5" font-weight="700" fill="currentColor">Orca</text>
+        <text x="44" y="395" font-size="10.5" fill="currentColor" opacity="0.7">the runtime — worktrees, terminals, and Run / Task / Dispatch state</text>
+        <text x="898" y="376" text-anchor="end" font-size="10.5" fill="currentColor" opacity="0.55">every session is an Orca terminal</text>
+      </g>
+
+      <g stroke="currentColor" fill="none" stroke-width="1.9" marker-end="url(#a1)">
+        <line x1="105" y1="74" x2="105" y2="124" />
+        <line x1="276" y1="163" x2="356" y2="163" />
+      </g>
+      <g stroke="currentColor" fill="none" stroke-width="1.6" opacity="0.5" stroke-dasharray="5 4" marker-end="url(#a1)">
+        <path d="M 356 205 C 320 205 320 205 276 205" />
+      </g>
+      <text x="316" y="156" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.7">dispatch</text>
+      <text x="316" y="222" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.6">results</text>
+    </svg>
+  </div>
+
+  <div class="alert alert-info alert-soft">
+    <div>
+      <h4 class="font-semibold mb-1">Why the contract opens with a role gate</h4>
+      <p class="text-sm">A worker gets a git worktree of the <em>same repo</em>, so it loads the <em>same</em>
+      <code class="inl">CLAUDE.md</code>. If it read the orchestrator's rule — <em>"you do not write project
+      code"</em> — it would refuse the job it was dispatched for. So the file's first section asks: are you
+      carrying an Orca <code class="inl">taskId</code>? Then you are a Worker; read your section and skip the
+      rest.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= 2. LIFE OF A REQUEST ========================= -->
+<section class="mb-16">
+  <p class="q mb-1">Question two</p>
+  <h2 class="text-2xl font-bold mb-3">What happens to one request?</h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    Left to right. The two vertical bars are <strong>hard stops</strong> — Lelouch waits for you there,
+    and silence is not approval.
+  </p>
+
+  <div class="fig mb-5">
+    <svg viewBox="0 0 940 300" width="100%" role="img" aria-labelledby="flow-t">
+      <title id="flow-t">The pipeline from a request through alignment, gates, dispatch, and back</title>
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+        </marker>
+      </defs>
+
+      <!-- row 1: alignment -->
+      <text x="24" y="26" font-size="10.5" fill="currentColor" opacity="0.55">ALIGN — you and Lelouch, before any code</text>
+      <g font-size="11.5" fill="currentColor">
+        <g id="s-req"><title>Your request, in plain language</title>
+          <rect x="24" y="38" width="130" height="52" rx="8" fill="none" stroke="currentColor" stroke-width="2" />
+          <text x="89" y="62" text-anchor="middle" font-weight="700">request</text>
+          <text x="89" y="78" text-anchor="middle" font-size="9.5" opacity="0.65">from you</text>
+        </g>
+        <g id="s-grill"><title>grill-with-docs: the interview that pins the work down</title>
+          <rect x="184" y="38" width="150" height="52" rx="8" fill="currentColor" fill-opacity="0.09" stroke="currentColor" stroke-width="1.6" />
+          <text x="259" y="62" text-anchor="middle" font-weight="700">grill</text>
+          <text x="259" y="78" text-anchor="middle" font-size="9.5" opacity="0.7">interview you</text>
+        </g>
+        <g id="s-spec"><title>to-spec: turn the conversation into a written spec</title>
+          <rect x="364" y="38" width="130" height="52" rx="8" fill="currentColor" fill-opacity="0.09" stroke="currentColor" stroke-width="1.6" />
+          <text x="429" y="62" text-anchor="middle" font-weight="700">spec</text>
+          <text x="429" y="78" text-anchor="middle" font-size="9.5" opacity="0.7">write it down</text>
+        </g>
+        <g id="s-tickets"><title>to-tickets: slice into tracer-bullet tickets with blocking edges</title>
+          <rect x="524" y="38" width="150" height="52" rx="8" fill="currentColor" fill-opacity="0.09" stroke="currentColor" stroke-width="1.6" />
+          <text x="599" y="62" text-anchor="middle" font-weight="700">tickets</text>
+          <text x="599" y="78" text-anchor="middle" font-size="9.5" opacity="0.7">a dependency DAG</text>
+        </g>
+        <g id="s-review"><title>The breakdown goes in front of you as a Lavish artifact</title>
+          <rect x="704" y="38" width="150" height="52" rx="8" fill="none" stroke="currentColor" stroke-width="1.6" />
+          <text x="779" y="62" text-anchor="middle" font-weight="700">you review</text>
+          <text x="779" y="78" text-anchor="middle" font-size="9.5" opacity="0.7">a Lavish page</text>
+        </g>
+      </g>
+
+      <!-- gates -->
+      <g id="gates" stroke="currentColor" stroke-width="2.4" opacity="0.75">
+        <title>Two hard stops: the approval gate, and the design gate for anything with a UI</title>
+        <line x1="878" y1="30" x2="878" y2="98" />
+      </g>
+      <text x="890" y="52" font-size="10" fill="currentColor" opacity="0.75">GATE</text>
+      <text x="890" y="66" font-size="8.5" fill="currentColor" opacity="0.6">approval</text>
+      <text x="890" y="79" font-size="8.5" fill="currentColor" opacity="0.6">+ design</text>
+
+      <g stroke="currentColor" fill="none" stroke-width="1.8" marker-end="url(#a2)">
+        <line x1="158" y1="64" x2="180" y2="64" />
+        <line x1="338" y1="64" x2="360" y2="64" />
+        <line x1="498" y1="64" x2="520" y2="64" />
+        <line x1="678" y1="64" x2="700" y2="64" />
+      </g>
+
+      <!-- row 2: execution -->
+      <text x="24" y="152" font-size="10.5" fill="currentColor" opacity="0.55">EXECUTE — only after both gates clear</text>
+      <g font-size="11.5" fill="currentColor">
+        <g id="s-dispatch"><title>orca orchestration worker-start; the spec names the skills to use</title>
+          <rect x="24" y="164" width="150" height="56" rx="8" fill="none" stroke="currentColor" stroke-width="2" />
+          <text x="99" y="188" text-anchor="middle" font-weight="700">dispatch</text>
+          <text x="99" y="205" text-anchor="middle" font-size="9.5" opacity="0.7">spec names skills</text>
+        </g>
+        <g id="s-work"><title>The worker: implement, tdd, diagnosing-bugs, research</title>
+          <rect x="204" y="164" width="190" height="56" rx="8" fill="currentColor" fill-opacity="0.09" stroke="currentColor" stroke-width="1.6" />
+          <text x="299" y="186" text-anchor="middle" font-weight="700">worker builds</text>
+          <text x="299" y="203" text-anchor="middle" font-size="9.5" opacity="0.7">implement · tdd · research</text>
+        </g>
+        <g id="s-prod"><title>prod-review: does the diff match the spec it came from?</title>
+          <rect x="424" y="164" width="150" height="56" rx="8" fill="currentColor" fill-opacity="0.09" stroke="currentColor" stroke-width="1.6" />
+          <text x="499" y="186" text-anchor="middle" font-weight="700">prod-review</text>
+          <text x="499" y="203" text-anchor="middle" font-size="9.5" opacity="0.7">matches the spec?</text>
+        </g>
+        <g id="s-ship"><title>no-mistakes: the ship gate — review, test, lint, push, PR, CI</title>
+          <rect x="604" y="164" width="150" height="56" rx="8" fill="currentColor" fill-opacity="0.09" stroke="currentColor" stroke-width="1.6" />
+          <text x="679" y="186" text-anchor="middle" font-weight="700">no-mistakes</text>
+          <text x="679" y="203" text-anchor="middle" font-size="9.5" opacity="0.7">test · lint · PR · CI</text>
+        </g>
+        <g id="s-done"><title>worker_done returns to Lelouch, which reports one outcome to you</title>
+          <rect x="784" y="164" width="132" height="56" rx="8" fill="none" stroke="currentColor" stroke-width="2" />
+          <text x="850" y="186" text-anchor="middle" font-weight="700">outcome</text>
+          <text x="850" y="203" text-anchor="middle" font-size="9.5" opacity="0.7">back to you</text>
+        </g>
+      </g>
+
+      <g stroke="currentColor" fill="none" stroke-width="1.8" marker-end="url(#a2)">
+        <line x1="178" y1="192" x2="200" y2="192" />
+        <line x1="398" y1="192" x2="420" y2="192" />
+        <line x1="578" y1="192" x2="600" y2="192" />
+        <line x1="758" y1="192" x2="780" y2="192" />
+      </g>
+
+      <path d="M 878 100 C 878 130 200 120 99 158" stroke="currentColor" fill="none" stroke-width="1.6" opacity="0.5" stroke-dasharray="5 4" marker-end="url(#a2)" />
+
+      <text x="470" y="262" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.7">
+        While the bottom row runs, Lelouch is idle and free — you keep talking to it about architecture.
+      </text>
+      <text x="470" y="282" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.5">
+        It surfaces only four things: a question, an escalation, a completion, or a real problem.
+      </text>
+    </svg>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <div class="card card-border bg-base-100">
+      <div class="card-body py-4">
+        <h3 class="font-semibold text-sm">The approval gate</h3>
+        <p class="text-sm opacity-75">The ticket breakdown goes in front of you before <em>anything</em> is
+        dispatched. Not a courtesy — a hard stop. It exists because the first smoke test saw Lelouch promise
+        to show the breakdown, then dispatch a worker first.</p>
+      </div>
+    </div>
+    <div class="card card-border bg-base-100">
+      <div class="card-body py-4">
+        <h3 class="font-semibold text-sm">The design gate</h3>
+        <p class="text-sm opacity-75">Only when the project has a UI. How an app <em>looks</em> is never a
+        worker's call: a design brief ships as its own PR, you take it through a design pass, and styled-UI
+        tickets reference the result. Structural work is unaffected; a CLI skips the gate.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 3. STATE ============================== -->
+<section class="mb-16">
+  <p class="q mb-1">Question three</p>
+  <h2 class="text-2xl font-bold mb-3">How does a worker know anything?</h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    A worker never saw your conversation. It gets a task spec and a repo — so everything it needs must
+    already be <strong>written down in files</strong>. That is what these are for.
+  </p>
+
+  <div class="fig mb-5">
+    <svg viewBox="0 0 940 330" width="100%" role="img" aria-labelledby="state-t">
+      <title id="state-t">Which files carry knowledge, who writes them and who reads them</title>
+      <defs>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+        </marker>
+      </defs>
+
+      <text x="86" y="26" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.55">WRITER</text>
+      <text x="470" y="26" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.55">WHAT PERSISTS</text>
+      <text x="856" y="26" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.55">READER</text>
+
+      <g font-size="11.5" fill="currentColor">
+        <!-- CONTEXT.md -->
+        <g id="f-context"><title>CONTEXT.md: the project glossary — what each word means</title>
+          <rect x="330" y="42" width="280" height="54" rx="8" fill="currentColor" fill-opacity="0.10" stroke="currentColor" stroke-width="1.8" />
+          <text x="470" y="65" text-anchor="middle" font-weight="700">CONTEXT.md</text>
+          <text x="470" y="82" text-anchor="middle" font-size="9.5" opacity="0.7">the glossary — what the words mean</text>
+        </g>
+        <text x="86" y="73" text-anchor="middle" font-size="10.5" opacity="0.8">grill · domain-modeling</text>
+        <text x="856" y="73" text-anchor="middle" font-size="10.5" opacity="0.8">every worker</text>
+
+        <!-- ADRs -->
+        <g id="f-adr"><title>docs/adr: decisions with their reasoning, so they are not relitigated</title>
+          <rect x="330" y="110" width="280" height="54" rx="8" fill="currentColor" fill-opacity="0.10" stroke="currentColor" stroke-width="1.8" />
+          <text x="470" y="133" text-anchor="middle" font-weight="700">docs/adr/</text>
+          <text x="470" y="150" text-anchor="middle" font-size="9.5" opacity="0.7">decisions, and why</text>
+        </g>
+        <text x="86" y="141" text-anchor="middle" font-size="10.5" opacity="0.8">grill · domain-modeling</text>
+        <text x="856" y="141" text-anchor="middle" font-size="10.5" opacity="0.8">workers in that area</text>
+
+        <!-- backlog -->
+        <g id="f-backlog"><title>backlog.md via tasks-axi: the single source of truth for what work exists</title>
+          <rect x="330" y="178" width="280" height="54" rx="8" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="2.4" />
+          <text x="470" y="201" text-anchor="middle" font-weight="700">backlog.md</text>
+          <text x="470" y="218" text-anchor="middle" font-size="9.5" opacity="0.75">tickets · blockers · SOURCE OF TRUTH</text>
+        </g>
+        <text x="86" y="209" text-anchor="middle" font-size="10.5" opacity="0.8">Lelouch, via tasks-axi</text>
+        <text x="856" y="209" text-anchor="middle" font-size="10.5" opacity="0.8">Lelouch · you</text>
+
+        <!-- contract -->
+        <g id="f-contract"><title>CLAUDE.md and docs/agents: the contract that governs every session</title>
+          <rect x="330" y="246" width="280" height="54" rx="8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3" />
+          <text x="470" y="269" text-anchor="middle" font-weight="700">CLAUDE.md · docs/agents/</text>
+          <text x="470" y="286" text-anchor="middle" font-size="9.5" opacity="0.7">the contract itself</text>
+        </g>
+        <text x="86" y="277" text-anchor="middle" font-size="10.5" opacity="0.8">geass, then you</text>
+        <text x="856" y="277" text-anchor="middle" font-size="10.5" opacity="0.8">every session</text>
+      </g>
+
+      <g stroke="currentColor" fill="none" stroke-width="1.5" opacity="0.55" marker-end="url(#a3)">
+        <line x1="160" y1="69" x2="326" y2="69" /><line x1="614" y1="69" x2="780" y2="69" />
+        <line x1="160" y1="137" x2="326" y2="137" /><line x1="614" y1="137" x2="780" y2="137" />
+        <line x1="160" y1="205" x2="326" y2="205" /><line x1="614" y1="205" x2="780" y2="205" />
+        <line x1="160" y1="273" x2="326" y2="273" /><line x1="614" y1="273" x2="780" y2="273" />
+      </g>
+    </svg>
+  </div>
+
+  <div class="alert alert-warning alert-soft">
+    <div>
+      <h4 class="font-semibold mb-1">The one thing that does <em>not</em> persist</h4>
+      <p class="text-sm">A decision you have not answered yet lives only in the conversation. When the first
+      smoke test ran out of tokens, the glossary, ADRs and backlog all survived — the open questions did not.
+      Making a pending decision a durable backlog row is the single most valuable thing still on the list.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 4. SKILLS ============================== -->
+<section class="mb-16">
+  <p class="q mb-1">Question four</p>
+  <h2 class="text-2xl font-bold mb-3">How does a worker reach for the right skill?</h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    A skill is a set of instructions an agent loads on demand. There are three ways one gets invoked,
+    and they are <strong>not</strong> equally reliable — the whole dispatch design rests on this.
+  </p>
+
+  <div class="grid gap-4 md:grid-cols-3 mb-6">
+    <div class="card card-border bg-base-100 border-success/40">
+      <div class="card-body py-4">
+        <div class="flex items-baseline gap-2 mb-1"><span class="badge badge-success badge-sm">Tier 1</span>
+          <span class="text-xs opacity-60">build on this</span></div>
+        <h3 class="font-semibold">The spec names it</h3>
+        <p class="text-sm opacity-75 mt-1">Lelouch writes the skill names into the dispatched task spec.
+        The worker reads it as its opening instruction. Reliable because nothing is left to memory.</p>
+      </div>
+    </div>
+    <div class="card card-border bg-base-100 border-warning/40">
+      <div class="card-body py-4">
+        <div class="flex items-baseline gap-2 mb-1"><span class="badge badge-warning badge-sm">Tier 2</span>
+          <span class="text-xs opacity-60">ambient</span></div>
+        <h3 class="font-semibold">The routing table</h3>
+        <p class="text-sm opacity-75 mt-1">A table in <code class="inl">CLAUDE.md</code>, loaded at session
+        start: <em>when doing X, use Y</em>. Catches a worker that drifts.</p>
+      </div>
+    </div>
+    <div class="card card-border bg-base-100">
+      <div class="card-body py-4">
+        <div class="flex items-baseline gap-2 mb-1"><span class="badge badge-ghost badge-sm">Tier 3</span>
+          <span class="text-xs opacity-60">free, weakest</span></div>
+        <h3 class="font-semibold">It fires on its own</h3>
+        <p class="text-sm opacity-75 mt-1">Skills self-trigger from their description text. Costs nothing,
+        fires inconsistently. <strong>This is the one people assume carries the system, and it doesn't.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="font-semibold mb-3">Where each skill enters the pipeline</h3>
+  <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100 mb-6">
+    <table class="table table-zebra table-sm">
+      <thead><tr><th>Stage</th><th>Skill</th><th>Does what</th><th>Whose</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="3"><strong>Align</strong></td><td><code class="inl">grill-with-docs</code></td><td>interviews you, and records the vocabulary and decisions as it goes</td><td>Lelouch</td></tr>
+        <tr><td><code class="inl">grill-me</code></td><td>the same interview for a non-code decision</td><td>Lelouch</td></tr>
+        <tr><td><code class="inl">domain-modeling</code></td><td>sharpens terms; writes CONTEXT.md and ADRs</td><td>Lelouch</td></tr>
+        <tr><td rowspan="3"><strong>Plan</strong></td><td><code class="inl">to-spec</code></td><td>turns the conversation into a written spec</td><td>Lelouch</td></tr>
+        <tr><td><code class="inl">to-tickets</code></td><td>slices it into tickets with blocking edges</td><td>Lelouch</td></tr>
+        <tr><td><code class="inl">wayfinder</code></td><td>for work too big for one session — a map of decisions</td><td>Lelouch</td></tr>
+        <tr><td rowspan="2"><strong>Present</strong></td><td><code class="inl">lavish</code></td><td>renders a plan or report as a page you can annotate</td><td>both</td></tr>
+        <tr><td><code class="inl">brief</code></td><td>compacts context into the task spec a worker receives</td><td>Lelouch</td></tr>
+        <tr><td rowspan="4"><strong>Build</strong></td><td><code class="inl">implement</code></td><td>drives the work described by a ticket</td><td>Worker</td></tr>
+        <tr><td><code class="inl">tdd</code></td><td>failing test first, then the code</td><td>Worker</td></tr>
+        <tr><td><code class="inl">diagnosing-bugs</code></td><td>reproduce, minimise, hypothesise, fix, regression-test</td><td>Worker</td></tr>
+        <tr><td><code class="inl">research</code></td><td>investigates against primary sources, writes a cited report</td><td>Worker</td></tr>
+        <tr><td rowspan="2"><strong>Review</strong></td><td><code class="inl">prod-review</code></td><td>does the diff match the spec it came from?</td><td>Worker</td></tr>
+        <tr><td><code class="inl">codebase-design</code></td><td>where a seam goes; keeping modules deep</td><td>Worker</td></tr>
+        <tr><td><strong>Ship</strong></td><td><code class="inl">no-mistakes</code></td><td>review, test, lint, push, PR, CI — the gate</td><td>Worker</td></tr>
+        <tr><td rowspan="3"><strong>Run</strong></td><td><code class="inl">orchestration</code></td><td>dispatch and supervise workers</td><td>Lelouch</td></tr>
+        <tr><td><code class="inl">orca-cli</code></td><td>worktrees, terminals, the workspace board</td><td>Lelouch</td></tr>
+        <tr><td><code class="inl">tasks-axi</code></td><td>the backlog and its ready queue</td><td>Lelouch</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <div class="card card-border bg-base-100">
+      <div class="card-body py-4">
+        <h3 class="font-semibold text-sm">Two kinds of skill</h3>
+        <p class="text-sm opacity-75">Most are <strong>prose</strong> — the instructions <em>are</em> the skill.
+        A few (<code class="inl">lavish</code>, <code class="inl">tasks-axi</code>, <code class="inl">orchestration</code>)
+        are <strong>CLI-backed</strong>: a thin pointer whose real guidance lives in a versioned binary, so it can
+        never go stale. That is why you see them run <code class="inl">npx</code>.</p>
+      </div>
+    </div>
+    <div class="card card-border bg-base-100">
+      <div class="card-body py-4">
+        <h3 class="font-semibold text-sm">Vendored twice, on purpose</h3>
+        <p class="text-sm opacity-75">18 skills ship as both a pristine <strong>vanilla</strong> copy and our
+        <strong>patched</strong> forks. The vanilla copy is the diff baseline: when upstream changes,
+        <code class="inl">geass diff</code> shows exactly what we altered, so a version bump is a real merge
+        rather than a guess.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 5. GEASS ============================== -->
+<section class="mb-6">
+  <p class="q mb-1">Question five</p>
+  <h2 class="text-2xl font-bold mb-3">How does a project get all this?</h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    One command copies the harness <strong>into</strong> the project. A project either has these files —
+    and Lelouch runs it — or it doesn't, and you get a plain agent. Like a virtualenv: no global
+    footprint, nothing leaking between projects.
+  </p>
+
+  <div class="grid gap-4 lg:grid-cols-2 mb-5">
+    <div>
+      <pre class="blk">pip install git+https://github.com/m3dus444/lelouch-harness
+
+cd ~/my-project
+geass cast</pre>
+      <p class="text-sm opacity-70 mt-3">It reads the project's own git to fill the contract in — real repo,
+      real default branch — and checks that the external skills it depends on are actually installed, rather
+      than letting you discover that mid-dispatch.</p>
+    </div>
+    <div>
+      <pre class="blk">your-project/
+├── CLAUDE.md            the contract
+├── AGENTS.md            pointer, for other harnesses
+├── docs/agents/         tracker · domain · dispatch templates
+└── .claude/
+    ├── settings.json    session-start hook
+    └── skills/          18 skills, project-scoped</pre>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100">
+    <table class="table table-sm">
+      <thead><tr><th>Command</th><th>Does</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inl">geass cast</code></td><td>install the harness into a project</td></tr>
+        <tr><td><code class="inl">geass status</code></td><td>what is installed, what is missing</td></tr>
+        <tr><td><code class="inl">geass doctor</code></td><td>check the external skills and tools the contract needs</td></tr>
+        <tr><td><code class="inl">geass diff &lt;skill&gt;</code></td><td>how a fork differs from its vanilla copy</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer class="pt-8 mt-8 border-t border-base-content/10 text-sm opacity-60">
+  <p>Drawn from the shipped contract (<code class="inl">geass/harness/CLAUDE.md</code>), the dispatch
+  templates, and <code class="inl">geass/manifest.py</code> — not from memory. Design source: the
+  Lavish-recommended Tailwind + DaisyUI CDN, because lelouch-harness has no design system of its own.</p>
+</footer>
+
+</div>
+</body>
+</html>
