@@ -4,6 +4,10 @@ How Lelouch turns a ticket into a supervised worker. Fill a template in — do n
 improvise a spec. The spec is the only reliable mechanism for making a worker
 reach for the right skill (`CLAUDE.md` §6).
 
+**Clear both gates in `CLAUDE.md` §6 before anything here runs:** the user has
+approved the ticket breakdown, and — if this project has a user interface — a
+design pass exists for any styled-UI ticket. Silence is not approval.
+
 Load the orchestration guide once per session before dispatching:
 
 ```
@@ -20,10 +24,19 @@ list without opening a terminal, so they are not optional.
 | Worktree `--name` | the ticket id, e.g. `auth-session-q1` | `worker-start --name` |
 | `--display-name` | `[Build] short ticket title` | `worker-start --display-name` |
 | `--comment` | current state, one short line | `worker-start --comment`, then updated by the worker |
+| Terminal title | `Build 1 - Scaffold` | `orca terminal rename` after dispatch |
 | `--workspace-status` | board column | `orca worktree set` |
 
 Prefix display names with the shape — `[Scout]`, `[Build]`, `[Fix]` — so a glance
 at the board shows what kind of work is in flight.
+
+Orca's default terminal title is `worker-<task_id>`, which tells the user
+nothing. That id is **cosmetic** — Orca routes by `dispatchId` and terminal
+handle, so renaming the tab breaks nothing. Number each shape within the session:
+
+```
+orca terminal rename --terminal <handle> --title "Scout 1 - Prior art" --json
+```
 
 Board status transitions Lelouch owns:
 
