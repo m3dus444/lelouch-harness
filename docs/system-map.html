@@ -263,7 +263,9 @@
         <h3 class="font-semibold text-sm">The design gate</h3>
         <p class="text-sm opacity-75">Only when the project has a UI. How an app <em>looks</em> is never a
         worker's call: a design brief ships as its own PR, you take it through a design pass, and styled-UI
-        tickets reference the result. Structural work is unaffected; a CLI skips the gate.</p>
+        tickets reference the result. If you have <em>no</em> direction, Lelouch builds a few rough
+        proposals with <code class="inl">prototype</code> and your reaction becomes the input.
+        Structural work is unaffected; a CLI skips the gate.</p>
       </div>
     </div>
   </div>
@@ -397,8 +399,9 @@
         <tr><td><code class="inl">domain-modeling</code></td><td>sharpens terms; writes CONTEXT.md and ADRs</td><td>Lelouch</td></tr>
         <tr><td rowspan="3"><strong>Plan</strong></td><td><code class="inl">to-spec</code></td><td>turns the conversation into a written spec</td><td>Lelouch</td></tr>
         <tr><td><code class="inl">to-tickets</code></td><td>slices it into tickets with blocking edges</td><td>Lelouch</td></tr>
-        <tr><td><code class="inl">wayfinder</code></td><td>for work too big for one session — a map of decisions</td><td>Lelouch</td></tr>
-        <tr><td rowspan="2"><strong>Present</strong></td><td><code class="inl">lavish</code></td><td>renders a plan or report as a page you can annotate</td><td>both</td></tr>
+        <tr><td><code class="inl">wayfinder</code></td><td>maps work too big for one session as decisions, not deliverables — run <em>with you</em>; only its research tickets are dispatched</td><td>Lelouch + you</td></tr>
+        <tr><td rowspan="3"><strong>Present</strong></td><td><code class="inl">prototype</code></td><td>builds a rough, concrete thing to react to when "how should this look?" has no answer yet</td><td>Lelouch + you</td></tr>
+        <tr><td><code class="inl">lavish</code></td><td>renders a plan or report as a page you can annotate</td><td>both</td></tr>
         <tr><td><code class="inl">brief</code></td><td>compacts context into the task spec a worker receives</td><td>Lelouch</td></tr>
         <tr><td rowspan="4"><strong>Build</strong></td><td><code class="inl">implement</code></td><td>drives the work described by a ticket</td><td>Worker</td></tr>
         <tr><td><code class="inl">tdd</code></td><td>failing test first, then the code</td><td>Worker</td></tr>
@@ -427,8 +430,8 @@
     <div class="card card-border bg-base-100">
       <div class="card-body py-4">
         <h3 class="font-semibold text-sm">Vendored twice, on purpose</h3>
-        <p class="text-sm opacity-75">18 skills ship as both a pristine <strong>vanilla</strong> copy and our
-        <strong>patched</strong> forks. The vanilla copy is the diff baseline: when upstream changes,
+        <p class="text-sm opacity-75">19 skills ship as both a pristine <strong>vanilla</strong> copy and our
+        <strong>patched</strong> forks (8 of them). The vanilla copy is the diff baseline: when upstream changes,
         <code class="inl">geass diff</code> shows exactly what we altered, so a version bump is a real merge
         rather than a guess.</p>
       </div>
@@ -463,7 +466,7 @@ geass cast</pre>
 ├── docs/agents/         tracker · domain · dispatch templates
 └── .claude/
     ├── settings.json    session-start hook
-    └── skills/          18 skills, project-scoped</pre>
+    └── skills/          19 skills, project-scoped</pre>
     </div>
   </div>
 
