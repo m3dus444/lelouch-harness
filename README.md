@@ -140,10 +140,10 @@ skills every time, rather than hoping a description fires.
 
 ## The skill system
 
-18 skills from [`mattpocock/skills`](https://github.com/mattpocock/skills) ship
+19 skills from [`mattpocock/skills`](https://github.com/mattpocock/skills) ship
 vendored in this repo — **both a pristine `vanilla/` copy and our `patched/`
-forks**. `geass` installs vanilla for the 13 untouched skills and patched for
-the 5 forks.
+forks**. `geass` installs vanilla for the 11 untouched skills and patched for
+the 8 forks.
 
 Shipping vanilla too is not redundancy. It is the **diff baseline**: when
 upstream ships a change, `geass diff <skill>` shows exactly what we altered, so
@@ -151,7 +151,7 @@ a version bump is a real three-way merge instead of a guess. A live
 find-and-replace patch script would break silently the first time upstream
 rewrote a paragraph.
 
-### The five forks
+### The eight forks
 
 | Skill | Change | Why |
 |---|---|---|
@@ -160,6 +160,8 @@ rewrote a paragraph.
 | `implement` | model-invocation enabled; closes with `prod-review` only | upstream disables model invocation, so a dispatched worker could never auto-run it — the exact thing the system needs |
 | `improve-codebase-architecture` | report renders through `lavish` | so findings can be annotated back to the agent instead of read and forgotten |
 | `to-tickets` | tracker is `tasks-axi`, not `.scratch/` files | `tasks-axi` already models blocked-by edges and a ready queue; upstream's loose files re-implement that worse |
+| `to-spec`, `to-tickets`, `wayfinder` | model-invocation enabled | upstream ships them user-invoked only, so the orchestrator the contract assigns them to could not reach them |
+| `prototype` | logic demo renders through `lavish` | the point of a prototype is the user's reaction; annotating the artifact beats describing it back in chat |
 
 ### Not vendored, and why
 
@@ -254,7 +256,7 @@ your-project/
 └── .claude/
     ├── settings.json                SessionStart hook (merged, not clobbered)
     ├── hooks/session-start.py       injects ready queue + live workers
-    └── skills/                      18 skills, project-scoped
+    └── skills/                      19 skills, project-scoped
 ```
 
 The session hook is deliberately **role-neutral**: it reports facts and points
@@ -271,8 +273,8 @@ lelouch-harness/
 │   ├── manifest.py       what ships, and why each fork exists
 │   ├── harness/          the payload that gets cast
 │   └── skills/
-│       ├── vanilla/      18 pristine upstream copies (the diff baseline)
-│       └── patched/      5 forks
+│       ├── vanilla/      19 pristine upstream copies (the diff baseline)
+│       └── patched/      8 forks
 ├── pyproject.toml
 └── install.sh
 ```
