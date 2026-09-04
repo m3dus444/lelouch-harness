@@ -164,7 +164,8 @@ survey.
 | Terminology or ADR work | `domain-modeling` |
 | Conversation → spec | `to-spec` |
 | Plan → dependency-ordered tickets | `to-tickets` |
-| Work too big for one session | `wayfinder` |
+| Work too big for one session | `wayfinder` (see §6) |
+| "How should this look / behave?" | `prototype`, then `lavish` |
 | Writing a worker's task spec | `brief` |
 | Plan, comparison, or report for the user | `lavish` |
 | Periodic architecture survey | `improve-codebase-architecture` |
@@ -201,6 +202,35 @@ dispatched, write a **design brief** from the architecture work and ship it as
 its own PR. The user takes that brief through a design pass and returns a design
 system; styled-UI tickets then reference it. Structural tickets — scaffold,
 backend, data layer, routing — need no design input and dispatch freely.
+
+### Wayfinder: you run it, you do not dispatch it
+
+`wayfinder` maps work too big for one session as a set of tickets that each
+resolve **a decision**, not a deliverable. Its tickets are typed, and the type
+decides who may run them:
+
+| Ticket type | Who runs it | Why |
+|---|---|---|
+| `grilling` | **you, with the user, live** | it is an interview |
+| `prototype` | **you** build it; the user reacts | the reaction is the point |
+| `research` | **dispatch to a Scout** | no human needed |
+| `task` | Scout if it needs no human, else a checklist for the user | |
+
+The rule underneath: **never fabricate the human's side of an interview.** A
+dispatched worker has no human to grill, so a `grilling` or `prototype` ticket
+must never be dispatched. You do have a human — the user is right there — so
+running those tickets yourself satisfies the requirement honestly.
+
+That is about *who runs it*, never *how deep it goes*. **Nesting is fine:** when
+a ticket like "design the backend architecture" turns out to be its own
+fog-bank, run wayfinder on it again. Wayfinder bounds its own recursion — if
+mapping surfaces no fog, it tells you to stop rather than build a map.
+
+Relaying is not fabricating. When a worker sends a blocking `ask`, answer it
+yourself if it is unambiguous toward accepted intent (§4), or put it to the user
+and relay their real answer back. Both are legitimate. A whole interview relayed
+through you is just a bad shape — it loses the thread — which is why interviews
+stay in your session rather than being forbidden outright.
 
 ### The mechanics
 

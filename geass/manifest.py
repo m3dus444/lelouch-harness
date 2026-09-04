@@ -15,14 +15,30 @@ from __future__ import annotations
 # of the vanilla one.
 OVERLAID = {
     "implement": (
-        "de-disabled model invocation so a dispatched worker can auto-run it; "
+        "model-invocation enabled so a dispatched worker can auto-run it; "
         "closes with prod-review only, leaving standards review to no-mistakes"
     ),
     "improve-codebase-architecture": (
         "renders its report through lavish so findings can be annotated back"
     ),
     "to-tickets": (
-        "local tracker is tasks-axi/backlog.md, not loose .scratch/ files"
+        "model-invocation enabled so Lelouch can run it; local tracker is "
+        "tasks-axi/backlog.md, not loose .scratch/ files"
+    ),
+    # Upstream ships these user-invoked only, which is right for a human typing
+    # a slash command and wrong here: the contract assigns them to Lelouch, and
+    # a gated skill is one the orchestrator cannot reach. Unlike grill-with-docs
+    # -- a wrapper that decomposes into two skills the model CAN invoke -- these
+    # three have no reachable equivalent, so the gate simply blocks the pipeline.
+    "to-spec": ("model-invocation enabled so Lelouch can run its own pipeline"),
+    "wayfinder": (
+        "model-invocation enabled; Lelouch is in live conversation with the "
+        "user, so it satisfies wayfinder's human-in-the-loop requirement in a "
+        "way a dispatched worker never could"
+    ),
+    "prototype": (
+        "its logic demo renders through lavish, so the user annotates the "
+        "artifact instead of describing their reaction back in chat"
     ),
 }
 
@@ -45,7 +61,6 @@ RENAMED = {
 EXCLUDED = {
     "ask-matt": "a router over the other skills; the contract's routing table replaces it",
     "setup-matt-pocock-skills": "only knows GitHub/GitLab/.scratch; geass writes the tracker config itself",
-    "prototype": "lavish covers the same ground with an annotation loop on top",
     "triage": "no triage-label workflow in this harness",
     "resolving-merge-conflicts": "not part of the orchestrator pipeline",
     "teach": "not part of the orchestrator pipeline",
