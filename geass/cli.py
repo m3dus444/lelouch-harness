@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -77,10 +78,21 @@ def detect(project: Path) -> dict[str, str]:
     if not branch:
         branch = _git(project, "rev-parse", "--abbrev-ref", "HEAD")
 
+    # How the orchestrator addresses its principal. Taken from the environment
+    # so a cast can be personalised without editing the contract afterwards;
+    # git's user.name is the best guess available, and the contract is a plain
+    # file the user can edit if the guess is wrong.
+    user = (
+        os.environ.get("LELOUCH_USER")
+        or _git(project, "config", "user.name")
+        or "the user"
+    )
+
     return {
         "PROJECT": project.resolve().name,
         "REPO": repo,
         "DEFAULT_BRANCH": branch or "main",
+        "USER": user,
         "PLATFORM_NOTES": manifest.platform_notes(platform.system()),
     }
 

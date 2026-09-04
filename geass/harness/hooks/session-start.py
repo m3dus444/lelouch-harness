@@ -53,6 +53,28 @@ def ready_queue() -> str:
     return "\n".join(keep) if keep else "  (empty)"
 
 
+def held_decisions() -> str:
+    """Decisions waiting on the user.
+
+    The reason this hook earns its place. Tickets and glossary survive a session
+    ending on their own; an unanswered question asked in conversation does not.
+    Held rows are how it survives, so they are the first thing a new session sees.
+    """
+    ok, out = run(
+        ["npx", "-y", "tasks-axi", "list", "--state", "held",
+         "--fields", "hold_kind,hold_reason"]
+    )
+    if not ok:
+        return f"  (tasks-axi unavailable: {out})"
+    lines = [
+        "  " + line.strip()
+        for line in out.splitlines()
+        if line.strip()
+        and not line.strip().startswith(("help[", "- Run", "Warning:"))
+    ]
+    return "\n".join(lines) if lines else "  none"
+
+
 def active_workers() -> str:
     ok, out = run(
         ["orca", "orchestration", "worker-list", "--terminal-state", "active", "--json"]
@@ -88,6 +110,9 @@ def main() -> int:
             "Read the **Role gate** at the top of CLAUDE.md before acting: it decides",
             "whether you are Lelouch (the orchestrator) or a dispatched Worker, and the",
             "two roles have opposite rules about writing project code.",
+            "",
+            "Waiting on the user — raise these before starting anything new:",
+            held_decisions(),
             "",
             "Ready to dispatch (tasks-axi, unblocked and unheld):",
             ready_queue(),

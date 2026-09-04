@@ -44,7 +44,30 @@ this list; it is a map, not a contract.
 | Close with a PR | `npx -y tasks-axi done <id> --pr <url>` |
 | Close with a report | `npx -y tasks-axi done <id> --report <path>` |
 | Pause without losing it | `npx -y tasks-axi hold <id> --reason "<why>" --kind captain` |
+| Defer to a date | `npx -y tasks-axi hold <id> --reason "<why>" --until YYYY-MM-DD` |
+| Release once answered | `npx -y tasks-axi unhold <id>` |
+| What is waiting on the user | `npx -y tasks-axi list --state held --fields hold_kind,hold_reason` |
 | Read one ticket in full | `npx -y tasks-axi show <id> --full` |
+
+## Decisions waiting on the user
+
+A pending decision is a **held ticket**, not a note in the conversation —
+conversations do not survive a session ending, and the backlog does. See
+`CLAUDE.md` §4 for the policy; the mechanics are:
+
+- `--kind captain` marks it as waiting on the user, which is what distinguishes
+  it from a hold for load, an external blocker, or parked work.
+- The `--reason` carries **the question and its options**, because that string is
+  what a future session sees when it lists held work.
+- Hold **the ticket the decision gates**. Mint a new one only when no ticket
+  exists to hold, so the decision and the work it blocks stay one row.
+- `unhold` only after recording the user's actual words. Their answer belongs in
+  the ticket body (`update --body-file`), not only in a chat log.
+- `--until YYYY-MM-DD` is how "later" is recorded: it leaves the live list and
+  returns on its date.
+
+`ready` already excludes held work, so a held decision cannot be dispatched by
+accident.
 
 ## When a skill says "publish to the issue tracker"
 

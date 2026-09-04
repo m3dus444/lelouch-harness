@@ -268,7 +268,10 @@ your-project/
 
 The session hook is deliberately **role-neutral**: it reports facts and points
 at the role gate rather than asserting an identity, because it fires for workers
-too. It fails soft — a slow or missing tool degrades to a note, never a broken
+too. It leads with **decisions waiting on you** — that is the reason it earns its
+place. Tickets and glossary survive a session ending on their own; a question
+asked in conversation does not, so pending decisions are held rows in the backlog
+and this is where a fresh session finds them. It fails soft — a slow or missing tool degrades to a note, never a broken
 session.
 
 ## Repo layout
