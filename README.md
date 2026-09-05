@@ -314,6 +314,31 @@ a cold-TUI dispatch race, and stayed talkable while the worker ran.
 That run also surfaced real defects — all of them in *choreography*, not
 machinery — which is the useful kind. See the open issues.
 
+## Credits
+
+Lelouch is a fork of other people's good ideas, not a clean-room invention.
+
+**[firstmate](https://github.com/kunchenguid/firstmate)** by Kun Chen is where
+the shape came from. Three of its ideas are load-bearing here: the hard-rule
+prime directive that keeps the orchestrator out of the code, the split between
+work that ships and work that only investigates, and reconciling live state at
+session start so a restart costs nothing. Its `ask-user-authority` is the source
+of this contract's escalation policy — decide what is unambiguous, escalate only
+expansion or irreversibility — and its `captain-hold-lifecycle` is where
+"a decision is just a task waiting on the user" comes from.
+
+Where Lelouch differs is placement: firstmate is a distro you work *inside*, with
+your projects nested under it. `geass` casts the harness *into* your project
+instead. Both are defensible; they trade differently.
+
+**[mattpocock/skills](https://github.com/mattpocock/skills)** by Matt Pocock
+supplies the 19 vendored skills. The forks are recorded above, and every one
+keeps its vanilla copy alongside so the changes stay visible.
+
+**[Orca](https://orca.computer)** provides the runtime, and the `-axi` CLIs
+(`tasks-axi`, `gh-axi`, `lavish-axi`, `no-mistakes`) by Kun Chen provide the
+backlog, GitHub, review and ship-gate surfaces.
+
 ## License
 
 MIT.
