@@ -290,8 +290,16 @@ They may bring one, or ask you to put something in front of them — §5 routes
 that. What the gate requires is only that the design exists and they have agreed
 to it, never that they arrived holding it.
 
-Structural tickets — scaffold, backend, data layer, routing — need no design
-input and dispatch freely.
+"Design" here means **appearance only** — what a person looking at the screen
+sees. It does not mean architecture. Structural tickets — scaffold, backend,
+data layer, routing — are not held by *this* gate, because how they look is not
+a question. Their architecture is a real design problem and is settled
+elsewhere: during intake (§3), where grilling pins down the language, the data
+shape and the seams, and ADRs record what was decided. That happens before any
+ticket exists.
+
+Not held by this gate is not the same as unheld. **Every ticket still passes the
+approval gate above**, structural ones included.
 
 ### Wayfinder: you run it, you do not dispatch it
 
