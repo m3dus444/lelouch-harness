@@ -32,10 +32,23 @@ def emit(line: str) -> None:
 
 def interesting(row: dict) -> list[str]:
     """Actions worth a notification. Deliberately narrow."""
-    if row.get("type") != "assistant":
-        return []
-    content = row.get("message", {}).get("content")
-    if not isinstance(content, list):
+    content = (row.get("message") or {}).get("content")
+
+    # A refusal arrives one row after the call, on a user-role row. Without this
+    # a blocked skill streams as if it ran: `grill-with-docs` is
+    # disable-model-invocation, and reporting it as an invocation sent the
+    # supervisor to tell C.C the intake had started when it had just died.
+    if row.get("type") == "user" and isinstance(content, list):
+        out = []
+        for x in content:
+            if not isinstance(x, dict) or x.get("type") != "tool_result":
+                continue
+            body = str(x.get("content", ""))
+            if x.get("is_error") or "<tool_use_error>" in body:
+                out.append(f"!! REFUSED  {' '.join(body.split())[:110]}")
+        return out
+
+    if row.get("type") != "assistant" or not isinstance(content, list):
         return []
 
     out = []
