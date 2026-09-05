@@ -89,11 +89,19 @@ orca orchestration task-create \
   --display-name "[Scout] <short title>" \
   --spec "<filled skeleton>" --json
 
+orca terminal create --worktree current \
+  --title "Scout <n> - <short title>" --command {{AGENT}} --json
+
+orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 90000
+
 orca orchestration worker-start --task <task_id> \
-  --worktree current --agent claude \
-  --display-name "[Scout] <short title>" \
-  --comment "dispatched" --json
+  --terminal <handle> --worktree current --json
 ```
+
+Warm the terminal first so the spec cannot lose the boot race, and name the tab
+at `terminal create` — Orca rejects `--display-name` and `--comment` on
+`--worktree current`. Read the reply: `"state": "ready"`, `"stage":
+"input_accepted"`. Never pipe it.
 
 Spec body:
 
@@ -121,7 +129,7 @@ orca orchestration task-create \
   --spec "<filled skeleton>" --json
 
 orca orchestration worker-start --task <task_id> \
-  --worktree new-top-level --name <ticket-id> --setup run --agent claude \
+  --worktree new-top-level --name <ticket-id> --setup run --agent {{AGENT}} \
   --display-name "[Build] <short title>" \
   --comment "dispatched" --json
 ```
@@ -159,7 +167,7 @@ orca orchestration task-create \
   --spec "<filled skeleton>" --json
 
 orca orchestration worker-start --task <task_id> \
-  --worktree new-top-level --name <ticket-id> --setup run --agent claude \
+  --worktree new-top-level --name <ticket-id> --setup run --agent {{AGENT}} \
   --display-name "[Fix] <short title>" \
   --comment "dispatched" --json
 ```
