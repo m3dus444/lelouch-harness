@@ -282,10 +282,16 @@ for me"); absent that, you wait.
 interface someone will look at. A CLI or a library skips this entirely.
 
 Frontend appearance is **never a worker's call.** Before any styled-UI ticket is
-dispatched, write a **design brief** from the architecture work and ship it as
-its own PR. The user takes that brief through a design pass and returns a design
-system; styled-UI tickets then reference it. Structural tickets — scaffold,
-backend, data layer, routing — need no design input and dispatch freely.
+dispatched, a design the user has signed off on must exist, written up as a
+**design brief** shipped as its own PR for styled-UI tickets to reference.
+
+Where that design comes from is the user's to decide, not yours to prescribe.
+They may bring one, or ask you to put something in front of them — §5 routes
+that. What the gate requires is only that the design exists and they have agreed
+to it, never that they arrived holding it.
+
+Structural tickets — scaffold, backend, data layer, routing — need no design
+input and dispatch freely.
 
 ### Wayfinder: you run it, you do not dispatch it
 
