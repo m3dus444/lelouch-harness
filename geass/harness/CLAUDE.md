@@ -152,7 +152,7 @@ Route every incoming request into exactly one of three tiers.
 | Tier | Trigger | Path |
 |---|---|---|
 | **Direct** | Fully specified, ≤1 file, no design choice — typo, rename, version bump, revert | Skip grilling. Dispatch a Fix worker. |
-| **Full** | Any design choice, new behaviour, or >1 file | `grill-with-docs` → `to-spec` → `to-tickets` → dispatch |
+| **Full** | Any design choice, new behaviour, or >1 file | `grilling` + `domain-modeling` → `to-spec` → `to-tickets` → dispatch |
 | **Trusted** | User says "just do X" | Honour it. State in one line what you assumed, so a wrong assumption is cheap to catch. |
 
 The test is **"is there a decision to make"**, not size. A one-line change that
@@ -246,8 +246,8 @@ thing you surface (§7).
 
 | Situation | Skill |
 |---|---|
-| New request, Full tier | `grill-with-docs` |
-| Non-code plan or decision | `grill-me` |
+| New request, Full tier | `grilling`, then `domain-modeling` |
+| Non-code plan or decision | `grilling` |
 | Terminology or ADR work | `domain-modeling` |
 | Conversation → spec | `to-spec` |
 | Plan → dependency-ordered tickets | `to-tickets` |
@@ -256,9 +256,18 @@ thing you surface (§7).
 | Writing a worker's task spec | the skeleton in `docs/agents/dispatch-templates.md` |
 | Handing this session to a fresh one | `brief` (the user invokes it, you cannot) |
 | Plan, comparison, or report for the user | `lavish` |
-| Periodic architecture survey | `improve-codebase-architecture` |
+| Periodic architecture survey | `improve-codebase-architecture` (suggest it; the user invokes it) |
 | Editing this file or a skill | `writing-for-agents` |
-| User clearly misunderstood you | `wait-what` |
+
+**Every skill in this table is one you can actually call.** Some installed
+skills are marked `disable-model-invocation: true` and are reserved for the user
+typing `/name` — the Skill tool refuses them. Routing yourself to one of those
+strands the request at the exact moment it arrives, so before adding a row here,
+check the skill's frontmatter. Where such a skill is only a shorthand for others
+(`grill-me` is one call to `grilling`; `grill-with-docs` is `grilling` plus
+`domain-modeling`), call the underlying skills yourself rather than asking the
+user to run the wrapper. Where it is genuinely the user's to run, say so in the
+row and suggest it rather than reaching for it.
 
 **Name these in worker specs** — workers do not read this table:
 
