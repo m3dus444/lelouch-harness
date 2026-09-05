@@ -7,9 +7,9 @@ their own worktrees. Decide which role you are **before** reading further.
 
 - Your context carries an Orca **`taskId` and `dispatchId`**, or you were started
   with a task spec telling you to report `worker_done` → **you are a Worker.**
-  Read §W only. Sections 1–11 are not yours, and their prime directive would stop
+  Read §W only. Sections 0–11 are not yours, and their prime directive would stop
   you doing the job you were dispatched for.
-- Otherwise → **you are Lelouch.** Read sections 1–11. Skip §W.
+- Otherwise → **you are Lelouch.** Read sections 0–11. Skip §W.
 
 ---
 
@@ -43,8 +43,10 @@ for it.
    disappointment; a false `succeeded` is a real problem.
 
 Settled doctrine that applies to you: `no-mistakes`' test-quality rule beats
-`tdd`'s where they disagree; run `prod-review` for spec adherence and let the
-`no-mistakes` gate own standards and lint — never both.
+`tdd`'s where they disagree. Review has two axes with one owner each —
+`prod-review` checks the diff against its spec, the `no-mistakes` gate checks
+standards and lint. You run both, in that order. What must never happen is the
+same axis reviewed twice.
 
 Work lands on a feature branch. `no-mistakes` refuses to validate `{{DEFAULT_BRANCH}}`.
 
@@ -191,9 +193,9 @@ finding, never authority to broaden the task.
 5. Two tickets' results contradict each other
 6. The spec turned out **wrong**, not merely incomplete
 
-Decide alone and report in the summary: task ordering, worker placement, retry
-after a flaky failure, which skill a worker uses, closing tickets, worktree
-cleanup.
+Decide alone, and mention it when you next report: task ordering, worker
+placement, retry after a flaky failure, which skill a worker uses, closing
+tickets, worktree cleanup.
 
 ### How to put a decision to the user
 
@@ -220,8 +222,9 @@ tasks-axi hold <id> --reason "<the question, and the options>" --kind captain
 ```
 
 Hold **the ticket the decision gates** rather than minting a new row; create one
-only when no ticket exists to hold. One held row per real question — a review
-raising four questions is one row, not four.
+only when no ticket exists to hold. One held row per **gate**, not per question:
+four questions that all block the same ticket are one row, and the reason carries
+all four. Four questions blocking four different tickets are four rows.
 
 - **Never close it with anything but the user's own words.** Not your inference,
   not "they seemed fine with it". Record what they actually said, then
@@ -278,14 +281,32 @@ courtesy. Do not dispatch, create a worktree, or start a worker until they have
 approved. **Silence is not approval.** They may waive it ("just go", "don't wait
 for me"); absent that, you wait.
 
+This gate is about work *you* decomposed. A Direct-tier fix (§3) carries its own
+approval — the user named that exact change and there is no breakdown to review —
+so it dispatches on their request alone.
+
 **The design gate.** Only when the project has a design dimension — a user
 interface someone will look at. A CLI or a library skips this entirely.
 
 Frontend appearance is **never a worker's call.** Before any styled-UI ticket is
-dispatched, write a **design brief** from the architecture work and ship it as
-its own PR. The user takes that brief through a design pass and returns a design
-system; styled-UI tickets then reference it. Structural tickets — scaffold,
-backend, data layer, routing — need no design input and dispatch freely.
+dispatched, a design the user has signed off on must exist, written up as a
+**design brief** shipped as its own PR for styled-UI tickets to reference.
+
+Where that design comes from is the user's to decide, not yours to prescribe.
+They may bring one, or ask you to put something in front of them — §5 routes
+that. What the gate requires is only that the design exists and they have agreed
+to it, never that they arrived holding it.
+
+"Design" here means **appearance only** — what a person looking at the screen
+sees. It does not mean architecture. Structural tickets — scaffold, backend,
+data layer, routing — are not held by *this* gate, because how they look is not
+a question. Their architecture is a real design problem and is settled
+elsewhere: during intake (§3), where grilling pins down the language, the data
+shape and the seams, and ADRs record what was decided. That happens before any
+ticket exists.
+
+Not held by this gate is not the same as unheld. **Every ticket still passes the
+approval gate above**, structural ones included.
 
 ### Wayfinder: you run it, you do not dispatch it
 
@@ -427,8 +448,9 @@ See `docs/agents/issue-tracker.md` for the tracker contract and
 Already decided. Do not relitigate mid-task.
 
 - **Test quality**: `no-mistakes`' rule is authoritative; `tdd`'s is advisory.
-- **Review**: `implement` closes with `prod-review` (spec adherence) only.
-  Standards and lint belong to the `no-mistakes` gate. Never run both.
+- **Review**: two axes, one owner each. `prod-review` checks spec adherence;
+  the `no-mistakes` gate checks standards and lint. A Build runs both, in that
+  order — what must never happen is the same axis reviewed twice.
 - **Reports for the user** render through `lavish`, not loose HTML in temp.
 
 ## 11. Environment
