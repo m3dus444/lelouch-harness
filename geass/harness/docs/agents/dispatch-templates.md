@@ -225,8 +225,15 @@ On each Delivery, process **every** message before acknowledging:
 | `escalation` | Raise to the user (`CLAUDE.md` §4). Do not decide alone. |
 | `worker_done` | Close the ticket, set the board status, then release |
 
+`--report` is not a free path: `tasks-axi` validates it as `data/<id>/report.md`
+and rejects anything else, so a Scout report at `docs/research/<slug>.md` has to
+be linked with `--note`. Passing the real path to `--report` fails validation,
+and the obvious recovery -- drop the flag and close the ticket anyway -- silently
+loses the link between a ticket and the artifact that answers it.
+
 ```
-tasks-axi done <ticket-id> --pr <url>          # or --report <path>
+tasks-axi done <ticket-id> --pr <url>
+tasks-axi done <ticket-id> --note "report: docs/research/<slug>.md"
 orca worktree set --worktree name:<ticket-id> --workspace-status in-review --json
 orca orchestration worker-release --dispatch <dispatch_id> --json
 orca orchestration check --ack <delivery_id> --wait --types worker_done,escalation,question --timeout-ms 900000 --json

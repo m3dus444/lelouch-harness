@@ -67,6 +67,12 @@ def interesting(row: dict) -> list[str]:
         cmd = " ".join(str(inp.get("command", "")).split())
         low = cmd.lower()
 
+        # Reading the manual is not doing the thing. `tasks-axi add --help`
+        # streamed as `ticket+`, which would have put a ticket on the board
+        # before the approval gate that must precede it.
+        if re.search(r"(--help|-h)\b", low) or low.endswith("--help"):
+            continue
+
         # Skip commands that WRITE a file. Lelouch writes task specs that name
         # `worker-start` and `no-mistakes`, so matching tool names inside a
         # heredoc reports a dispatch that never happened - and a phantom
@@ -74,9 +80,14 @@ def interesting(row: dict) -> list[str]:
         if re.search(r"(^|&&|\|\|,?|;)\s*(cat|tee)\s*>>?|<<\s*['\"]?\w*EOF", cmd):
             continue
 
-        # A defect, not progress: the contract says call installed tools direct.
+        # The contract says call installed tools directly. Measured on this
+        # machine: direct ~1.2s, `npx --no-install` ~4s, `npx -y` worse and
+        # unbounded when the registry is cold. Only the fetching form earns a
+        # `!!` -- `--no-install` cannot fetch, so it is a slow habit, not a
+        # defect, and flagging both alike just teaches me to ignore the marker.
         if re.search(r"\bnpx\b.*\b(tasks-axi|gh-axi|lavish-axi)\b", low):
-            out.append(f"!! npx     {cmd[:90]}")
+            mark = "slow-npx  " if "--no-install" in low else "!! npx    "
+            out.append(f"{mark} {cmd[:90]}")
 
         # Match the tool as an executed COMMAND - name followed by a real
         # subcommand - never as a substring of a path or a sentence.
@@ -87,6 +98,13 @@ def interesting(row: dict) -> list[str]:
             # re-arms it constantly and silently (contract section 7), so
             # streaming it would drown everything in the noise the contract
             # exists to suppress. Verified from the transcript afterwards.
+            # Typed sends first, and by type: a worker chains
+            # `worktree set && orchestration send --type worker_done` in one
+            # command, and a generic "mail" label truncated at 90 chars buried
+            # the single event the whole run exists to produce.
+            (r"orchestration\s+send\s+.*--type\s+worker_done", "** DONE   "),
+            (r"orchestration\s+send\s+.*--type\s+(escalation|question)", "** ASKS   "),
+            (r"orchestration\s+send\s+.*--type\s+heartbeat", "hb        "),
             (r"orchestration\s+send\s+", "mail      "),
             (r"(?<![\w/-])tasks-axi\s+hold\s+", "HOLD      "),
             (r"(?<![\w/-])tasks-axi\s+add\s+", "ticket+   "),
