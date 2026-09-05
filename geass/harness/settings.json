@@ -6,7 +6,7 @@
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.py\"",
-            "timeout": 45,
+            "timeout": 30,
             "statusMessage": "Reading project state..."
           }
         ]

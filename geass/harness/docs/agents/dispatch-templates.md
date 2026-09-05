@@ -218,7 +218,7 @@ On each Delivery, process **every** message before acknowledging:
 | `worker_done` | Close the ticket, set the board status, then release |
 
 ```
-npx -y tasks-axi done <ticket-id> --pr <url>          # or --report <path>
+tasks-axi done <ticket-id> --pr <url>          # or --report <path>
 orca worktree set --worktree name:<ticket-id> --workspace-status in-review --json
 orca orchestration worker-release --dispatch <dispatch_id> --json
 orca orchestration check --ack <delivery_id> --wait --types worker_done,escalation,question --timeout-ms 900000 --json

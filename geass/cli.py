@@ -77,6 +77,10 @@ def detect(project: Path) -> dict[str, str]:
     if not branch:
         branch = _git(project, "rev-parse", "--abbrev-ref", "HEAD")
 
+    # Deliberately no name for the user. git's user.name is right there, but
+    # lifting an identity into the contract without being asked is a leak, not a
+    # convenience -- and a wrong guess is worse than none. The contract addresses
+    # them in plain second person; naming is one line they can edit themselves.
     return {
         "PROJECT": project.resolve().name,
         "REPO": repo,

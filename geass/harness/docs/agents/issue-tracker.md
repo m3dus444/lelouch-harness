@@ -31,20 +31,43 @@ through the CLI so the ready queue stays correct.
 
 ## Command surface
 
-Get current flags from `npx -y tasks-axi <command> --help` rather than trusting
+Get current flags from `tasks-axi <command> --help` rather than trusting
 this list; it is a map, not a contract.
 
 | Operation | Command |
 |---|---|
-| Add a ticket | `npx -y tasks-axi add <id> "<title>" --kind ship --repo {{PROJECT}} --body-file <path>` |
-| Add with a blocker | `npx -y tasks-axi add <id> "<title>" --blocked-by <other-id>` |
-| Record a dependency later | `npx -y tasks-axi block <id> --by <other-id>` |
-| What is dispatchable now | `npx -y tasks-axi ready` |
-| Claim before working | `npx -y tasks-axi start <id>` |
-| Close with a PR | `npx -y tasks-axi done <id> --pr <url>` |
-| Close with a report | `npx -y tasks-axi done <id> --report <path>` |
-| Pause without losing it | `npx -y tasks-axi hold <id> --reason "<why>" --kind captain` |
-| Read one ticket in full | `npx -y tasks-axi show <id> --full` |
+| Add a ticket | `tasks-axi add <id> "<title>" --kind ship --repo {{PROJECT}} --body-file <path>` |
+| Add with a blocker | `tasks-axi add <id> "<title>" --blocked-by <other-id>` |
+| Record a dependency later | `tasks-axi block <id> --by <other-id>` |
+| What is dispatchable now | `tasks-axi ready` |
+| Claim before working | `tasks-axi start <id>` |
+| Close with a PR | `tasks-axi done <id> --pr <url>` |
+| Close with a report | `tasks-axi done <id> --report <path>` |
+| Pause without losing it | `tasks-axi hold <id> --reason "<why>" --kind captain` |
+| Defer to a date | `tasks-axi hold <id> --reason "<why>" --until YYYY-MM-DD` |
+| Release once answered | `tasks-axi unhold <id>` |
+| What is waiting on the user | `tasks-axi list --state held --fields hold_kind,hold_reason` |
+| Read one ticket in full | `tasks-axi show <id> --full` |
+
+## Decisions waiting on the user
+
+A pending decision is a **held ticket**, not a note in the conversation —
+conversations do not survive a session ending, and the backlog does. See
+`CLAUDE.md` §4 for the policy; the mechanics are:
+
+- `--kind captain` marks it as waiting on the user, which is what distinguishes
+  it from a hold for load, an external blocker, or parked work.
+- The `--reason` carries **the question and its options**, because that string is
+  what a future session sees when it lists held work.
+- Hold **the ticket the decision gates**. Mint a new one only when no ticket
+  exists to hold, so the decision and the work it blocks stay one row.
+- `unhold` only after recording the user's actual words. Their answer belongs in
+  the ticket body (`update --body-file`), not only in a chat log.
+- `--until YYYY-MM-DD` is how "later" is recorded: it leaves the live list and
+  returns on its date.
+
+`ready` already excludes held work, so a held decision cannot be dispatched by
+accident.
 
 ## When a skill says "publish to the issue tracker"
 
@@ -57,7 +80,7 @@ belongs to the upstream local-files convention this repo replaced.
 
 ## When a skill says "fetch the relevant ticket"
 
-`npx -y tasks-axi show <id> --full`. The user will normally pass the id.
+`tasks-axi show <id> --full`. The user will normally pass the id.
 
 ## Pull requests
 
@@ -65,7 +88,7 @@ PRs are delivery, not intake. **PRs as a request surface: no.**
 
 Workers open PRs through the `no-mistakes` ship gate, which owns the
 push/PR/CI phases. Use `gh-axi` for any direct GitHub read or write
-(`npx -y gh-axi pr --help`); prefer it over raw `gh`.
+(`gh-axi pr --help`); prefer it over raw `gh`.
 
 The default branch is `{{DEFAULT_BRANCH}}`. Work must land on a feature branch — the
 `no-mistakes` gate refuses to validate the default branch.
@@ -74,15 +97,15 @@ The default branch is `{{DEFAULT_BRANCH}}`. Work must land on a feature branch �
 
 Used by `/wayfinder`. The **map** is one task; each decision is a child task.
 
-- **Map**: `npx -y tasks-axi add <effort>-map "<destination>" --kind docs
+- **Map**: `tasks-axi add <effort>-map "<destination>" --kind docs
   --body-file map.md`. The body holds Notes / Decisions-so-far / Fog.
 - **Child ticket**: `<effort>-NN-<slug>`, with the question in the body. Record
   the ticket type (`research` / `prototype` / `grilling` / `task`) on the first
   line of the body.
-- **Blocking**: `npx -y tasks-axi block <effort>-NN-<slug> --by <effort>-MM-<slug>`.
-- **Frontier**: `npx -y tasks-axi ready --repo {{PROJECT}}` — it already excludes
+- **Blocking**: `tasks-axi block <effort>-NN-<slug> --by <effort>-MM-<slug>`.
+- **Frontier**: `tasks-axi ready --repo {{PROJECT}}` — it already excludes
   blocked and held work, so do not re-derive the frontier by hand.
-- **Claim**: `npx -y tasks-axi start <id>` before any work.
-- **Resolve**: `npx -y tasks-axi done <id> --note "<the answer>"`, then append a
+- **Claim**: `tasks-axi start <id>` before any work.
+- **Resolve**: `tasks-axi done <id> --note "<the answer>"`, then append a
   context pointer to the map body with
-  `npx -y tasks-axi update <effort>-map --body-file <updated> --archive-body`.
+  `tasks-axi update <effort>-map --body-file <updated> --archive-body`.
