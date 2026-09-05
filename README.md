@@ -79,11 +79,14 @@ complete install.
 ## Use
 
 ```sh
+geass new <name>       # create a project, cast on it, open a cold session
 geass cast [path]      # install the harness into a project (default: .)
 geass status [path]    # what is installed, and what is missing
 geass doctor [path]    # check the external skills and tools the contract needs
 geass diff <skill>     # how a forked skill differs from its vanilla copy
 ```
+
+`new` is the whole start-a-project sequence in one command: make the repo, register it with Orca, cast, and open a session that is **cold** — it loads the contract fresh, which is the only honest way to see what the contract alone produces. Only the Orca half is runtime-specific; without Orca the project is still created and cast, and you open the session yourself.
 
 `cast` reads the target's own git to fill the contract in — real project name,
 real repo, real default branch, and platform notes for the OS you're on. A

@@ -1,5 +1,6 @@
 """geass — install the Lelouch orchestrator harness into a project.
 
+    geass new <name>      create a project, cast on it, and open a cold session
     geass cast [path]     install the harness (default: current directory)
     geass status [path]   report what is installed and whether it has drifted
     geass doctor [path]   check the external skills and tools the contract needs
@@ -129,8 +130,8 @@ def resolve_skills() -> list[tuple[str, Path, str]]:
         else:
             out.append((src.name, src, "vanilla"))
 
-    for old, (new, _why) in manifest.RENAMED.items():
-        out.append((new, SKILLS / "patched" / new, f"patched, renamed from {old}"))
+    for old, (renamed, _why) in manifest.RENAMED.items():
+        out.append((renamed, SKILLS / "patched" / renamed, f"patched, renamed from {old}"))
 
     return sorted(out)
 
@@ -299,6 +300,65 @@ def cast(project: Path, force: bool) -> int:
     return 0
 
 
+def new(name: str, parent: Path, agent: str) -> int:
+    """Create a project, cast the harness on it, and open a cold session.
+
+    The four manual steps that start a project — make the repo, register it with
+    Orca, cast, open a session — with nothing between them for a mistake to hide
+    in. The session is COLD on purpose: it loads the contract fresh, which is the
+    only honest way to see what the contract alone produces.
+
+    Only the Orca half is runtime-specific. If Orca is absent the project is
+    still created and cast; you just open the session yourself.
+    """
+    project = (parent / name).resolve()
+    if project.exists():
+        print(f"! {project} already exists", file=sys.stderr)
+        return 1
+
+    print(f"Creating {name}\n")
+    project.mkdir(parents=True)
+    for args in (
+        ["init", "-q", "-b", "main"],
+        ["commit", "-q", "--allow-empty", "-m", "Initial commit"],
+    ):
+        if subprocess.run(["git", "-C", str(project), *args]).returncode != 0:
+            print("! git failed; leaving the directory in place", file=sys.stderr)
+            return 1
+    print(f"  repo        {project}")
+
+    orca = shutil.which("orca")
+    if orca:
+        r = subprocess.run(
+            [orca, "repo", "add", "--path", str(project), "--json"],
+            capture_output=True, text=True,
+        )
+        print(f"  orca        {'registered' if r.returncode == 0 else 'add failed: ' + r.stderr.strip()[:60]}")
+
+    print()
+    rc = cast(project, force=False)
+    if rc != 0:
+        return rc
+
+    if not orca:
+        print("\nOrca not found — open an agent session in the project yourself.")
+        return 0
+
+    r = subprocess.run(
+        [orca, "terminal", "create", "--worktree", f"path:{project}",
+         "--title", f"{name} - Lelouch", "--command", agent, "--focus", "--json"],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        print(f"\n! could not open the session: {r.stderr.strip()[:160]}", file=sys.stderr)
+        print(f"  Open one yourself in {project} and run `{agent}`.", file=sys.stderr)
+        return 1
+
+    print(f"\n  session     opened, running `{agent}`")
+    print("\nLelouch is cold in that terminal. Tell it what you want built.")
+    return 0
+
+
 def status(project: Path) -> int:
     values = detect(project)
     print(f"{values['PROJECT']}  ({values['REPO']}, default {values['DEFAULT_BRANCH']})\n")
@@ -355,9 +415,9 @@ def diff(skill: str) -> int:
     patched = SKILLS / "patched" / skill
 
     if not patched.is_dir():
-        for old, (new, _why) in manifest.RENAMED.items():
-            if new == skill:
-                vanilla, patched = SKILLS / "vanilla" / old, SKILLS / "patched" / new
+        for old, (renamed, _why) in manifest.RENAMED.items():
+            if renamed == skill:
+                vanilla, patched = SKILLS / "vanilla" / old, SKILLS / "patched" / renamed
                 break
 
     if not patched.is_dir():
@@ -367,8 +427,8 @@ def diff(skill: str) -> int:
 
     why = manifest.OVERLAID.get(skill)
     if why is None:
-        for old, (new, reason) in manifest.RENAMED.items():
-            if new == skill:
+        for old, (renamed, reason) in manifest.RENAMED.items():
+            if renamed == skill:
                 why = f"renamed from {old}: {reason}"
     print(f"# {skill}\n# {why}\n")
     # git writes unbuffered; without this our header lands after its output.
@@ -385,6 +445,13 @@ def main() -> int:
     )
     sub = parser.add_subparsers(dest="command")
 
+    p_new = sub.add_parser("new", help="create a project, cast it, open a session")
+    p_new.add_argument("name")
+    p_new.add_argument("--in", dest="parent", default=".",
+                       help="where to create it (default: current directory)")
+    p_new.add_argument("--agent", default="claude",
+                       help="agent to launch in the new session (default: claude)")
+
     p_cast = sub.add_parser("cast", help="install the harness into a project")
     p_cast.add_argument("path", nargs="?", default=".")
     p_cast.add_argument("--force", action="store_true", help="overwrite an existing cast")
@@ -399,6 +466,8 @@ def main() -> int:
     p_diff.add_argument("skill")
 
     args = parser.parse_args()
+    if args.command == "new":
+        return new(args.name, Path(args.parent), args.agent)
     if args.command == "cast":
         return cast(Path(args.path), args.force)
     if args.command == "status":
