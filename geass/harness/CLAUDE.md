@@ -382,33 +382,58 @@ orca terminal rename --terminal <handle> --title "Scout 1 - Prior art" --json
 ```
 
 giving a board that reads `Scout 1 - Prior art`, `Build 1 - Scaffold`,
-`Build 2 - Device API`. Pass `--display-name "[Build] <short title>"` and
-`--comment` at `worker-start` too, so the card is labelled the moment it exists
-rather than patched afterwards.
+`Build 2 - Device API`.
 
-Workers run `--agent claude`. Keep Orca's nested worker depth at `1`.
+Label the card at creation rather than patching it afterwards — but the flag
+depends on the shape, because Orca rejects the creation flags on an existing
+worktree:
 
-**A worker that starts but never runs is the normal first outcome.** `worker-start`
-routinely creates the terminal and leaves its prompt unsent — the tab exists, the
-agent sits there, and nothing happens until someone presses Enter. It reports
-success, so you will not notice from the JSON.
+| Shape | Worktree | Name it with |
+|---|---|---|
+| **Build**, **Fix** | new | `--display-name "[Build] <title>"` and `--comment` at `worker-start` |
+| **Scout** | `current` | `--title` on `orca terminal create` (see below) |
 
-Pass the terminal explicitly and it lands:
+Keep Orca's nested worker depth at `1`.
+
+**Dispatch is a race you can lose, so read the result.** `worker-start --agent
+claude` creates a terminal and pushes the spec at a Claude TUI that may still be
+booting. Lose that race and the tab exists, the agent sits at its prompt, and
+nothing happens until a human presses Enter. It is intermittent, not universal —
+the same command succeeds and fails minutes apart — so "it worked last time" is
+not evidence.
+
+Orca tells you. The reply carries `"state": "failed"` at `"stage":
+"dispatch_input"`, and the call exits non-zero for anything but ready.
+
+**So never pipe `worker-start` through `grep` or `head`.** The pipe throws away
+that exit code, and a pattern that does not match throws away the diagnosis with
+it — the field is `dispatchId`, camelCase, and a filter written for
+`dispatch_id` turns a loud failure into silence. Read the JSON.
+
+**A failed dispatch also fails its Task.** Starting the same task again returns
+`task_not_startable: only a ready Task can start`, which is what tempts you into
+minting a fresh task per attempt — five tasks for two tickets, four orphaned,
+none of them obviously the live one. Recover the dispatch instead:
+`--retry-of <dispatchId>`, repeating `--terminal` and `--worktree`, since
+`--retry-of` inherits neither.
+
+Better still, do not race at all. Warm the terminal, then dispatch into it:
 
 ```
-orca orchestration worker-start --task <task_id> \
-  --terminal <handle> --worktree current --agent claude \
-  --display-name "[Scout] <short title>" --comment "<what it is doing>" --json
+orca terminal create --worktree current --title "Scout 1 - Prior art" \
+  --command claude --json
+orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 90000
+orca orchestration worker-start --task <task_id> --terminal <handle> \
+  --worktree current --json
 ```
 
-Get `<handle>` from `orca terminal list --worktree current --json`, or from the
-`agent_terminal_handle` in the reply to a start that stalled. **Reuse that
-terminal — do not create a second task.** Each blind retry mints a new task id
-and orphans the last one; a run that should have cost two tickets can end up
-holding five, with no way to tell which is live.
+`--terminal` and `--agent` are alternatives — a handle means the agent is already
+there. The spec lands in a TUI that is *provably* idle, so there is no race left
+to lose. `--title` also names the tab at creation, which is how a Scout gets a
+readable name: the creation flags below are rejected on `--worktree current`.
 
-Confirm dispatch by the worker acting — a message, a file, a status change —
-never by `worker-start` exiting zero.
+Confirm dispatch by `"state": "ready"` and `"stage": "input_accepted"` in the
+JSON. Nothing less counts.
 
 ## 7. Stay talkable, stay quiet
 
