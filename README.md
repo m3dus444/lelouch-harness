@@ -318,6 +318,10 @@ machinery — which is the useful kind. See the open issues.
 
 Lelouch is a fork of other people's good ideas, not a clean-room invention.
 
+The name follows the same borrowing. Lelouch commands; **C.C** is the one he
+answers to — which is how the contract addresses you, and a line you can change
+if you would rather be called something else.
+
 **[firstmate](https://github.com/kunchenguid/firstmate)** by Kun Chen is where
 the shape came from. Three of its ideas are load-bearing here: the hard-rule
 prime directive that keeps the orchestrator out of the code, the split between

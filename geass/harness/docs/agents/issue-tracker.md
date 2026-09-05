@@ -56,10 +56,7 @@ conversations do not survive a session ending, and the backlog does. See
 `CLAUDE.md` §4 for the policy; the mechanics are:
 
 - `--kind captain` marks it as waiting on the user, which is what distinguishes
-  it from a hold for load, an external blocker, or parked work. **`captain` is
-  `tasks-axi`'s own enum value, not vocabulary from this contract** — its hold
-  kinds are `captain | external | load | parked | future`. Pass it literally
-  because the CLI requires it; never use the word when speaking to the user (§0).
+  it from a hold for load, an external blocker, or parked work.
 - The `--reason` carries **the question and its options**, because that string is
   what a future session sees when it lists held work.
 - Hold **the ticket the decision gates**. Mint a new one only when no ticket
