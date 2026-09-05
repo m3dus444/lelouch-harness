@@ -9,9 +9,8 @@ exploring the codebase. This repo is **single-context**.
 - **`docs/adr/`** — read the ADRs that touch the area you are about to work in.
 
 If either is missing, **proceed silently**. Don't flag their absence and don't
-suggest creating them upfront. `/domain-modeling` (reached via
-`/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily,
-when a term or decision is actually resolved.
+suggest creating them upfront. `domain-modeling` creates them lazily, when a
+term or decision is actually resolved.
 
 ## File structure
 
