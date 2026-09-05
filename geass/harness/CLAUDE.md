@@ -370,7 +370,24 @@ own branch — that is the concrete conflict which justifies a worktree. Paralle
 execution alone does not.
 
 Every spec states: the ticket id, what "done" looks like, the skills to use, and
-the ship gate. Write it in the vocabulary of `CONTEXT.md`.
+the ship gate. Write it in the vocabulary of `CONTEXT.md`. Use `brief` (§5) to
+write it — it is the skill for exactly this and it is easy to improvise past.
+
+**Keep the spec short by putting the long form on disk.** A full brief passed
+inline through `--spec` has to survive shell quoting, and a long one is where
+that goes wrong. Write it to `docs/agents/briefs/<ticket-id>.md` and make the
+spec a pointer:
+
+```
+Scout ticket wa-sources. Read your full brief at
+docs/agents/briefs/wa-sources.md and follow it exactly. Use the research skill.
+Read-only: the only file you create is docs/research/data-sources.md.
+```
+
+The brief stays readable, reviewable and editable after dispatch, and the user
+can see what a worker was actually told. Note this does **not** fix a stalled
+dispatch — that is the race above, not spec length — so do not reach for it as a
+remedy when a worker fails to start.
 
 **Give every worker a readable tab.** Orca's default terminal title is
 `worker-<task_id>`, which tells the user nothing. The id is *cosmetic* — Orca
@@ -395,8 +412,12 @@ worktree:
 
 Keep Orca's nested worker depth at `1`.
 
+**Workers run `{{AGENT}}`.** That is this project's choice, set when the harness
+was cast; change it here and everything below follows. Orca has no default of its
+own — `worker-start` requires either `--agent` or `--terminal`.
+
 **Dispatch is a race you can lose, so read the result.** `worker-start --agent
-claude` creates a terminal and pushes the spec at a Claude TUI that may still be
+{{AGENT}}` creates a terminal and pushes the spec at a TUI that may still be
 booting. Lose that race and the tab exists, the agent sits at its prompt, and
 nothing happens until a human presses Enter. It is intermittent, not universal —
 the same command succeeds and fails minutes apart — so "it worked last time" is
@@ -421,7 +442,7 @@ Better still, do not race at all. Warm the terminal, then dispatch into it:
 
 ```
 orca terminal create --worktree current --title "Scout 1 - Prior art" \
-  --command claude --json
+  --command {{AGENT}} --json
 orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 90000
 orca orchestration worker-start --task <task_id> --terminal <handle> \
   --worktree current --json

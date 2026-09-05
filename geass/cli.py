@@ -58,7 +58,7 @@ def _git(project: Path, *args: str) -> str | None:
     return proc.stdout.strip() or None
 
 
-def detect(project: Path) -> dict[str, str]:
+def detect(project: Path, agent: str = "claude") -> dict[str, str]:
     """Everything the contract needs to know about the project it governs."""
     remote = _git(project, "remote", "get-url", "origin")
     repo = "no remote configured"
@@ -81,11 +81,17 @@ def detect(project: Path) -> dict[str, str]:
     # lifting an identity into the contract without being asked is a leak, not a
     # convenience -- and a wrong guess is worse than none. The contract addresses
     # them in plain second person; naming is one line they can edit themselves.
+    # The agent workers run. Orca has no default of its own -- `worker-start`
+    # requires --agent or --terminal -- so something must name one, and a
+    # contract that says "claude" in prose quietly makes that everyone's choice.
+    # Cast it once here instead; --agent overrides, and the rendered CLAUDE.md
+    # stays editable afterwards like every other line in it.
     return {
         "PROJECT": project.resolve().name,
         "REPO": repo,
         "DEFAULT_BRANCH": branch or "main",
         "PLATFORM_NOTES": manifest.platform_notes(platform.system()),
+        "AGENT": agent,
     }
 
 
@@ -249,16 +255,17 @@ def update_gitignore(project: Path) -> str:
 # -------------------------------------------------------------------- actions
 
 
-def cast(project: Path, force: bool) -> int:
+def cast(project: Path, force: bool, agent: str = "claude") -> int:
     if not project.is_dir():
         print(f"! not a directory: {project}", file=sys.stderr)
         return 2
 
-    values = detect(project)
+    values = detect(project, agent)
     print(f"Casting the Lelouch harness on {values['PROJECT']}\n")
     print(f"  repo            {values['REPO']}")
     print(f"  default branch  {values['DEFAULT_BRANCH']}")
-    print(f"  platform        {platform.system()}\n")
+    print(f"  platform        {platform.system()}")
+    print(f"  worker agent    {values['AGENT']}\n")
 
     existing = [dest for _src, dest in manifest.PAYLOAD if (project / dest).exists()]
     if existing and not force:
@@ -388,6 +395,11 @@ def main() -> int:
     p_cast = sub.add_parser("cast", help="install the harness into a project")
     p_cast.add_argument("path", nargs="?", default=".")
     p_cast.add_argument("--force", action="store_true", help="overwrite an existing cast")
+    p_cast.add_argument(
+        "--agent",
+        default="claude",
+        help="TUI agent workers run (claude, codex, cursor, ...); default claude",
+    )
 
     p_status = sub.add_parser("status", help="report what is installed")
     p_status.add_argument("path", nargs="?", default=".")
@@ -400,7 +412,7 @@ def main() -> int:
 
     args = parser.parse_args()
     if args.command == "cast":
-        return cast(Path(args.path), args.force)
+        return cast(Path(args.path), args.force, args.agent)
     if args.command == "status":
         return status(Path(args.path))
     if args.command == "doctor":
