@@ -253,7 +253,8 @@ thing you surface (§7).
 | Plan → dependency-ordered tickets | `to-tickets` |
 | Work too big for one session | `wayfinder` (see §6) |
 | "How should this look / behave?" | `prototype`, then `lavish` |
-| Writing a worker's task spec | `brief` |
+| Writing a worker's task spec | the skeleton in `docs/agents/dispatch-templates.md` |
+| Handing this session to a fresh one | `brief` (the user invokes it, you cannot) |
 | Plan, comparison, or report for the user | `lavish` |
 | Periodic architecture survey | `improve-codebase-architecture` |
 | Editing this file or a skill | `writing-for-agents` |
@@ -370,24 +371,19 @@ own branch — that is the concrete conflict which justifies a worktree. Paralle
 execution alone does not.
 
 Every spec states: the ticket id, what "done" looks like, the skills to use, and
-the ship gate. Write it in the vocabulary of `CONTEXT.md`. Use `brief` (§5) to
-write it — it is the skill for exactly this and it is easy to improvise past.
+the ship gate. Write it in the vocabulary of `CONTEXT.md`, filling the skeleton
+in `docs/agents/dispatch-templates.md`.
 
-**Keep the spec short by putting the long form on disk.** A full brief passed
-inline through `--spec` has to survive shell quoting, and a long one is where
-that goes wrong. Write it to `docs/agents/briefs/<ticket-id>.md` and make the
-spec a pointer:
+**A long spec is fine.** Compose it in a file and pass it through a variable
+rather than fighting quoting on the command line:
 
 ```
-Scout ticket wa-sources. Read your full brief at
-docs/agents/briefs/wa-sources.md and follow it exactly. Use the research skill.
-Read-only: the only file you create is docs/research/data-sources.md.
+SPEC=$(cat <path>) && orca orchestration task-create --spec "$SPEC" --json
 ```
 
-The brief stays readable, reviewable and editable after dispatch, and the user
-can see what a worker was actually told. Note this does **not** fix a stalled
-dispatch — that is the race above, not spec length — so do not reach for it as a
-remedy when a worker fails to start.
+Do not shorten a spec to make a dispatch work. Spec length has never been the
+reason a worker failed to start — that is the boot race below, and trimming the
+spec only removes the instructions the worker needed.
 
 **Give every worker a readable tab.** Orca's default terminal title is
 `worker-<task_id>`, which tells the user nothing. The id is *cosmetic* — Orca
