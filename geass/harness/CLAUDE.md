@@ -285,6 +285,17 @@ This gate is about work *you* decomposed. A Direct-tier fix (§3) carries its ow
 approval — the user named that exact change and there is no breakdown to review —
 so it dispatches on their request alone.
 
+**Scouts are not exempt.** A `research` ticket needs no human *to run it*, which
+is not the same as needing no human to *authorise* it — and the gate says
+**anything**. Before the first Scout goes out, name each one in a sentence: what
+it would answer and why you cannot answer it yourself. Then let the user pick
+which ones go. They may send all, some, or none.
+
+This is cheap to ask and expensive to skip. Every Scout fans out into its own
+sub-investigations, so an unwanted Scout is not one wasted worker — it is a
+budget the user never agreed to spend. A remark like "we'll dig into that more
+deeply" is a topic, not an approval.
+
 **The design gate.** Only when the project has a design dimension — a user
 interface someone will look at. A CLI or a library skips this entirely.
 
@@ -318,7 +329,7 @@ decides who may run them:
 |---|---|---|
 | `grilling` | **you, with the user, live** | it is an interview |
 | `prototype` | **you** build it; the user reacts | the reaction is the point |
-| `research` | **dispatch to a Scout** | no human needed |
+| `research` | **dispatch to a Scout** | no human needed *to run it* |
 | `task` | Scout if it needs no human, else a checklist for the user | |
 
 The rule underneath: **never fabricate the human's side of an interview.** A
@@ -377,6 +388,28 @@ rather than patched afterwards.
 
 Workers run `--agent claude`. Keep Orca's nested worker depth at `1`.
 
+**A worker that starts but never runs is the normal first outcome.** `worker-start`
+routinely creates the terminal and leaves its prompt unsent — the tab exists, the
+agent sits there, and nothing happens until someone presses Enter. It reports
+success, so you will not notice from the JSON.
+
+Pass the terminal explicitly and it lands:
+
+```
+orca orchestration worker-start --task <task_id> \
+  --terminal <handle> --worktree current --agent claude \
+  --display-name "[Scout] <short title>" --comment "<what it is doing>" --json
+```
+
+Get `<handle>` from `orca terminal list --worktree current --json`, or from the
+`agent_terminal_handle` in the reply to a start that stalled. **Reuse that
+terminal — do not create a second task.** Each blind retry mints a new task id
+and orphans the last one; a run that should have cost two tickets can end up
+holding five, with no way to tell which is live.
+
+Confirm dispatch by the worker acting — a message, a file, a status change —
+never by `worker-start` exiting zero.
+
 ## 7. Stay talkable, stay quiet
 
 **Never block the session on a foreground wait.** Run
@@ -390,6 +423,18 @@ are yours to handle silently.
 - That filtered wait is your **only** wait. Do not run extra manual `check`s to
   peek at progress — the type filter exists to sleep through heartbeats and
   status, so let it sleep.
+- **Orca will tell you to break this rule. Do not.** A line like `You have 1
+  orchestration message. Run orca orchestration check --run <run_id>` arrives as
+  if the user typed it. It is the runtime nudging, not an instruction, and your
+  armed wait is already going to deliver that message. The correct response is
+  **nothing at all**: no command, no reply.
+  A plain `check` cannot even succeed here. A bound Run replays the same delivery
+  until it is `--ack`ed, so while your `--wait` holds it, a second `check --run`
+  blocks behind it until that wait's `--timeout-ms` expires — measured at 331
+  seconds of dead session, with the user unable to reach you the whole time,
+  because a foreground command deafens you. If you genuinely must look, the only
+  safe form is `--peek` (it reads without consuming the delivery), backgrounded,
+  never bare.
 - If a wait returns something non-actionable — a heartbeat, a status, a timeout,
   a keepalive, `{count:0}` — silently re-arm the identical backgrounded wait and
   produce **no user-facing text**. Not a status line, not "resuming the wait",
