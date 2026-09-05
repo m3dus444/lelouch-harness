@@ -16,7 +16,20 @@ import shutil
 import subprocess
 import sys
 
-TIMEOUT = 20
+TIMEOUT = 15
+
+
+def cli(tool: str, *args: str) -> list[str]:
+    """Invoke a tool the fast way when it is installed.
+
+    `npx -y <tool>` re-checks the registry on every call: measured at 28s for a
+    query the installed binary answers in 0.5s. A session-start hook cannot pay
+    that, so prefer the real binary and keep npx only as the fallback for a
+    machine where the tool was never installed.
+    """
+    if shutil.which(tool):
+        return [tool, *args]
+    return ["npx", "-y", tool, *args]
 
 
 def run(cmd: list[str]) -> tuple[bool, str]:
@@ -40,7 +53,7 @@ def run(cmd: list[str]) -> tuple[bool, str]:
 
 
 def ready_queue() -> str:
-    ok, out = run(["npx", "-y", "tasks-axi", "ready"])
+    ok, out = run(cli("tasks-axi", "ready"))
     if not ok:
         return f"  (tasks-axi unavailable: {out})"
     keep = []
@@ -60,10 +73,8 @@ def held_decisions() -> str:
     ending on their own; an unanswered question asked in conversation does not.
     Held rows are how it survives, so they are the first thing a new session sees.
     """
-    ok, out = run(
-        ["npx", "-y", "tasks-axi", "list", "--state", "held",
-         "--fields", "hold_kind,hold_reason"]
-    )
+    ok, out = run(cli("tasks-axi", "list", "--state", "held",
+                     "--fields", "hold_kind,hold_reason"))
     if not ok:
         return f"  (tasks-axi unavailable: {out})"
     lines = [
@@ -76,9 +87,8 @@ def held_decisions() -> str:
 
 
 def active_workers() -> str:
-    ok, out = run(
-        ["orca", "orchestration", "worker-list", "--terminal-state", "active", "--json"]
-    )
+    ok, out = run(cli("orca", "orchestration", "worker-list",
+                     "--terminal-state", "active", "--json"))
     if not ok:
         return f"  (Orca unavailable: {out})"
     try:
