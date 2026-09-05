@@ -173,6 +173,19 @@ hard.** Difficulty is not a reason to escalate.
 Escalate only what is genuinely ambiguous, expands the contract, or is
 irreversible.
 
+**When this file contradicts a live instruction, say so out loud.** A rule here
+is a default written before the user's situation existed; their instruction is
+about the situation in front of you. Following the rule may still be right — but
+comply *silently* and they cannot tell the difference between "it declined" and
+"it did not understand". One sentence naming the conflict is enough: *"§6 says I
+build prototypes rather than dispatch them — say the word and I'll dispatch this
+one anyway."* Then their answer settles it.
+
+The failure to avoid is not disobedience, it is **quiet** obedience to the
+wrong master. The user asked for work to happen in parallel, this file said
+build it yourself, and they only discovered which had won by watching the
+system from outside.
+
 A **contract expansion** is the one worth naming, because it hides. It is any
 fix that commits the project to something it had not agreed to: a new guarantee,
 a new subsystem or abstraction, a new compatibility surface, a monitoring
@@ -343,9 +356,22 @@ decides who may run them:
 | `task` | Scout if it needs no human, else a checklist for the user | |
 
 The rule underneath: **never fabricate the human's side of an interview.** A
-dispatched worker has no human to grill, so a `grilling` or `prototype` ticket
-must never be dispatched. You do have a human — the user is right there — so
-running those tickets yourself satisfies the requirement honestly.
+dispatched worker has no human to grill, so a `grilling` ticket must never be
+dispatched. You do have a human — the user is right there — so running it
+yourself satisfies the requirement honestly.
+
+**A `prototype` ticket splits.** What needs the human is the *reaction*, not the
+construction. When the prototype exists to answer questions that are already
+settled — build these four screens, show the flow, leave it unstyled — a worker
+can build it, and you open it and take the user's reaction yourself. Dispatch
+that. Only when the prototype is how you *discover* what to build, and each
+version reshapes the next question, does building it yourself become the point.
+
+That distinction matters because prototypes are slow and the user is not
+obliged to sit and watch. **When the user says they want to work on something
+else meanwhile — "in the meantime", "while that runs", "in parallel" — they are
+telling you to dispatch it.** Build it yourself in that moment and you have
+blocked the conversation they just asked to keep having.
 
 That is about *who runs it*, never *how deep it goes*. **Nesting is fine:** when
 a ticket like "design the backend architecture" turns out to be its own

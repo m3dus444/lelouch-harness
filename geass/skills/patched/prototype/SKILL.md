@@ -11,7 +11,7 @@ A prototype is **throwaway code that answers a question**. The question decides 
 
 Identify which question is being answered, using the user's prompt, the surrounding code, or by asking if the user is around:
 
-- **"Does this logic / state model feel right?"** → [LOGIC.md](LOGIC.md). Build a single shareable HTML file (free-play buttons plus tabbed guided walkthroughs) that pushes the state machine through cases that are hard to reason about on paper, and that a non-developer can drive. Write it under `.lavish/` and open it with `npx -y lavish-axi <path>`, then wait on `npx -y lavish-axi poll <path>`: the point of a prototype is the user's reaction, and annotating the artifact directly beats describing it back in chat.
+- **"Does this logic / state model feel right?"** → [LOGIC.md](LOGIC.md). Build a single shareable HTML file (free-play buttons plus tabbed guided walkthroughs) that pushes the state machine through cases that are hard to reason about on paper, and that a non-developer can drive. Write it under `.lavish/` and open it with `lavish-axi <path>`, then wait on `lavish-axi poll <path>`: the point of a prototype is the user's reaction, and annotating the artifact directly beats describing it back in chat.
 - **"What should this look like?"** → [UI.md](UI.md). Generate several radically different UI variations on a single route, switchable via a URL search param and a floating bottom bar.
 
 The two branches produce very different artifacts, so getting this wrong wastes the whole prototype. If the question is genuinely ambiguous and the user isn't reachable, default to whichever branch better matches the surrounding code (a backend module → logic; a page or component → UI) and state the assumption at the top of the prototype.

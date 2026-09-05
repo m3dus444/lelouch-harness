@@ -38,7 +38,7 @@ Apply the **deletion test** to anything you suspect is shallow: would deleting i
 
 Render the report through **Lavish** so the user can annotate candidates and send decisions straight back, instead of replying in chat.
 
-Write the HTML to `.lavish/architecture-review-<timestamp>.html` in the repo, then open it with `npx -y lavish-axi .lavish/architecture-review-<timestamp>.html` and wait for feedback with `npx -y lavish-axi poll <same path>`. Follow the current CLI guidance (`npx -y lavish-axi design` and `npx -y lavish-axi playbook diagram`) for the design direction rather than the scaffold below.
+Write the HTML to `.lavish/architecture-review-<timestamp>.html` in the repo, then open it with `lavish-axi .lavish/architecture-review-<timestamp>.html` and wait for feedback with `lavish-axi poll <same path>`. Follow the current CLI guidance (`lavish-axi design` and `lavish-axi playbook diagram`) for the design direction rather than the scaffold below.
 
 The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted CSS/SVG visuals: use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
 

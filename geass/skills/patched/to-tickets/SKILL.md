@@ -58,7 +58,7 @@ Iterate until the user approves the breakdown.
 
 Publish the approved tickets. **How** depends on the tracker `/setup-matt-pocock-skills` configured; the tickets are the same either way, only the shape of the blocking edges changes:
 
-- **Local files** → use **tasks-axi**, which owns `backlog.md` and already models blocked-by edges, a ready queue, and holds. Add each ticket with `npx -y tasks-axi add`, declaring its blockers so the ready queue stays correct; consult `npx -y tasks-axi --help` for current flags rather than guessing. Do NOT hand-write files under `.scratch/` - `backlog.md` is the single source of truth.
+- **Local files** → use **tasks-axi**, which owns `backlog.md` and already models blocked-by edges, a ready queue, and holds. Add each ticket with `tasks-axi add`, declaring its blockers so the ready queue stays correct; consult `tasks-axi --help` for current flags rather than guessing. Do NOT hand-write files under `.scratch/` - `backlog.md` is the single source of truth.
 - **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label unless instructed otherwise; the tickets are agent-grabbable by construction.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
