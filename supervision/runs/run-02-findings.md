@@ -16,6 +16,8 @@ run is testing master at `f16f2f6` (#23) unmodified.
 | **Routing fix (#23)** | `grilling` called directly. Run 2's first session died on the refused `grill-with-docs` wrapper; after re-cast, clean. |
 | **Worker §W compliance** | Heartbeats typed `heartbeat` (so the filtered wait sleeps through them), board `--comment` updated at checkpoints, report written to the single file its spec allowed. |
 | **Voice** | "C.C" throughout, fresh project, no contamination. |
+| **The approval gate, proactively** | `to-tickets` → build plan to a Lavish artifact → poll → **nothing filed or dispatched until C.C approved**. Unprompted: C.C did not ask for a gate. This is the behaviour the rebuild was for, and run 1 never came within hours of it. |
+| **Ticket quality** | Tracer-bullet root, declared `blocked-by` edges, compiler split by anchor for parallelism. |
 
 ## Defects
 
@@ -105,10 +107,19 @@ artifacts, four resolved captain-holds, a decisions document and two research
 reports. The spec plausibly already existed in `CONTEXT.md` and
 `decisions.html`, and `to-spec` would have re-derived what was written down.
 
-What settles it is the output, not the process: if `to-tickets` produces
-well-formed, dependency-ordered tickets, the stages were redundant here and the
-pipeline is over-specified for a long interview. If the tickets are vague or
-mis-ordered, the skip cost something. Read the backlog before judging.
+**Settled by the output: the skip cost nothing.** `to-tickets` produced a clean
+DAG -- `wa-01-tracer` ("scaffold, and one search end to end") as a genuine tracer
+bullet with no blockers, then `wa-02-cache` and `wa-03-budget` unblocking
+together, then four unblocking after the cache. Every edge declared via
+`blocked-by`, so the ready queue works. The compiler was sliced by anchor type
+(papers / authors / institutions+topics) rather than left as one lump, so three
+can run in parallel.
+
+So the finding is "the pipeline is over-specified for a long interview", not
+"Lelouch skipped a stage". After twenty hours, two research reports, a decisions
+document and four resolved captain-holds, `to-spec` had nothing left to derive
+that `CONTEXT.md` did not already hold. Judging this at the moment the skip was
+observed would have produced the opposite and wrong conclusion.
 
 ## Monitor bugs found while watching *(PR #24, #25)*
 
