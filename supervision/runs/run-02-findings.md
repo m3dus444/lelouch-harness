@@ -94,6 +94,22 @@ no parent field at any point — identical `worktreeId`, distinct `tabId`s. A
 startup render state, not hierarchy. Worth recording because if it had *not*
 resolved, it would have been real.
 
+**Two pipeline stages were skipped, and it may not matter.**
+Full skill timeline: `grilling` → `prototype` → `to-tickets`. §3's Full tier
+prescribes `grilling` + `domain-modeling` → `to-spec` → `to-tickets`. So
+`to-spec` never ran, and `domain-modeling` never ran either -- yet `CONTEXT.md`
+exists with a glossary and settled decisions, written by hand.
+
+The innocent reading is strong: the interview ran ~20 hours across two Lavish
+artifacts, four resolved captain-holds, a decisions document and two research
+reports. The spec plausibly already existed in `CONTEXT.md` and
+`decisions.html`, and `to-spec` would have re-derived what was written down.
+
+What settles it is the output, not the process: if `to-tickets` produces
+well-formed, dependency-ordered tickets, the stages were redundant here and the
+pipeline is over-specified for a long interview. If the tickets are vague or
+mis-ordered, the skip cost something. Read the backlog before judging.
+
 ## Monitor bugs found while watching *(PR #24, #25)*
 
 Each caused a misreport to C.C before it was caught.
