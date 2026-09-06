@@ -49,9 +49,40 @@ The contract says not to, precisely because the pipe eats the exit code. Harmles
 while dispatches succeed — and it is the exact habit that made run 1's failures
 invisible. Untested here because nothing failed.
 
+**The repo push: everything committed, README omitted.**
+Lelouch created `github.com/m3dus444/weave-atlas` and pushed 61 files. Three
+distinct problems, only one of them Lelouch's:
+
+- *Nothing was gitignored but `.lavish/`.* `GITIGNORE_ENTRIES` has exactly one
+  entry, and `geass cast` ends by printing "Commit it, so the contract is
+  versioned with the code it governs." The harness instructs the commit. C.C
+  expected the opposite ("claude.md backlog agents.md and casted /docs aren't
+  supposed to be on the repo"), and nothing ever surfaced the disagreement.
+- *50 of the 61 files are `.claude/skills/`* — 19 vendored third-party skill
+  packages, 82% of a new product repo. Versioning your own contract is a
+  defensible choice; vendoring someone else's skills into the product repo is a
+  different decision that nobody made, it fell out of the first one.
+- *No README.* §1's allowed-writes excludes `README.md` and says "everything else
+  belongs to a worker" — so the contract made it a worker's job. Lelouch neither
+  wrote it nor dispatched it; it handed it back as "that one's yours, and I left
+  it alone deliberately", never mentioning a rule was driving it.
+
+**Quiet obedience is now a pattern, not an anecdote.** Two instances: the
+prototype built rather than dispatched, and the README handed back. Same shape
+each time -- a rule in this file overrides a live instruction, Lelouch complies
+without saying so, and the only way to discover which won is to inspect the
+system from outside. That is what promotes it out of "unproven" below.
+
+Also worth noting on the README: C.C's sentence was "So first, I create a repo on
+my GitHub and write a readme", genuinely ambiguous about who "I" is. Lelouch
+resolved the same pronoun two ways in one sentence -- itself for the repo, C.C
+for the README.
+
 ## Unproven — do not act on these
 
-**Prototype: build vs dispatch.** C.C asked for prototyping "in the meantime",
+**Prototype: build vs dispatch.** *(partly superseded -- see the README finding,
+which is a second instance of the same silent-override shape.)* C.C asked for
+prototyping "in the meantime",
 signalling parallelism; Lelouch built it itself and blocked. But C.C used the
 word "prototype", and the `prototype` skill's own body tells the builder to open
 the artifact and poll for the reaction. Plausible causes: the contract, the
