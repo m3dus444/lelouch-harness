@@ -122,6 +122,11 @@ PAYLOAD = [
 # Paths geass adds to the target's .gitignore, with the reason as a comment.
 GITIGNORE_ENTRIES = [
     (".lavish/", "Lavish review artifacts: transient per-session review surfaces"),
+    (".claude/", "Harness machinery: vendored skills, hooks, settings"),
+    ("/CLAUDE.md", "The agent contract, installed by geass -- not project content"),
+    ("/AGENTS.md", "Agent entry point, installed by geass"),
+    ("/docs/agents/", "Harness docs, installed by geass"),
+    ("/backlog.md", "Working ticket state, owned by tasks-axi"),
 ]
 
 # Text file suffixes that get placeholder substitution.

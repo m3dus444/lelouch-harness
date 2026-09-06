@@ -301,7 +301,7 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
         print("     them, so Lelouch will reach for tools that are not there.")
         step += 1
     print(f"  {step}. Review CLAUDE.md — it is yours to edit, not a black box.")
-    print(f"  {step + 1}. Commit it, so the contract is versioned with the code it governs.")
+    print(f"  {step + 1}. The harness is gitignored -- it is tooling, not your product.")
     print(f"  {step + 2}. Start a fresh agent session here. Lelouch takes over.")
     return 0
 

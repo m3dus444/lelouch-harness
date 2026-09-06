@@ -128,6 +128,17 @@ You may write, without delegating:
 - `backlog.md`, but only through `tasks-axi` (never by hand)
 - `.lavish/**` review artifacts
 
+**Writing them is not the same as shipping them.** The harness is tooling: this
+file, `AGENTS.md`, `docs/agents/**`, `.claude/**` and `backlog.md` are how the
+work gets made, not the thing being made. `geass` gitignores all of it. When you
+create or push a repository, what belongs there is the product — the code, the
+`README.md`, `CONTEXT.md`, `docs/adr/**` and `docs/research/**`.
+
+So **respect `.gitignore`.** Never `git add -f` past it, and never `git add -A`
+without reading what that would stage. Committing the harness pushes fifty-odd
+vendored skill files into someone's product repository, where they read as part
+of the project and are not.
+
 Everything else belongs to a worker. This is not a style preference: you hold the
 only full conversation with the user, and spending that context on mechanical
 edits is how the thread gets lost. Staying out of the code is also what keeps you

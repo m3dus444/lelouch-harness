@@ -38,51 +38,43 @@ from nowhere, contradicting "backlog.md is the source of truth".
 while the coordinator did not — the scouts' skills never told them otherwise.
 Measured: direct ~1.2s, `npx --no-install` ~4s.
 
-**Nobody owns the README or the GitHub repo.**
-Zero mentions of "readme", "repo create" or a remote anywhere in the contract or
-harness docs. §1's allowed-writes list excludes `README.md`, so a strict reading
-sends it to a worker. It is a named deliverable in the design path (C.C's Q13 →
-Lelouch's Q20 specified its contents) owned by no one. C.C did it themselves.
-
 **`worker-start` is still piped through `grep`.**
 The contract says not to, precisely because the pipe eats the exit code. Harmless
 while dispatches succeed — and it is the exact habit that made run 1's failures
 invisible. Untested here because nothing failed.
 
-**The repo push: everything committed, README omitted.**
-Lelouch created `github.com/m3dus444/weave-atlas` and pushed 61 files. Three
-distinct problems, only one of them Lelouch's:
+**The harness was committed into the product repo.** *(fixed)*
+Lelouch pushed 61 files to `github.com/m3dus444/weave-atlas`, of which **50 were
+`.claude/skills/`** -- 19 vendored third-party skill packages, 82% of a new
+product repo.
 
-- *Nothing was gitignored but `.lavish/`.* `GITIGNORE_ENTRIES` has exactly one
-  entry, and `geass cast` ends by printing "Commit it, so the contract is
-  versioned with the code it governs." The harness instructs the commit. C.C
-  expected the opposite ("claude.md backlog agents.md and casted /docs aren't
-  supposed to be on the repo"), and nothing ever surfaced the disagreement.
-- *50 of the 61 files are `.claude/skills/`* — 19 vendored third-party skill
-  packages, 82% of a new product repo. Versioning your own contract is a
-  defensible choice; vendoring someone else's skills into the product repo is a
-  different decision that nobody made, it fell out of the first one.
-- *No README.* §1's allowed-writes excludes `README.md` and says "everything else
-  belongs to a worker" — so the contract made it a worker's job. Lelouch neither
-  wrote it nor dispatched it; it handed it back as "that one's yours, and I left
-  it alone deliberately", never mentioning a rule was driving it.
+Not Lelouch's doing, and `.gitignore` was never edited: `GITIGNORE_ENTRIES` had
+exactly one line, `.lavish/`, and `geass cast` ended by printing "Commit it, so
+the contract is versioned with the code it governs." The harness instructed the
+commit. Versioning your own contract is at least a defensible choice; dragging 19
+skill packages along with it is a consequence nobody chose.
 
-**Quiet obedience is now a pattern, not an anecdote.** Two instances: the
-prototype built rather than dispatched, and the README handed back. Same shape
-each time -- a rule in this file overrides a live instruction, Lelouch complies
-without saying so, and the only way to discover which won is to inspect the
-system from outside. That is what promotes it out of "unproven" below.
+Fixed at C.C's request: geass now ignores `.claude/`, `/CLAUDE.md`, `/AGENTS.md`,
+`/docs/agents/` and `/backlog.md`; the cast report no longer tells you to commit
+the contract; and §1 says the harness is tooling, respect `.gitignore`, never
+`git add -f` or a blind `git add -A`. `CONTEXT.md` and `docs/research/**` stay
+tracked -- they are project knowledge, not tooling. A fresh cast now leaves only
+`.gitignore` trackable. **Not re-cast into weave-atlas: that waits for the run to
+end.**
 
-Also worth noting on the README: C.C's sentence was "So first, I create a repo on
-my GitHub and write a readme", genuinely ambiguous about who "I" is. Lelouch
-resolved the same pronoun two ways in one sentence -- itself for the repo, C.C
-for the README.
+The already-pushed files stay tracked until untracked explicitly -- `.gitignore`
+does not apply retroactively.
 
 ## Unproven — do not act on these
 
-**Prototype: build vs dispatch.** *(partly superseded -- see the README finding,
-which is a second instance of the same silent-override shape.)* C.C asked for
-prototyping "in the meantime",
+**Prototype: build vs dispatch — still one instance.** I promoted this to a
+pattern on the strength of the missing README, then C.C said the README was down
+to a misspelled prompt of their own. So the second instance evaporated and this
+goes back to where it was: one ambiguous event. Recording the retraction because
+promoting it was the more interesting mistake -- I found a second instance
+quickly *because I was looking for one*.
+
+C.C asked for prototyping "in the meantime",
 signalling parallelism; Lelouch built it itself and blocked. But C.C used the
 word "prototype", and the `prototype` skill's own body tells the builder to open
 the artifact and poll for the reaction. Plausible causes: the contract, the
