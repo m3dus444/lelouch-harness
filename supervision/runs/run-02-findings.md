@@ -67,6 +67,46 @@ end.**
 The already-pushed files stay tracked until untracked explicitly -- `.gitignore`
 does not apply retroactively.
 
+**Running out of context is a normal event, and nothing plans for it.**
+Both runs have now hit it. Run 1 died at it mid-interview. Run 2 reached 91%
+usage and had to be cleared deliberately between the approval and the first Build
+dispatch. This is not an edge case -- a real project outlives a context window,
+and the scouts' own fan-out (9 uncounted sub-agents in run 1) plus external
+tooling burn it faster than the conversation does.
+
+The recovery does work. The SessionStart hook injects the held decisions and the
+ready queue, so a cleared session opens with:
+
+    Waiting on the user:  wa-ship-both — "build and ship BOTH engines, live first…"
+    Ready to dispatch:    wa-01-tracer — "Scaffold, and one search end to end"
+    Active Orca workers:  none
+
+That is genuinely enough to carry on with, and `Active Orca workers: none` is the
+check that makes a clear safe: nothing mid-flight, no orphaned wait.
+
+**But it needs a human line to be complete, and two defects compound to cause
+that.** The hook reports *held* and *ready* only -- not *done*. So a fresh
+Lelouch cannot see that `wa-sources-r1` and `wa-live-backend-r2` produced ~85 KB
+of research. Worse, even listing done tickets would not fix it: the
+`tasks-axi done --report` path-validation defect above meant the report link was
+dropped when the ticket closed, so **the ticket that commissioned the research
+holds no pointer to it.** One defect hides the artifact; the other hides the
+ticket that would have named it.
+
+Cheap fixes, in order of value:
+
+1. Make `done` keep the artifact link (already fixed in PR #25 via `--note`).
+2. Have the hook list recently-done tickets with their report paths, so a fresh
+   session knows what already exists rather than risking a redundant scout.
+3. Say something in the contract about context exhaustion at all. §7 covers
+   waiting; nothing covers the session ending. `brief` is the right skill for a
+   deliberate handoff and is user-invoked -- worth telling the user that, since
+   right now they have to know it themselves.
+
+Until then the manual workaround is one line in the first message after a clear:
+*"Read CONTEXT.md and docs/research/ before anything — two scouts already
+reported."* Worst case without it is a redundant scout, not a wrong decision.
+
 ## Unproven — do not act on these
 
 **Prototype: build vs dispatch — still one instance.** I promoted this to a
