@@ -186,6 +186,16 @@ def _skill_installed(name: str, project: Path) -> bool:
     return any(c.is_dir() for c in candidates)
 
 
+def gate_initialised(project: Path) -> bool:
+    """Has `no-mistakes init` been run on this repo?
+
+    `init` adds a `no-mistakes` git remote pointing at the local bare gate repo,
+    so the remote is the marker. This is per-project state: a machine-wide binary
+    check says nothing about whether THIS repo can be pushed through the gate.
+    """
+    return _git(project, "remote", "get-url", "no-mistakes") is not None
+
+
 def check_dependencies(project: Path) -> tuple[list[str], list[str]]:
     """Report what the contract needs and the machine does not have.
 
@@ -197,6 +207,9 @@ def check_dependencies(project: Path) -> tuple[list[str], list[str]]:
     for tool, why in manifest.REQUIRED_TOOLS.items():
         if shutil.which(tool) is None:
             blocking.append(f"{tool:22} not on PATH - {why}")
+            hint = manifest.tool_install_hint(tool, platform.system())
+            if hint:
+                blocking.append(f"{'':22}   {hint}")
     for tool, why in manifest.RECOMMENDED_TOOLS.items():
         if shutil.which(tool) is None:
             advisory.append(f"{tool:22} not on PATH - {why}")
@@ -209,6 +222,13 @@ def check_dependencies(project: Path) -> tuple[list[str], list[str]]:
         if not _skill_installed(name, project):
             advisory.append(f"{name:22} missing - {why}")
             advisory.append(f"{'':22}   {manifest.install_hint(source)}")
+
+    # The gate is the one dependency that is per-repo as well as per-machine.
+    # An installed binary on an uninitialised repo fails at the first push, so
+    # reporting only the binary would repeat the miss this check exists to close.
+    if shutil.which("no-mistakes") is not None and not gate_initialised(project):
+        blocking.append(f"{'no-mistakes gate':22} not initialised in this repo")
+        blocking.append(f"{'':22}   run `no-mistakes init` here")
 
     return blocking, advisory
 
@@ -255,6 +275,39 @@ def update_gitignore(project: Path) -> str:
 # -------------------------------------------------------------------- actions
 
 
+def init_gate(project: Path) -> str:
+    """Run `no-mistakes init` on the target, so the ship gate exists at cast time.
+
+    The contract ends every Build and Fix at this gate, so a cast that installs
+    the contract and leaves the gate uninitialised has shipped a pipeline whose
+    last step cannot run. That failure surfaces mid-dispatch, in a worker, hours
+    later -- the worst place to find out, which is the same argument the
+    dependency check above is built on.
+
+    Deliberately not silent, and deliberately not fatal: `init` adds a git remote
+    and starts a daemon, so what it did is printed, and a cast still completes
+    without it. `init` is idempotent, so re-casting is safe.
+    """
+    if shutil.which("no-mistakes") is None:
+        return "skipped - binary not installed"
+    if gate_initialised(project):
+        return "already initialised"
+    try:
+        proc = subprocess.run(
+            ["no-mistakes", "init"],
+            cwd=str(project),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"FAILED - {type(exc).__name__}"
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout or "").strip().splitlines()
+        return f"FAILED - {detail[-1] if detail else f'exit {proc.returncode}'}"
+    return "initialised"
+
+
 def cast(project: Path, force: bool, agent: str = "claude") -> int:
     if not project.is_dir():
         print(f"! not a directory: {project}", file=sys.stderr)
@@ -290,6 +343,7 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
 
     print(f"  settings    .claude/settings.json ({merge_settings(project)})")
     print(f"  gitignore   {update_gitignore(project)}")
+    print(f"  ship gate   {init_gate(project)}")
 
     print("\nDependencies")
     unmet = report_dependencies(project)
@@ -297,8 +351,10 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
     print("\nDone. Next:")
     step = 1
     if unmet:
-        print(f"  {step}. Install the missing skills above — the contract references")
-        print("     them, so Lelouch will reach for tools that are not there.")
+        print(f"  {step}. Install what is missing above — the contract references")
+        print("     it, so Lelouch will reach for tools that are not there.")
+        print("     Re-run `geass cast --force` after installing no-mistakes,")
+        print("     so the ship gate gets initialised on this repo.")
         step += 1
     print(f"  {step}. Review CLAUDE.md — it is yours to edit, not a black box.")
     print(f"  {step + 1}. Commit it, so the contract is versioned with the code it governs.")
