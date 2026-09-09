@@ -241,3 +241,36 @@ time I trusted the label alone I reported a successful trial as a failure to C.C
 Worth stating plainly because it is the mirror of finding 9: there a display
 looked like a measurement, here a measurement looks like a verdict. Both are
 cured the same way, by reading the thing the label is standing in for.
+
+---
+
+## 11  The monitor cannot see a gate failure, and I had the signal anyway
+
+C.C found the `wa-app-shell` review timeout by reading the worker's narration.
+The monitor said nothing. Three reasons, in increasing order of how much they are
+my fault:
+
+**It watches actions, not narration.** `watch.py` streams commands. The worker
+*said* "the review step hit its 30-minute agent timeout" in assistant prose,
+which the action stream does not carry by design.
+
+**It never reads gate state.** The failure lived in the `no-mistakes` state
+machine — `status: failed`, `phase: pre_push`, `pushed_head: ""` — reachable only
+by running `axi status` against each active worktree. Nothing does.
+
+**`axi status` exits 0 while reporting a failed run.** This is entry 10 inverted.
+I logged that a non-zero exit is a label on the exit code rather than the
+outcome, and never asked the converse: **a zero exit is not a claim of success
+either.** Both halves are the same bug, and I only wrote down the half that had
+already bitten me.
+
+**And I had the signal.** At 23:0x the worker re-ran `axi run --intent` with an
+identical intent, and I reported it as "a retry of the gate run — nothing to
+surface unless it repeats a third time." A gate re-submitting the same intent
+means the previous traverse died. That is not an ambiguous reading; it is one I
+did not make.
+
+Fix: a gate-state check per active worktree, alarming on `status: failed` and on
+`active_for` past a threshold — a **positive check on a schedule**, which is
+exactly what I demanded of the Lelouch resume-after-token-cap skill. I asked the
+system under test for a discipline the instrument watching it did not have.

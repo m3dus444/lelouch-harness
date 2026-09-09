@@ -3,7 +3,7 @@
 Live notes for the debrief. Nothing here has been applied to the contract; the
 run is testing master at `f16f2f6` (#23) unmodified.
 
-## Confirmed working — first observations, not re-runs
+## Confirmed working — first observations, not re-runs  <!-- F-001 -->
 
 | What | Evidence |
 |---|---|
@@ -82,7 +82,7 @@ Whichever option is chosen, it has to be chosen for both. An allowlist that
 binds only the coordinator constrains the one participant that has so far shown
 restraint, and leaves it intact for the ones doing the writing and pushing.
 
-## Defects
+## Defects  <!-- F-002 -->
 
 **`worker-release` has never run — finished workers stay open forever.**
 Zero occurrences across both runs. Scout 1 sat live for 5+ hours after
@@ -236,7 +236,7 @@ Until then the manual workaround is one line in the first message after a clear:
 *"Read CONTEXT.md and docs/research/ before anything — two scouts already
 reported."* Worst case without it is a redundant scout, not a wrong decision.
 
-### Third instance, and this one nearly lost work — C.C wants a skill for it
+### Third instance, and this one nearly lost work — C.C wants a skill for it  <!-- F-003 -->
 
 17:42 UTC, mid-`wa-01-tracer`: the **worker** hit a usage limit ("You've hit your
 session limit · resets 11:30pm"), then the coordinator did. So the failure is not
@@ -685,7 +685,7 @@ escalations, three boundaries declined, every gate finding independently reprodu
 before acceptance. Whatever the debrief concludes about the boundary it did cross,
 it has to account for that record.
 
-## Unproven — do not act on these
+## Unproven — do not act on these  <!-- F-004 -->
 
 **Prototype: build vs dispatch — still one instance.** I promoted this to a
 pattern on the strength of the missing README, then C.C said the README was down
@@ -827,7 +827,7 @@ That is the condition under which "a stray Enter during a stuttered alt-tab" sto
 being a convenient explanation and becomes the likely one. C.C intended a reboot
 once the in-flight builder finished.
 
-## Monitor bugs found while watching *(PR #24, #25)*
+## Monitor bugs found while watching *(PR #24, #25)*  <!-- F-005 -->
 
 Each caused a misreport to C.C before it was caught.
 
@@ -869,7 +869,7 @@ again, live, after the fix for it was written. Committing a fix to a harness
 that runs from an installed copy is not shipping it, and neither run would have
 noticed. Same class as the pending geass re-cast.
 
-## Process note
+## Process note  <!-- F-006 -->
 
 C.C stopped me mid-run for shipping contract edits off single observations. The
 contract is the experiment; editing it live means later behaviour is measured
@@ -877,7 +877,7 @@ against a different document than earlier behaviour. Now written into the
 `contract-monitor` skill: observe, do not fix — collect findings, land them at the
 debrief.
 
-## Documentation debt — not run findings
+## Documentation debt — not run findings  <!-- F-007 -->
 
 Things this run exposed about the *docs*, not about Lelouch's behaviour. Recorded
 here so they are not lost, but they belong to the harness rather than the
@@ -1439,7 +1439,7 @@ commit on that branch until its gate run is parked or aborted.
 
 ---
 
-## The re-cast recovery, 8 Sep ~20:14 — what a cleared Lelouch reloads
+## The re-cast recovery, 8 Sep ~20:14 — what a cleared Lelouch reloads  <!-- F-008 -->
 
 C.C cleared the Lelouch session and told it to restart the workers properly.
 Session `87b85f0c`, 110 rows at the time of writing.
@@ -1501,7 +1501,7 @@ is not automatically a §6 violation — the approval may live in the pre-clear
 session. Check `0615d09e` before calling it. The gate rule still holds for
 anything newly decided.
 
-### Correction — the `pipeline_owned` constraint was stale, 8 Sep ~20:20
+### Correction — the `pipeline_owned` constraint was stale, 8 Sep ~20:20  <!-- F-009 -->
 
 I repeated "nothing may commit on `wa-02-cache` until its gate run is parked"
 from the 15:40 pause state without re-reading it. Wrong by then. Both runs had
@@ -1518,7 +1518,7 @@ not a recorded one.
                   review 4 findings / 61 min completed, test 15 min completed
                   4 awaiting · nothing pushed
 
-### The restart itself — clean, and it did the thing I said to watch for
+### The restart itself — clean, and it did the thing I said to watch for  <!-- F-010 -->
 
 `no-mistakes axi sync` on both worktrees returned custody and brought the gate's
 own review commits onto the working branches — three each, `0ac275d → 54965f7`
@@ -1543,7 +1543,7 @@ dispatch was never the thing that broke.
 
 *(Supervisor instrument housekeeping moved to `supervision/instrument-log.md` — not a Lelouch finding. Corrections elsewhere in this log still reference it.)*
 
-### Two live findings from the recovered window
+### Two live findings from the recovered window  <!-- F-011 -->
 
 **`wa-03-budget` woke but did not resume work.** Five tool calls in sixteen
 minutes: `axi status`, `axi sync --re...`, `git log`, one heartbeat at 20:26:36,
@@ -1571,7 +1571,7 @@ slug, so `[lelouch]` covers the orchestrator *and* every in-place worker. The
 skill's own note about shared slugs applies to the tag too — the tag names a
 directory, not an agent.
 
-### CORRECTION — the DuckDB trial did not fail. I misread exit 127.
+### CORRECTION — the DuckDB trial did not fail. I misread exit 127.  <!-- F-012 -->
 
 I reported the scout's approved trial as "failing to launch since 20:37:20,
 binary not where the trial expects it." **Wrong, and reported to C.C as fact.**
@@ -1610,7 +1610,7 @@ now streams with the same marker as a denied `gh-axi pr merge`. The label should
 be `!! nonzero` unless the body carries a permission/refusal signature — but this
 is a *third* watcher change in one hour, so it goes to the debrief, not now.
 
-### `wa-03-budget` — the idle finding, restated more carefully
+### `wa-03-budget` — the idle finding, restated more carefully  <!-- F-013 -->
 
 Still not working its findings, but "idle" was too strong. Since waking at 20:26
 it has made ~7 calls: `axi status`, `axi sync`, `git log`, heartbeats on a
@@ -1655,7 +1655,7 @@ Also at 20:44: `tasks-axi done wa-slice-r3 --report docs/research/local-engine-s
 The scout's ticket closed **with its report attached to the ticket**, not merely
 mentioned in prose.
 
-### Report-link loss, reproduced live — and the losing path reports success
+### Report-link loss, reproduced live — and the losing path reports success  <!-- F-014 -->
 
 This branch already carries `208e062 Stop the contract sending tasks-axi done
 into a validation error`. The run just produced the failure in a shape that fix
@@ -1728,7 +1728,7 @@ a debrief script, the next Lelouch re-orienting after a context death — sees a
 scout ticket with no output attached. That is the same class of failure as the
 7 Sep untracked-files near-loss: work that exists but is invisible to the board.
 
-### Quiet worker, third variant of the same ambiguity
+### Quiet worker, third variant of the same ambiguity  <!-- F-015 -->
 
 `wa-03-budget` wrote no transcript row for nine minutes after its
 `axi respond --action fix` — no heartbeat either, despite having been on a
@@ -1757,7 +1757,7 @@ custody. My earlier correction ("nothing is pipeline-owned") was true of the old
 failed runs and is now out of date for this branch. State that moves needs
 re-reading every time, not correcting once.
 
-### Gate-poll cost, measured — and a hypothesis about the token deaths
+### Gate-poll cost, measured — and a hypothesis about the token deaths  <!-- F-016 -->
 
 Both workers spent the same 31 minutes doing the same thing: waiting on a gate
 fix round. Measured from their transcripts:
@@ -1789,7 +1789,7 @@ Worth noting the asymmetry this exposes: §7 disciplines how Lelouch waits,
 because run 1 burned 331s on a bare `check --run`. Nothing disciplines how a
 *worker* waits, and the worker is the one holding a 200k window full of code.
 
-### The §7 wait outlived the session that armed it — an undesigned recovery
+### The §7 wait outlived the session that armed it — an undesigned recovery  <!-- F-017 -->
 
 Lelouch backgrounds its filtered `orchestration check --wait` as a harness task
 and reads the task's `.output` file for results. After the clear it is polling
@@ -1828,7 +1828,7 @@ session's file is right for draining the backlog once; it is wrong as the
 steady state. Worth checking at the debrief whether Lelouch ever re-armed, or is
 still living off `0615d09e`'s wait an hour later.
 
-### The captain hold that got it right — `wa-required-checks`, ~21:05
+### The captain hold that got it right — `wa-required-checks`, ~21:05  <!-- F-018 -->
 
 First `** ASK-CC` the instrument has ever emitted; an hour ago this event was
 invisible to the monitor. The gate fired, and what followed is the strongest
@@ -1867,7 +1867,7 @@ thing not to do, and the one command to run on release is a complete handoff to
 a successor that shares no context. That is the whole problem the harness exists
 to solve, solved in one field.
 
-### Transcript growth as an early warning — with the caveat stated first
+### Transcript growth as an early warning — with the caveat stated first  <!-- F-019 -->
 
 **This is a proxy, not a measurement.** A `.jsonl` accumulates the whole session
 history; the context window is a window, and a compaction does not shrink the
@@ -1907,7 +1907,7 @@ an hour ago: **write state into holds continuously, not at the end.** A session
 that has checkpointed its decisions into `wa-required-checks`-quality holds can
 die without costing anything but time.
 
-### The non-convergence did not recur — `wa-02-cache` review completed
+### The non-convergence did not recur — `wa-02-cache` review completed  <!-- F-020 -->
 
 The risk I flagged to watch has resolved in the good direction.
 
@@ -1940,7 +1940,7 @@ would confirm it: `wa-03-budget`, which is running the identical pattern from
 its own synced base, is still in `fix 1` at 44m28s with 4 findings. If it also
 completes in one round, the base-commit explanation gains a second data point.
 
-### Both open questions about the re-cast Lelouch, answered
+### Both open questions about the re-cast Lelouch, answered  <!-- F-021 -->
 
 **It re-armed its own wait.** The earlier section asked whether Lelouch ever
 re-armed in the new session or would live off `0615d09e`'s output file
@@ -1975,7 +1975,7 @@ direction from it.
 
 ---
 
-## Reading guide for the 8 Sep session — what still stands
+## Reading guide for the 8 Sep session — what still stands  <!-- F-022 -->
 
 This log is append-only, so several corrections sit *below* the claims they
 correct. Anyone skimming will hit the claim first. This table is the index; the
@@ -2015,7 +2015,7 @@ than having no supervisor, because the label arrives with authority attached.
 
 ---
 
-## Token accounting, measured — the hypothesis was right and I was part of it
+## Token accounting, measured — the hypothesis was right and I was part of it  <!-- F-023 -->
 
 C.C asked at ~53% of the usage cap what was consuming it. Measured from
 `message.usage` across every transcript on disk, since the 20:14 restart. All
@@ -2062,7 +2062,7 @@ every transition it needed to.
 
 ---
 
-## First complete gate traverse of the run — `wa-02-cache`, PR #4
+## First complete gate traverse of the run — `wa-02-cache`, PR #4  <!-- F-024 -->
 
     intent      completed        26 ms
     rebase      completed      22.7 s
@@ -2101,7 +2101,7 @@ three `no-mistakes(review):` commits it produced before dying, plus this run's
 fixes. Nothing from the token death was lost, and the ticket went from "never
 cleared review in 99 minutes" to shipped.
 
-### How to judge gate convergence — count is the wrong axis, content is the right one
+### How to judge gate convergence — count is the wrong axis, content is the right one  <!-- F-025 -->
 
 I called `wa-03-budget` converging because findings fell 4 -> 3 -> 3 -> 2, then
 had to correct it when they went back to 3. Both statements used finding *count*
@@ -2144,7 +2144,7 @@ twenty minutes and got opposite answers from the same healthy run.
 
 ---
 
-## The run stopped three hours ago and the monitor never said so
+## The run stopped three hours ago and the monitor never said so  <!-- F-026 -->
 
 Discovered at 03:03 local, by accident, while measuring something else.
 
@@ -2203,7 +2203,7 @@ because the defect was still happening when the fix shipped.
 
 ---
 
-## Root cause of the gate-poll spend: a blocking call was backgrounded, then polled anyway
+## Root cause of the gate-poll spend: a blocking call was backgrounded, then polled anyway  <!-- F-027 -->
 
 `no-mistakes axi run` is documented as **"blocking until a decision point or the
 outcome"**. `axi status` has no `--wait` or `--follow` at all. So the intended
@@ -2262,7 +2262,7 @@ worker's benefit alone. That is worth stating in the contract, because the
 instinct to "keep the orchestrator informed" is exactly what would re-introduce
 the cost.
 
-### The watchdog — the backstop the notification-only design needs
+### The watchdog — the backstop the notification-only design needs  <!-- F-028 -->
 
 C.C pushed on this and was right to. Saying "the gate's `last_activity` covers a
 backgrounded call that dies" describes how the *supervisor* detects the problem,
@@ -2306,7 +2306,7 @@ failed on its own terms. **Neither death nor failure loses gate work.** The
 `sync --recover` is the only way to get it back — which is why it had no
 business being classified as a throttled read.
 
-### The heredoc quoting failure is environmental, not agent error
+### The heredoc quoting failure is environmental, not agent error  <!-- F-029 -->
 
     Exit code 2
     /usr/bin/bash: -c: line 142: unexpected EOF while looking for matching `''
@@ -2329,7 +2329,7 @@ was wrong". Run 2 already turns on the first distinction. Fix at the debrief:
 reserve `!! REFUSED` for permission signatures and use `!! nonzero` otherwise.
 That is now the third instance of this same mislabel tonight.
 
-### §6 needs a notion of standing authorisation
+### §6 needs a notion of standing authorisation  <!-- F-030 -->
 
 At 02:40:06 on 9 Sep C.C handed Lelouch the design-system work ("our design team
 came back with a landing page fully built and a full design system... take the
@@ -2366,7 +2366,7 @@ Worth checking at the debrief whether Lelouch reasoned about this or simply
 dispatched. The difference between "correct by luck" and "correct by rule" is the
 whole experiment.
 
-### The dispatch stall survives — for `--worktree new-top-level`
+### The dispatch stall survives — for `--worktree new-top-level`  <!-- F-031 -->
 
     worker-start --task task_73a35fecfa9b --worktree new-top-level --name wa-des…   (stalled)
     worker-start --task task_73a35fecfa9b --retry-of ctx_5d63f6c679c2 --terminal …  (retry)
@@ -2393,7 +2393,7 @@ document that a new-top-level dispatch is expected to need one retry. The curren
 state — a fix that works only for the path it was tested on — is the worst of the
 three, because the log says the race is gone.
 
-### Fan-out is bounded by RAM, not only by tokens
+### Fan-out is bounded by RAM, not only by tokens  <!-- F-032 -->
 
 Measured 9 Sep ~03:3x, while two Lavish feedback polls were killed in minutes
 "because the system is running low on memory":
@@ -2428,7 +2428,7 @@ Implications worth carrying to the debrief:
   the harness sent an explicit "killed" notification. Nothing in `watch.py` would
   have said so.
 
-### `wa-03-budget` shipped — the recovery pattern confirmed twice
+### `wa-03-budget` shipped — the recovery pattern confirmed twice  <!-- F-033 -->
 
     PR #5  feat(budget): gate discovery on a spend ledger and pre-flight quotes
            open · checks 2 passed, 0 failed · verified via gh-axi, not the gate's claim
@@ -2458,7 +2458,7 @@ made `no-mistakes` worth its own page.
 
 **Both PRs are open and unmerged**, awaiting C.C.
 
-### The /tmp and /c/ path trap — bash writes it, Python cannot read it
+### The /tmp and /c/ path trap — bash writes it, Python cannot read it  <!-- F-034 -->
 
 `wa-design-system` failed twice in a row building its PR body, both times the
 same class of bug. Reproduced directly:
@@ -2490,7 +2490,7 @@ that cost an agent multiple turns and produced an error message pointing nowhere
 near the cause. Both are worth a short "this machine" section in the contract:
 the failures are not reasoning failures, and no amount of agent care avoids them.
 
-### A worker reported `worker_done` with its gate parked on the agent
+### A worker reported `worker_done` with its gate parked on the agent  <!-- F-035 -->
 
 Morning of 9 Sep. PR #6 exists, but its run sat unable to move:
 
@@ -2555,7 +2555,7 @@ decision that is not yours") produced the correct outcome from an imprecise
 understanding. That is what a good rule is *for*: it does not require the agent to
 be right about everything first.
 
-### CORRECTION to the watchdog rule — the harness blocks sleep-based polling
+### CORRECTION to the watchdog rule — the harness blocks sleep-based polling  <!-- F-036 -->
 
 The §W watchdog I proposed ("if nothing after ~10 minutes, run one
 `no-mistakes axi status`, then wait again") assumed a sleep could pace the check.
@@ -2591,7 +2591,7 @@ one, not that one.
 
 ---
 
-## ARCHITECTURE — one README conflict cost over an hour, and the gate is not why
+## ARCHITECTURE — one README conflict cost over an hour, and the gate is not why  <!-- F-037 -->
 
 9 Sep. A single README merge conflict on PR #6 — seconds of work by hand — became
 an hour of gate cycles, an escalation, an abort and a restart. C.C called the
@@ -2698,7 +2698,7 @@ new-top-level dispatch is expected to stall once and must be retried with
 
 ---
 
-## No worker has ever read the glossary — CONTEXT.md is gitignored
+## No worker has ever read the glossary — CONTEXT.md is gitignored  <!-- F-038 -->
 
 Found 9 Sep when `wa-server-abort` emitted `cat: CONTEXT.md: No such file or
 directory` and carried on.
@@ -2760,7 +2760,7 @@ worker to read a file that cannot be there.
 
 ---
 
-## The scout terminal leak has TWO causes, and my recorded fix only addressed one
+## The scout terminal leak has TWO causes, and my recorded fix only addressed one  <!-- F-039 -->
 
 Earlier in this log I diagnosed it as a template problem: the release block is
 coupled to a `worktree set` line that only own-worktree dispatches can satisfy,
@@ -2812,7 +2812,7 @@ whether fixing it would actually close a terminal. A cause that explains the
 symptom is not the same as the cause that controls it, and I recorded the first
 as if it were the second.
 
-### The gate's `lint` step is a no-op — nine checks advertised, eight delivered
+### The gate's `lint` step is a no-op — nine checks advertised, eight delivered  <!-- F-040 -->
 
 Lelouch filed `wa-oxlint`: *"Adopt oxlint so the ship gate's lint step stops
 being a no-op."* My own step timings corroborate it independently:
@@ -2853,7 +2853,7 @@ commands, not documents.** Same for the `/tmp` and `/c/...` path dialects. A
 short "this machine" section costs a paragraph and removes a recurring tax that
 every agent currently pays once, alone, in the middle of doing something else.
 
-### Both environment traps are universal, not occasional — final counts
+### Both environment traps are universal, not occasional — final counts  <!-- F-041 -->
 
 Within one working day, on one machine:
 
@@ -2886,7 +2886,7 @@ corrected me before the contract did.
 error message that points at a shell parse position rather than a cause. Seven
 occurrences in a day, silently, in the middle of other work.
 
-### The remediation advice is itself a trap
+### The remediation advice is itself a trap  <!-- F-042 -->
 
 `wa-hydrate`, in sequence:
 
@@ -2923,7 +2923,7 @@ run_in_background" — say the one thing that is true for a worker driving a gat
 Three failures deep on one wait is the cost of guidance that is technically
 complete and practically ambiguous.
 
-### The gate reports commits the worker cannot resolve
+### The gate reports commits the worker cannot resolve  <!-- F-043 -->
 
 Twice now — `wa-design-system`, then `wa-asof-progress`:
 
@@ -2948,7 +2948,7 @@ brings them over; do not `git show` them and do not open the gate's database.**
 
 ---
 
-## The supervisor's worst failure: the alarm was right and I talked it down
+## The supervisor's worst failure: the alarm was right and I talked it down  <!-- F-044 -->
 
 9 Sep. Three workers stalled **2 hours 20 minutes**. My instrument caught it
 within fifteen minutes. I investigated, declared it benign, and stood down.
@@ -3001,7 +3001,7 @@ fired twice, in concert, and I was the component that failed.
 
 ---
 
-## Memory pressure, waits, and who watches for silence — the whole thread
+## Memory pressure, waits, and who watches for silence — the whole thread  <!-- F-045 -->
 
 Three sections above touch this from different angles (*Fan-out is bounded by
 RAM*, *CORRECTION to the watchdog rule*, *The supervisor's worst failure*). This
@@ -3079,7 +3079,7 @@ failed was the one that had just designed the cover.**
   session combined, twice over. Any concurrency policy that ignores what else is
   on the machine is fiction.
 
-### CORRECTION — the nudges are not free. Not holding a wait costs a turn per heartbeat.
+### CORRECTION — the nudges are not free. Not holding a wait costs a turn per heartbeat.  <!-- F-046 -->
 
 The section immediately above quotes Lelouch calling the `You have 1
 orchestration message` nudges "a free liveness signal", and I endorsed that
@@ -3117,7 +3117,7 @@ and it fitted the argument I was already making. It was a claim about a mechanis
 neither of us had inspected. The correct move was to ask what acknowledges a
 heartbeat — which is the question that produced the real answer.
 
-### `awaiting_agent` is invisible to the agent it is waiting for — twice in one day
+### `awaiting_agent` is invisible to the agent it is waiting for — twice in one day  <!-- F-047 -->
 
 C.C asked whether the seam worker had been "waiting for the gate for an hour".
 It was the other way round:
@@ -3155,7 +3155,7 @@ Cheap mitigations, in order of preference:
    with a live worker is a specific, detectable state, and it is what answered
    C.C's question in one command.
 
-### FIX NEEDED IN LELOUCH TOO — the anonymous heartbeat
+### FIX NEEDED IN LELOUCH TOO — the anonymous heartbeat  <!-- F-048 -->
 
 I hit this on 8 Sep and fixed it for the supervisor. **Lelouch has the identical
 problem and it is still unfixed.** C.C flagged it directly: *"it's weird that he
@@ -3202,7 +3202,7 @@ of this system have the same hole?**
 
 ---
 
-## The correction loop runs upward, and it is load-bearing
+## The correction loop runs upward, and it is load-bearing  <!-- F-049 -->
 
 Four times on 9 Sep a worker or a gate reviewer checked something Lelouch had
 asserted, found it wrong against the code, and said so. Verified from the
@@ -3260,7 +3260,7 @@ such corrections would look better and be worse.
 
 ---
 
-## Second memory kill, same day: the run has a RAM ceiling, not a token ceiling
+## Second memory kill, same day: the run has a RAM ceiling, not a token ceiling  <!-- F-050 -->
 
 > **CORRECTED — see "The 20:48 stop was token exhaustion, not a kill" below.**
 > The timeline in this entry is right; the *cause* attributed to it is wrong.
@@ -3325,7 +3325,7 @@ difference between them is two hours.
 
 ---
 
-## The 20:48 stop was token exhaustion, not a kill — and my correction of it
+## The 20:48 stop was token exhaustion, not a kill — and my correction of it  <!-- F-051 -->
 
 C.C: *"we ran out of tokens, can you check on the two builders?"* Both worker
 terminals are **alive and connected**, sitting at a prompt:
@@ -3373,7 +3373,7 @@ re-brief), identical signature.
 
 ---
 
-## The recovery from a gate rebase requires a force-push, which is auto-blocked
+## The recovery from a gate rebase requires a force-push, which is auto-blocked  <!-- F-052 -->
 
 At 22:19 local Lelouch attempted exactly the right recovery for `wa-hydrate`:
 
@@ -3407,7 +3407,7 @@ publish step that a human authorises once per branch rather than per push.
 
 ---
 
-## Context exhaustion deadlocks the dispatcher: only a human keystroke clears it
+## Context exhaustion deadlocks the dispatcher: only a human keystroke clears it  <!-- F-053 -->
 
 Between 22:19 and 22:23 Lelouch issued **four** `worker-start` calls at the same
 task and terminal:
@@ -3467,7 +3467,7 @@ than build on its stale pre-rebase HEAD.
 
 ---
 
-## The false-healthy report, and the missing skill: resume-after-token-cap
+## The false-healthy report, and the missing skill: resume-after-token-cap  <!-- F-054 -->
 
 C.C, 22:24, on the deadlock above: *"It's been the second time I see, I think or
 maybe the third time, that I ask to resume the work after talking out a session,
@@ -3542,7 +3542,7 @@ after recovery is the least safe moment in the run to find out.
 
 ---
 
-## Ship the MVP as early as it is honest to, and make the ordering a decision
+## Ship the MVP as early as it is honest to, and make the ordering a decision  <!-- F-055 -->
 
 **C.C's rule, recorded verbatim as a requirement for the system:** *"Once we have
 the core of the project discussed, then decided and then built, the faster we can
@@ -3621,7 +3621,99 @@ costs the difference between a user who is watching and a user who is waiting.
 
 ---
 
-## SCOPE NOTE — what in this log is a Lelouch finding, and what is not
+## The review step's 30-minute timeout discards a completed traverse  <!-- F-056 -->
+
+Gate run `01M243VXPGZX84ZNX6YQ2B5R2E` on `wa-app-shell` **failed at phase
+`pre_push`** after the review agent exceeded a 30-minute limit mid-fix:
+
+```
+status: failed        phase: pre_push
+submitted_head: ec5f0347...     current_head: 4933ee89...
+pushed_head: ""                 push_generation: 0
+```
+
+**No work was lost, and that is not the same as no cost.** Verified in the
+worktree rather than taken from the worker's report: `ec5f0347 fix(app): close
+the review's findings on the app shell` is an ancestor of HEAD, and the review
+agent's own `4933ee89 no-mistakes(review): drop false spend claim, guard fields,
+remove dead paths` sits on top of it. Both commits survived, custody returned.
+
+What was discarded is the **traverse**. A fresh run, `01M246PRRAEKGYVJ80P5CR5RHM`,
+is now at `review, running` with `findings: none`, starting again from `intent`.
+The prior review took **43 minutes** (2,581,334 ms) and produced 9 findings; the
+fix round then ran past 30 and died. Roughly 73 minutes of gate work, and the new
+review will re-derive findings against code that already answered them.
+
+**The shape is what makes this bad, not the duration.** The cost compounds in the
+wrong direction:
+
+```
+more findings  ->  longer fix round  ->  more likely to exceed 30 min
+      ^                                            |
+      |                                            v
+  re-review  <-  restart from intent  <-  traverse discarded
+```
+
+A ticket that draws many findings is *more* likely to be thrown away, so the
+tickets most in need of the gate are the ones least able to get through it. This
+compounds with [the gate charging feature prices for prose](#) — the price is
+already flat regardless of change size, and now the timeout punishes exactly the
+changes that price hurts most.
+
+**The worker's own reading, which is the second finding here.** It wrote:
+
+> *"The review step hit its 30-minute agent timeout mid-fix — **not a finding**,
+> an infrastructure timeout."*
+
+An infrastructure timeout that discards seventy minutes of completed review and
+forces a full re-traverse **is a finding**. The instinct to file it under
+environment and move on is the same one behind the false-healthy report: a thing
+that went wrong is classified as a thing that merely happened, and nothing
+reaches the person paying for it. C.C caught this one by reading the worker's
+narration directly, which is not a supervision method that scales.
+
+**What to decide at the debrief.**
+
+1. **The timeout should fail forward, not backward.** The fix commit exists and
+   custody returned cleanly. Resuming at `review` against the current head would
+   have cost minutes; restarting at `intent` cost the whole traverse. Nothing
+   about the failure required discarding the completed steps.
+2. **A round that produces N findings needs a budget proportional to N**, or the
+   fix round needs to be splittable — answer four findings, checkpoint, answer
+   four more. One 30-minute window for nine findings is a coin flip.
+3. **Timeouts must be reported as events, not swallowed as weather.** The worker
+   knew, said so in narration, and filed it as noise. Nothing in the contract
+   tells it that an infrastructure failure costing an hour is worth escalating.
+
+**Adjacent, same run:** the worker's own shell calls hit the harness 600-second
+limit twice and were backgrounded, after which it correctly switched to a Monitor
+rather than sleep-polling. That part worked — it is the behaviour the watchdog
+correction in this log asks for, arrived at unprompted.
+
+**CORRECTION, 20 minutes later — the re-review is not wasted work.** I wrote above
+that "the new review will re-derive findings against code that already answered
+them." That was a prediction, and it is wrong. The second traverse produced
+**2 findings, not 9**, and different ones — `ds-reexports-the-builder-that-must-
+not-be-used` and `retry-on-screen-6-shows-nothing-while-running`, against round
+one's `spent-claim-false-on-502` and `condition-fields-not-checked-against-
+boundary`. Because the fix commits survived custody, the new review reads the
+*fixed* code and finds what is still wrong with it.
+
+So the cost is narrower than I claimed, and the finding is better for it: what
+the timeout discards is **the traverse, not the progress**. Roughly 43 minutes of
+review wall-clock, re-run against a better head. The compounding-loop diagram
+above still holds — a long fix round can still be killed by the timeout — but the
+loop converges rather than spinning, because each restart begins from the
+previous round's fixes.
+
+What remains squarely wrong is the restart *point*. Resuming at `review` against
+the current head would have cost minutes. Restarting at `intent` re-ran the whole
+traverse to reach the same step. Nothing about an agent timeout requires
+discarding `intent` and `rebase`, which had both already completed.
+
+---
+
+## SCOPE NOTE — what in this log is a Lelouch finding, and what is not  <!-- F-057 -->
 
 C.C, correctly: *"the debrief is for Lelouch runs and Lelouch system findings,
 not yours."* I drifted. Several entries below are the supervisor fixing its own
@@ -3645,7 +3737,8 @@ signature · gate-rebased branches are unpublishable because force-push is
 auto-blocked · context exhaustion deadlocks dispatch until a human types
 `/clear` · the false-healthy default, and the resume-after-token-cap skill
 C.C asked for · ship the MVP early, and make build ordering an explicit
-decision.
+decision · the review timeout discards a completed traverse, and the worker
+filed it as weather.
 
 ### B. Shared-process findings — supervisor experience that transfers
 
@@ -3664,6 +3757,13 @@ Lelouch too" note:
   in Lelouch**, which pays 2-3 commands to answer "from whom?".
 - **Alarms without evidence attached.** My silence alarm now carries per-session
   last-row ages. The orchestration nudge carries nothing equivalent.
+- **Gate failure is invisible to everyone outside the gate.** A failed run
+  reports `status: failed` inside a command that exits **0**, and says nothing to
+  the orchestrator at all. C.C found the `wa-app-shell` timeout by reading a
+  worker's prose. Lelouch has no gate-state check either, and no notification
+  reaches him when a traverse dies — so the person paying for the run is the
+  only detector. Fixed on my side with a per-worktree state check; **unfixed in
+  Lelouch**, and the harder half, since he has no monitor to add it to.
 
 ### C. Supervisor housekeeping — NOT debrief material
 
