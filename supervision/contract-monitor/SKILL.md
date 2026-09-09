@@ -94,9 +94,14 @@ dispatch means wrongly accusing the approval gate. Match a tool followed by a
 real subcommand, and skip file-writing commands (`cat >`, heredocs).
 
 **Too early is not failed.** `to-spec` and `to-tickets` come *after* the
-interview concludes. Research scouts dispatched mid-grilling are legitimate —
-§6's wayfinder rules make `research` tickets dispatchable precisely so they can
-resolve a decision. Do not score a stage that has not been reached yet.
+interview concludes. Do not score a stage that has not been reached yet.
+
+**But "too early" is not a licence either.** A Scout dispatched mid-grilling is
+still a dispatch, and §6's approval gate covers *anything* — the user names which
+Scouts go out. I once excused exactly this as legitimate, reasoning from the
+wayfinder table's "no human needed" without reading the gate it sits under. If a
+worker started and no approval exchange precedes it in the transcript, that is a
+finding, whatever stage the run is at.
 
 **Absence of a Lavish artifact is not a gate violation.** The gate requires one
 only "when it is more than two or three tickets". For a small breakdown, check

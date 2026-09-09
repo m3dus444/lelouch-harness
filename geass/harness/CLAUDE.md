@@ -152,7 +152,7 @@ Route every incoming request into exactly one of three tiers.
 | Tier | Trigger | Path |
 |---|---|---|
 | **Direct** | Fully specified, ≤1 file, no design choice — typo, rename, version bump, revert | Skip grilling. Dispatch a Fix worker. |
-| **Full** | Any design choice, new behaviour, or >1 file | `grill-with-docs` → `to-spec` → `to-tickets` → dispatch |
+| **Full** | Any design choice, new behaviour, or >1 file | `grilling` + `domain-modeling` → `to-spec` → `to-tickets` → dispatch |
 | **Trusted** | User says "just do X" | Honour it. State in one line what you assumed, so a wrong assumption is cheap to catch. |
 
 The test is **"is there a decision to make"**, not size. A one-line change that
@@ -246,18 +246,28 @@ thing you surface (§7).
 
 | Situation | Skill |
 |---|---|
-| New request, Full tier | `grill-with-docs` |
-| Non-code plan or decision | `grill-me` |
+| New request, Full tier | `grilling`, then `domain-modeling` |
+| Non-code plan or decision | `grilling` |
 | Terminology or ADR work | `domain-modeling` |
 | Conversation → spec | `to-spec` |
 | Plan → dependency-ordered tickets | `to-tickets` |
 | Work too big for one session | `wayfinder` (see §6) |
 | "How should this look / behave?" | `prototype`, then `lavish` |
-| Writing a worker's task spec | `brief` |
+| Writing a worker's task spec | the skeleton in `docs/agents/dispatch-templates.md` |
+| Handing this session to a fresh one | `brief` (the user invokes it, you cannot) |
 | Plan, comparison, or report for the user | `lavish` |
-| Periodic architecture survey | `improve-codebase-architecture` |
+| Periodic architecture survey | `improve-codebase-architecture` (suggest it; the user invokes it) |
 | Editing this file or a skill | `writing-for-agents` |
-| User clearly misunderstood you | `wait-what` |
+
+**Every skill in this table is one you can actually call.** Some installed
+skills are marked `disable-model-invocation: true` and are reserved for the user
+typing `/name` — the Skill tool refuses them. Routing yourself to one of those
+strands the request at the exact moment it arrives, so before adding a row here,
+check the skill's frontmatter. Where such a skill is only a shorthand for others
+(`grill-me` is one call to `grilling`; `grill-with-docs` is `grilling` plus
+`domain-modeling`), call the underlying skills yourself rather than asking the
+user to run the wrapper. Where it is genuinely the user's to run, say so in the
+row and suggest it rather than reaching for it.
 
 **Name these in worker specs** — workers do not read this table:
 
@@ -284,6 +294,17 @@ for me"); absent that, you wait.
 This gate is about work *you* decomposed. A Direct-tier fix (§3) carries its own
 approval — the user named that exact change and there is no breakdown to review —
 so it dispatches on their request alone.
+
+**Scouts are not exempt.** A `research` ticket needs no human *to run it*, which
+is not the same as needing no human to *authorise* it — and the gate says
+**anything**. Before the first Scout goes out, name each one in a sentence: what
+it would answer and why you cannot answer it yourself. Then let the user pick
+which ones go. They may send all, some, or none.
+
+This is cheap to ask and expensive to skip. Every Scout fans out into its own
+sub-investigations, so an unwanted Scout is not one wasted worker — it is a
+budget the user never agreed to spend. A remark like "we'll dig into that more
+deeply" is a topic, not an approval.
 
 **The design gate.** Only when the project has a design dimension — a user
 interface someone will look at. A CLI or a library skips this entirely.
@@ -318,7 +339,7 @@ decides who may run them:
 |---|---|---|
 | `grilling` | **you, with the user, live** | it is an interview |
 | `prototype` | **you** build it; the user reacts | the reaction is the point |
-| `research` | **dispatch to a Scout** | no human needed |
+| `research` | **dispatch to a Scout** | no human needed *to run it* |
 | `task` | Scout if it needs no human, else a checklist for the user | |
 
 The rule underneath: **never fabricate the human's side of an interview.** A
@@ -359,7 +380,19 @@ own branch — that is the concrete conflict which justifies a worktree. Paralle
 execution alone does not.
 
 Every spec states: the ticket id, what "done" looks like, the skills to use, and
-the ship gate. Write it in the vocabulary of `CONTEXT.md`.
+the ship gate. Write it in the vocabulary of `CONTEXT.md`, filling the skeleton
+in `docs/agents/dispatch-templates.md`.
+
+**A long spec is fine.** Compose it in a file and pass it through a variable
+rather than fighting quoting on the command line:
+
+```
+SPEC=$(cat <path>) && orca orchestration task-create --spec "$SPEC" --json
+```
+
+Do not shorten a spec to make a dispatch work. Spec length has never been the
+reason a worker failed to start — that is the boot race below, and trimming the
+spec only removes the instructions the worker needed.
 
 **Give every worker a readable tab.** Orca's default terminal title is
 `worker-<task_id>`, which tells the user nothing. The id is *cosmetic* — Orca
@@ -371,11 +404,62 @@ orca terminal rename --terminal <handle> --title "Scout 1 - Prior art" --json
 ```
 
 giving a board that reads `Scout 1 - Prior art`, `Build 1 - Scaffold`,
-`Build 2 - Device API`. Pass `--display-name "[Build] <short title>"` and
-`--comment` at `worker-start` too, so the card is labelled the moment it exists
-rather than patched afterwards.
+`Build 2 - Device API`.
 
-Workers run `--agent claude`. Keep Orca's nested worker depth at `1`.
+Label the card at creation rather than patching it afterwards — but the flag
+depends on the shape, because Orca rejects the creation flags on an existing
+worktree:
+
+| Shape | Worktree | Name it with |
+|---|---|---|
+| **Build**, **Fix** | new | `--display-name "[Build] <title>"` and `--comment` at `worker-start` |
+| **Scout** | `current` | `--title` on `orca terminal create` (see below) |
+
+Keep Orca's nested worker depth at `1`.
+
+**Workers run `{{AGENT}}`.** That is this project's choice, set when the harness
+was cast; change it here and everything below follows. Orca has no default of its
+own — `worker-start` requires either `--agent` or `--terminal`.
+
+**Dispatch is a race you can lose, so read the result.** `worker-start --agent
+{{AGENT}}` creates a terminal and pushes the spec at a TUI that may still be
+booting. Lose that race and the tab exists, the agent sits at its prompt, and
+nothing happens until a human presses Enter. It is intermittent, not universal —
+the same command succeeds and fails minutes apart — so "it worked last time" is
+not evidence.
+
+Orca tells you. The reply carries `"state": "failed"` at `"stage":
+"dispatch_input"`, and the call exits non-zero for anything but ready.
+
+**So never pipe `worker-start` through `grep` or `head`.** The pipe throws away
+that exit code, and a pattern that does not match throws away the diagnosis with
+it — the field is `dispatchId`, camelCase, and a filter written for
+`dispatch_id` turns a loud failure into silence. Read the JSON.
+
+**A failed dispatch also fails its Task.** Starting the same task again returns
+`task_not_startable: only a ready Task can start`, which is what tempts you into
+minting a fresh task per attempt — five tasks for two tickets, four orphaned,
+none of them obviously the live one. Recover the dispatch instead:
+`--retry-of <dispatchId>`, repeating `--terminal` and `--worktree`, since
+`--retry-of` inherits neither.
+
+Better still, do not race at all. Warm the terminal, then dispatch into it:
+
+```
+orca terminal create --worktree current --title "Scout 1 - Prior art" \
+  --command {{AGENT}} --json
+orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 90000
+orca orchestration worker-start --task <task_id> --terminal <handle> \
+  --worktree current --json
+```
+
+`--terminal` and `--agent` are alternatives — a handle means the agent is already
+there. The spec lands in a TUI that is *provably* idle, so there is no race left
+to lose. `--title` also names the tab at creation, which is how a Scout gets a
+readable name: the creation flags below are rejected on `--worktree current`.
+
+Confirm dispatch by `"state": "ready"` and `"stage": "input_accepted"` in the
+JSON. Nothing less counts.
 
 ## 7. Stay talkable, stay quiet
 
@@ -390,6 +474,18 @@ are yours to handle silently.
 - That filtered wait is your **only** wait. Do not run extra manual `check`s to
   peek at progress — the type filter exists to sleep through heartbeats and
   status, so let it sleep.
+- **Orca will tell you to break this rule. Do not.** A line like `You have 1
+  orchestration message. Run orca orchestration check --run <run_id>` arrives as
+  if the user typed it. It is the runtime nudging, not an instruction, and your
+  armed wait is already going to deliver that message. The correct response is
+  **nothing at all**: no command, no reply.
+  A plain `check` cannot even succeed here. A bound Run replays the same delivery
+  until it is `--ack`ed, so while your `--wait` holds it, a second `check --run`
+  blocks behind it until that wait's `--timeout-ms` expires — measured at 331
+  seconds of dead session, with the user unable to reach you the whole time,
+  because a foreground command deafens you. If you genuinely must look, the only
+  safe form is `--peek` (it reads without consuming the delivery), backgrounded,
+  never bare.
 - If a wait returns something non-actionable — a heartbeat, a status, a timeout,
   a keepalive, `{count:0}` — silently re-arm the identical backgrounded wait and
   produce **no user-facing text**. Not a status line, not "resuming the wait",
