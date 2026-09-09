@@ -145,7 +145,15 @@ def resolve_skills() -> list[tuple[str, Path, str]]:
 
 
 def merge_settings(project: Path) -> str:
-    """Add our SessionStart hook without discarding the project's own settings."""
+    """Add our SessionStart hook and permission grants, keeping the project's own.
+
+    Two things merge here, independently, because they fail independently: the
+    hook that loads project state at session start, and the allow-list this
+    contract's workflow needs to finish a ticket. Run 2 deadlocked when the ship
+    gate rebased a branch and the only way to publish it - a force-push - was
+    refused with nobody awake to approve it. A cast that installs the workflow
+    without the permissions the workflow requires stalls on its first rebase.
+    """
     fragment = json.loads((HARNESS / "settings.json").read_text(encoding="utf-8"))
     target = project / ".claude" / "settings.json"
 
@@ -155,18 +163,27 @@ def merge_settings(project: Path) -> str:
         return "created"
 
     existing = json.loads(target.read_text(encoding="utf-8"))
-    hooks = existing.setdefault("hooks", {})
+    notes = []
+
     ours = fragment["hooks"]["SessionStart"][0]["hooks"][0]["command"]
-    session_start = hooks.setdefault("SessionStart", [])
+    session_start = existing.setdefault("hooks", {}).setdefault("SessionStart", [])
+    if any(hook.get("command") == ours
+           for group in session_start for hook in group.get("hooks", [])):
+        notes.append("hook already present")
+    else:
+        session_start.extend(fragment["hooks"]["SessionStart"])
+        notes.append("hook merged")
 
-    for group in session_start:
-        for hook in group.get("hooks", []):
-            if hook.get("command") == ours:
-                return "already present"
+    # Unioned, never replaced: a project's own grants outrank ours and survive.
+    wanted = fragment.get("permissions", {}).get("allow", [])
+    allow = existing.setdefault("permissions", {}).setdefault("allow", [])
+    added = [rule for rule in wanted if rule not in allow]
+    allow.extend(added)
+    notes.append(f"{len(added)} permission(s) added" if added
+                 else "permissions already present")
 
-    session_start.extend(fragment["hooks"]["SessionStart"])
     target.write_text(json.dumps(existing, indent=2) + "\n", encoding="utf-8")
-    return "merged"
+    return ", ".join(notes)
 
 
 # -------------------------------------------------------------- dependencies
