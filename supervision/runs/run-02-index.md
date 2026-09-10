@@ -20,7 +20,7 @@ grep -c '^| F-0'   run-02-index.md
 
 ## Categories
 
-- **`contract`** (13) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`contract`** (14) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (19) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (18) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
@@ -137,11 +137,13 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-078 | 5367 | contract | confirmed | ~9 min | Contract says call tools directly; the `lavish` skill says use `npx -y` |
 
+| F-079 | 5446 | contract | confirmed | attribution | "Did you decide that on yourself?" -- skill decisions read as agent decisions |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (15)**, **`harness` (13)** and **`contract` (11)**.
+are concentrated in **`gate` (15)**, **`harness` (13)** and **`contract` (12)**.
 `gate` has overtaken `harness` since that sentence was first written. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout

@@ -5440,3 +5440,58 @@ often wrong. Half of what looks like a contract defect is the user's own steer,
 walked into the documented trap and out of it inside ten minutes, and the only
 reason I got out is that two npx calls arrived back to back and made me look
 twice at something I had already written down as settled.
+
+---
+
+## "Did you decide that on yourself?" — skill decisions read as agent decisions  <!-- F-079 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** one round trip, and
+a standing attribution problem · **Generalises [F-078](#)**
+
+[F-078](#) found a skill quietly overriding a contract rule. Twenty minutes
+later C.C supplied the other half of that finding, unprompted, in their own
+words.
+
+**What happened.** Lelouch published the build report styled in Weave Atlas's
+own design system — the project's tokens, fonts and pigments — rather than a
+generic report theme. C.C's reply:
+
+> "hey thank you but huh Did you did you decide on yourself to take the design
+> system of the project to build the lavish pages? It's not a bad thing. I'm not
+> saying it's a bad thing... but if you plan to do this more, you should
+> displace the assets and tokens into the build report route folder."
+
+**Lelouch's answer:**
+
+> "Yes — that was my call, and worth being explicit about the reasoning:
+> **Lavish's own design guidance ranks matching the subject project's design
+> system above its default theme**, so I pulled Weave Atlas's tokens rather than
+> styling a generic report."
+
+So the decision was the skill's, and it surfaced to the user as the agent's.
+C.C had to ask before the provenance appeared — and asked in a slightly wary
+register, twice reassuring the agent they were not angry, which is what people
+do when they think an assistant has gone off on its own.
+
+**Why this is the same finding as [F-078](#) and worth its own entry.** F-078
+is about a skill overriding a *rule*. This is about a skill making a *choice*.
+Both are invisible at the point of use, and the second is worse for the working
+relationship: the user is trying to calibrate how much latitude their
+orchestrator is taking, and every skill-driven decision that arrives unattributed
+corrupts that estimate. C.C cannot tune a contract against behaviour whose cause
+is in a file they did not write and did not know was consulted.
+
+**The rule, and it is small.** When a skill determines a visible choice, say so
+at the time, not when challenged: *"styled in the project's design system —
+Lavish's guidance ranks that above its own theme."* One clause. Lelouch produced
+exactly this sentence the moment it was asked, so the reasoning was available;
+it simply was not volunteered. **Attribution is cheap before the question and
+expensive after it.**
+
+**What C.C actually wanted, recorded separately because it is good feedback and
+not a defect.** Not "don't do that" — they said twice it was fine — but *if you
+keep doing it, stop copying the tokens per-page.* Lelouch had duplicated the
+design system into each report directory. It is now consolidating to a single
+`.lavish/ds/` with the pages flat beside it, having discovered along the way
+that Lavish serves relative to each HTML file's own directory so `..` does not
+resolve. That is ordinary work, done well, on a real observation.
