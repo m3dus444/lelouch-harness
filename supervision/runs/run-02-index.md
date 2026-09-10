@@ -21,7 +21,7 @@ grep -c '^| F-0'   run-02-index.md
 ## Categories
 
 - **`contract`** (11) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (16) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`gate`** (17) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (18) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
@@ -77,7 +77,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-037 | 2594 | contract | confirmed | 1 h+ | ARCHITECTURE: one README conflict became an hour; the gate is not why |
 | F-038 | 2701 | docs | confirmed | whole run | No worker has ever read the glossary: CONTEXT.md is gitignored |
 | F-039 | 2763 | harness | confirmed | -- | The scout terminal leak has two causes; my fix addressed one |
-| F-040 | 2815 | gate | confirmed | 8 of 9 | The gate's `lint` step is a no-op: nine checks advertised, eight run |
+| F-040 | 2815 | gate | corrected | 8 of 9 | `lint` is a no-op -- CORRECTED by F-074: it runs inside the document agent |
 | F-041 | 2856 | harness | confirmed | universal | Both environment traps are universal, not occasional; final counts |
 | F-042 | 2889 | gate | confirmed | -- | The remediation advice the gate gives is itself a trap |
 | F-043 | 2926 | gate | confirmed | twice | The gate reports commits the worker cannot resolve |
@@ -126,6 +126,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-072 | 4921 | harness | confirmed | reopens §W | The sleep block is uniform on duration, and the cheap wait is unenforced |
 
 | F-073 | 4998 | gate | corrected | -- | CORRECTION to F-064: the gate's analysis was one documented command away |
+
+| F-074 | 5072 | gate | confirmed | 47.5 min | First complete traverse measured; `test` and `lint` are agents, not commands |
 
 ## What the shape says
 

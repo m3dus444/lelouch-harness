@@ -5066,3 +5066,110 @@ same database twenty minutes earlier. **I tested the state store and not the
 tool**, which is [F-069](#)'s mistake — reading state instead of the interface —
 run in the opposite direction, four hours later, in the same session. Twice
 tonight the fix was one `--help`.
+
+---
+
+## First complete traverse measured — and `test` and `lint` are agents, not commands  <!-- F-074 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** 47.5 min for a clean
+traverse · **Corrects [F-040](#), re-explains [F-064](#)**
+
+`wa-traversal-institution`, run `01M26J3WJXF2XBBZE5BJ78QCWT`. The first
+nine-step traverse I have watched from `intent` to `pr` without a death in the
+middle, and the step timings are the first honest cost breakdown of the gate:
+
+```
+ 1 intent     completed      0.0s   23:03:29
+ 2 rebase     completed      4.3s   23:03:29
+ 3 review     completed   2241.8s   23:03:34 -> 23:43:40    <- 78.7% of the traverse
+ 4 test       completed    355.4s   23:43:40 -> 23:49:35
+ 5 document   completed    170.7s   23:49:35 -> 23:52:26
+ 6 lint       completed      0.2s   23:52:26
+ 7 push       completed     10.5s   23:52:26 -> 23:52:37
+ 8 pr         completed     65.8s   23:52:37 -> 23:53:43
+ 9 ci         running                23:53:43 ->
+                          -------
+   TOTAL                  2848.7s   = 47.5 min to an open, green PR
+```
+
+**Review is the gate.** 37.4 minutes of a 47.5-minute traverse. And it is wildly
+variable: the same step took **2h36m** on `wa-05-resolve` ([F-064](#)). Four-fold
+spread on the one step that dominates the cost.
+
+**Now the structural finding, which I got by reading the step logs rather than
+the durations.** `lint` taking 0.2 seconds looked like hard confirmation of
+[F-040](#)'s *"the lint step is a no-op."* It is not. `lint.log`, in full:
+
+```
+lint assessed in the combined document+lint housekeeping pass: 0 unresolved items
+```
+
+and `document.log`:
+
+```
+housekeeping: updating documentation and linting in one pass...
+claude started pid=15824
+claude exited pid=15824 status=success
+committed agent fixes: no-mistakes(document): Correct traversal nesting ...
+housekeeping lint result recorded for the lint step: 0 unresolved items
+```
+
+**Lint is not skipped. It is delegated to the `document` agent**, and the `lint`
+step spends 0.2s reading back a result that agent recorded. [F-040](#) is
+corrected: nine steps are advertised and nine run, but one of them is a
+report-out of another's judgement.
+
+**And then `test.log`, which is the one that matters:**
+
+```
+no test command configured, asking agent to run tests...
+claude started pid=7260
+claude exited pid=7260 status=success
+```
+
+**The gate has no test command. It asks an LLM to run the tests and report.**
+
+That single line re-explains [F-064](#) completely. I wrote there that the test
+step *"observed the flake, called it pre-existing, and shipped it unchanged"*,
+and treated that as a judgement failure. It is not a failure at all — **it is
+the step working exactly as built.** `test` is an agent writing prose about a
+test run, which is why `wa-05-resolve`'s `test.log` was three paragraphs of
+cold-start analysis instead of a vitest summary, and why the step exited 0 with
+a red suite. There is no exit code in that step to be wrong. There is an
+opinion.
+
+**What that means for the whole category.** Of nine steps, **three are agents**
+(`review`, `test`, `document`+`lint`) and they account for 2768 of 2849 seconds
+— **97% of the traverse is LLM judgement.** The deterministic parts — rebase,
+push, pr — cost eighty seconds between them. So when [F-058](#) says the review
+does not converge, and [F-064](#) says the test step reasoned a failure away,
+those are not defects bolted onto a checking pipeline. **They are the pipeline.**
+The gate is a panel of agents with a git wrapper, and it should be argued about
+on those terms at the debrief rather than as CI that keeps misbehaving.
+
+**Two smaller things worth keeping from the same logs.**
+
+`review_approved_head_sha` is `751ef6f` and the pushed head is `962d99b` — **the
+head that shipped is not the head that was reviewed.** Here the difference is
+exactly one commit, `no-mistakes(document): Correct traversal nesting and
+plus-AND docs`, touching `README.md` and one research doc, 10 insertions. Benign
+by inspection, and benign *by construction only as long as the document agent
+stays out of source*. Nothing enforces that; I checked the diffstat by hand.
+
+`ci.log` states a policy that is directly relevant to [F-066](#):
+
+> CI repair policy: publish a repair whose continuity with the reviewed head is
+> provable, otherwise restart validation from Review (`ci.revalidate_repairs: false`)
+
+So the gate **does** have a formal notion of *provable continuity with the
+reviewed head* — the exact concept [F-066](#) said was missing. It exists in the
+CI repair path and is still never written to `uncertified_pipeline_ranges`,
+which remains at **zero rows** after this clean traverse. The idea is
+implemented; the ledger of when it was violated is not.
+
+**Method, since it is three-for-three tonight.** Duration said "lint is a
+no-op." The log said "lint ran inside document." I have now been wrong twice in
+one session by reading a number instead of the artifact behind it
+([F-071](#)'s exit code, [F-073](#)'s missing CLI command) and right once by
+remembering not to. The monitor's own rule — *read files, not command strings* —
+extends to durations, exit codes and schema tables. **Read the log.**
