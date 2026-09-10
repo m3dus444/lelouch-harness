@@ -20,8 +20,8 @@ grep -c '^| F-0'   run-02-index.md
 
 ## Categories
 
-- **`contract`** (11) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (18) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`contract`** (12) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`gate`** (19) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (18) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
@@ -131,11 +131,15 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-075 | 5179 | gate | confirmed | wrong tree | `no-mistakes rerun` validates the previous head, not the current one |
 
+| F-076 | 5251 | gate | confirmed | 50x spread | ADDENDUM to F-074: gate cost is not predictable from the diff |
+
+| F-077 | 5305 | contract | confirmed | latent | ADDENDUM to F-067: the truncation fires only after a backlog, i.e. on recovery |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (14)**, **`harness` (13)** and **`contract` (9)**.
+are concentrated in **`gate` (15)**, **`harness` (13)** and **`contract` (10)**.
 `gate` has overtaken `harness` since that sentence was first written. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout

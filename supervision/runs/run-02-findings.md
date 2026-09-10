@@ -5245,3 +5245,119 @@ accessibility tree before and after — rather than trusting its unit tests, whi
 were all passing. And it waited on the gate with `Monitor` running a polling
 loop, which is exactly the cheap, sanctioned wait [F-072](#) identified two
 hours ago and which no one told it about.
+
+---
+
+## Gate cost is not predictable from the diff  <!-- F-076 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** 16.3 min for a
+one-commit follow-up · **Addendum to [F-074](#)**
+
+Run 3 on `wa-traversal-institution` — the clean re-validation after
+[F-075](#)'s wrong-head abort — completed the full nine steps and pushed
+`911b8c9`, which is now PR #14's head. The recovery is complete and the correct
+tree shipped.
+
+Its timings, against run 1 on the same branch two hours earlier:
+
+```
+step        run 1 (whole ticket)   run 3 (one commit)
+review           2241.8s  37.4m         186.6s   3.1m
+test              355.4s   5.9m         545.3s   9.1m
+document          170.7s   2.8m         153.5s   2.6m
+lint                0.2s                  0.2s
+push + pr          76.3s                  80.3s
+TOTAL            2848.7s  47.5m         980.0s  16.3m
+```
+
+**Review scales with the change; `test` does not.** Review fell from 37.4
+minutes to 3.1 — a twelvefold drop for a one-commit diff, and against
+`wa-05-resolve`'s 2h36m that is a **fifty-fold spread** across three runs. That
+is the sane, expected shape, and it partly rehabilitates review: it is
+expensive in proportion to the work, not as a flat tax.
+
+**`test` went the other way — up, from 5.9 to 9.1 minutes, on a diff an order of
+magnitude smaller.** On run 3 the test step cost **three times review**, exactly
+inverting run 1's ratio.
+
+This is [F-074](#)'s point arriving as a number. `test` is an agent asked to run
+tests because *no test command is configured*; what it costs is set by what that
+agent decides to do, not by how much changed. A deterministic `npm test` on a
+smaller diff costs the same or less, every time. An agent may decide to explore.
+
+**The planning consequence, which is the reason this is worth an entry.**
+Nobody can budget a gate traverse. Run 1 was 47.5 minutes, run 3 was 16.3, and
+`wa-05-resolve` never finished at all. The variance does not come from the size
+of the work — it comes from three LLMs deciding, independently and per run, how
+thorough to be. **Any estimate of "how long until this ticket ships" is a guess
+about agent behaviour, not about the code**, and every scheduling decision this
+run made on top of such an estimate ([F-055](#)'s ordering question especially)
+rested on a number that could not exist.
+
+**Two smaller confirmations in passing.** `lint` was 0.2s again, second run
+running, consistent with [F-074](#)'s finding that it reports the document
+agent's verdict rather than doing work. And `uncertified_pipeline_ranges` is
+**still at zero rows** after two complete traverses, one abort, and one
+wrong-head near-miss — the exact sequence of events the table exists to record.
+
+---
+
+## F-067 did not recur, and why not is the finding  <!-- F-077 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** none this time ·
+**Addendum to [F-067](#)**
+
+`wa-traversal-institution` sent `worker_done` at 22:25:40 — the same event that
+[F-067](#) lost three hours earlier. Lelouch armed the same wait with the same
+`| head -40`. **This time it worked**, and Lelouch reported PR #14 to C.C
+correctly forty seconds later.
+
+The two deliveries side by side:
+
+```
+delivery_eb6e9a449c2f  created 19:07:36  n_msgs = 6   -> worker_done TRUNCATED AWAY
+delivery_620bbe47bab9  created 22:25:40  n_msgs = 1   -> worker_done delivered
+```
+
+**Delivery size is the whole variable, and it is set by time since the last
+acknowledgement.** Messages stay queued until a delivery is acked, and unacked
+ones are re-served in the next batch. The acknowledgement history explains
+both cases exactly:
+
+```
+12:29:25  delivery acked
+12:40:58  delivery acked
+   ...    6h26m with no acked delivery -- the worker was parked on its usage
+          limit and Lelouch was not cycling waits
+19:07:52  delivery acked  <- flushes the whole backlog: 5 stale heartbeats + worker_done
+22:25:59  delivery acked  <- normal cycling since 19:07, so: 1 message
+```
+
+Each message is roughly eighteen lines of pretty-printed JSON, so `head -40`
+holds about two. **The truncation is harmless at one or two messages and lossy
+above that.**
+
+**Which gives F-067 its real shape, and it is worse than "a truncation bug."**
+Lelouch has run `head -40` on every wait for four days without losing anything.
+The bug is dormant through normal operation and fires only when a backlog has
+built up — and a backlog builds up precisely when the run has been interrupted:
+a usage limit, a context exhaustion, a night with nobody acking. **So the
+failure mode is: the notification channel silently drops messages exactly when
+the run is recovering from an interruption, which is exactly when the message
+in the batch is most likely to be a completion.**
+
+That is why nobody caught it in four days, and why it will keep not being
+caught. A latent bug that only fires during recovery is invisible to testing
+and maximally expensive when it lands.
+
+**It does not change F-067's fix, it raises its priority.** *Never bound a
+notification payload from the head* was already the rule. What is new is that
+the condition triggering it is not rare or random — it is the recovery path,
+which this run took at least three times ([F-003](#), [F-051](#), [F-053](#)).
+
+**A note on what this cost me to learn.** I predicted the risk out loud when the
+`** DONE` arrived and went to check whether it repeated. It did not, and the
+"nothing happened" is what produced the mechanism — two `deliveries` rows and an
+acknowledgement timeline. **A non-recurrence investigated is worth more than a
+recurrence assumed**, and I would have written neither entry if I had only
+watched for the failure to happen again.
