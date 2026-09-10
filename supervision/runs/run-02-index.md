@@ -21,7 +21,7 @@ grep -c '^| F-0'   run-02-index.md
 ## Categories
 
 - **`contract`** (9) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (14) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`gate`** (15) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (14) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
@@ -111,11 +111,13 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-065 | 4350 | harness | confirmed | 1 trip | ADDENDUM to F-034: Node resolves modules against /tmp too |
 
+| F-066 | 4399 | gate | confirmed | 3 of 13 PRs | Three PRs shipped without a completed traverse; the bypass ledger has zero rows |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (13)**, **`harness` (11)** and **`contract` (8)**.
+are concentrated in **`gate` (14)**, **`harness` (11)** and **`contract` (8)**.
 `gate` has overtaken `harness` since that sentence was first written. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout

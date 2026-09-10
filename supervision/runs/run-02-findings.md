@@ -4393,3 +4393,106 @@ heredoc trap, in the middle of the paragraph documenting the trap next to it.
 Both of this run's universal environment faults fired inside one write-up. That
 is the argument for [F-041](#) being an environment note rather than something
 each agent learns by being burned.
+
+---
+
+## Three PRs shipped without a completed traverse, and the ledger for that is empty  <!-- F-066 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** 2 merged commits' worth of
+false certification, and a bypass ledger with zero rows across the whole run
+
+Found by asking a narrow question -- *did PR #13 go through the gate?* -- and
+getting an answer that generalised badly.
+
+**PR #13, the immediate case.** The gate run for `wa-05-resolve` reached step 5
+of 9 and died. Steps 6-9 (`lint`, `push`, `pr`, `ci`) are still `pending`. The
+worker then pushed and opened the PR by hand, correctly and under instruction.
+The gate's record of that branch afterwards:
+
+```
+status                     failed
+pr_url                     None
+pr_state                   none
+last_pushed_sha            None
+push_active                0
+custody_returned_at        None
+ci_ready_at                None
+```
+
+PR #13 is open on GitHub with CI green, 2 checks passed. The gate believes
+nothing was pushed and no PR exists.
+
+**Then the same query over every run of the project.** 25 gate runs, 12
+branches:
+
+| status | runs |
+|---|---|
+| completed | 8 |
+| failed | 14 |
+| cancelled | 3 |
+
+and per branch, counting how many gate runs it took and what status the run
+that actually carried the PR was in:
+
+```
+wa-01-tracer        4 runs   shipped from a CANCELLED run
+wa-ci-workflow      1 run    completed
+wa-02-cache         2 runs   completed
+wa-03-budget        3 runs   completed
+wa-design-system    2 runs   completed
+wa-server-abort     1 run    completed
+wa-oxlint           2 runs   completed
+wa-asof-progress    3 runs   no PR recorded
+wa-hydrate          3 runs   shipped from a FAILED run
+wa-app-shell        2 runs   completed
+wa-landing-route    1 run    completed
+wa-05-resolve       1 run    no PR recorded
+```
+
+**Cross-checked against GitHub, which is the part that matters.** There are 13
+PRs on the repository. Three of them have no completed gate traverse behind
+them, and two are already merged into master:
+
+| PR | branch | state | what the gate has |
+|---|---|---|---|
+| #1 | `wa-readme-trim` | **merged** 6 Sep | no gate run at all -- the branch is absent from `runs` |
+| #10 | `wa-asof-progress` | **merged** 9 Sep | 3 runs, all failed or cancelled, none carrying a `pr_url` |
+| #13 | `wa-05-resolve` | open | 1 run, failed at `document`, no `pr_url` |
+
+**And the table that exists to record exactly this is empty.** The schema has
+`uncertified_pipeline_ranges (repo_id, branch, from_sha, to_sha, source_run_id,
+created_at)` -- a ledger whose only conceivable purpose is answering *which
+commits went out without the pipeline certifying them*. It has **zero rows**,
+across all 25 runs, including the three above.
+
+So the question "what is on master that the gate never certified?" has an
+answer from the gate, the answer is "nothing", and the answer is false.
+
+**Why this is worse than the gate findings around it.** [F-040](#) is a step
+that does nothing while advertising that it does something. This is a step that
+records nothing while the *record itself* is the product. A slow gate costs
+time; a gate that reports a green history it did not verify costs the one thing
+the gate exists to provide. Every other finding in this category is a tax. This
+one is a wrong answer.
+
+**What I am not claiming.** None of the three PRs is bad work. #13 had review
+and test pass on its exact head before `document` died, and its CI is green.
+#10 merged four days ago and nothing has failed since. The defect is not that
+uncertified code shipped -- it is that **nobody can now distinguish the code
+that was certified from the code that was not**, because the distinction was
+never written down. That is a property of the record, not of the commits, and
+it does not improve by the commits turning out fine.
+
+**The rule.** A pipeline that can be completed by hand -- and it must be,
+[F-052](#) and this entry both depend on that being possible -- has to write
+down when it was. Either the gate records the bypass when custody leaves it
+unfinished, or `uncertified_pipeline_ranges` should not exist, because an empty
+ledger is more misleading than no ledger. Right now the gate offers the
+guarantee and does not keep it.
+
+**Method note, since this took four queries and no cooperation from anything.**
+The whole finding came out of `~/.no-mistakes/state.sqlite` plus
+`gh pr view --json headRefName`. Neither the gate, nor Lelouch, nor any worker
+reported a word of it, and none of them could have -- the gate does not know it
+was bypassed, and nobody else can see its tables. Same shape as
+[F-064](#): the evidence was on disk the entire time, addressed to no one.
