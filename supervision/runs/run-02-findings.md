@@ -4496,3 +4496,99 @@ The whole finding came out of `~/.no-mistakes/state.sqlite` plus
 reported a word of it, and none of them could have -- the gate does not know it
 was bypassed, and nobody else can see its tables. Same shape as
 [F-064](#): the evidence was on disk the entire time, addressed to no one.
+
+---
+
+## `head -40` ate a worker_done, and the ack made it unrecoverable  <!-- F-067 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** run stalled with the
+work already finished · **LIVE AT TIME OF WRITING**
+
+The single cleanest defect of the run, and the first one where I could name the
+character that caused it.
+
+**The command Lelouch arms its §7 wait with:**
+
+```
+orca orchestration check --run run_a0362d87a778 --wait \
+  --types worker_done,escalation,question --timeout-ms 3600000 --json 2>&1 \
+  | grep -v '_keepalive' | head -40
+```
+
+**What Orca put in the delivery.** `delivery_eb6e9a449c2f`, cut at 19:07:36,
+six messages, in sequence order:
+
+```
+1. seq=505  heartbeat    12:40:20   alive
+2. seq=507  heartbeat    13:08:55   alive
+3. seq=508  heartbeat    13:28:20   alive
+4. seq=509  heartbeat    13:42:14   alive
+5. seq=510  heartbeat    14:32:03   alive
+6. seq=512  worker_done  19:07:36   "wa-05-resolve PR opened"
+```
+
+**What reached Lelouch.** The output file is 1516 bytes and contains exactly
+**two** `"id": "msg_` keys. Each message serialises to about eighteen lines of
+pretty-printed JSON, so `head -40` kept the first two and cut the rest mid-record.
+The two that survived were the two **oldest** — heartbeats from lunchtime, six
+hours stale. The `worker_done` was last in the list and was discarded.
+
+**What Lelouch concluded**, parsing what survived:
+
+```
+types ['heartbeat', 'heartbeat']
+```
+
+> "Heartbeats only — the worker took the instruction and is moving. Re-armed."
+
+**And then made it permanent.** The re-arm at 19:07:50 carried
+`--ack delivery_eb6e9a449c2f`. That acknowledged all six messages, including the
+`worker_done` Lelouch never saw. It is now `read=1` in the store. The delivery
+is `status: acknowledged`.
+
+**The live state as I write this.** The worker finished at 19:07:53, pushed, and
+opened PR #13 with CI green on both Node legs; its last transcript row is
+19:10:57 and it has been idle since. Lelouch's re-armed wait `bbgiqj6bk` has
+produced a zero-byte output file and will sit until its one-hour timeout at
+20:07:50Z. **The orchestrator is waiting for a completion that arrived, was
+truncated away, and was then acknowledged out of existence.**
+
+**Why the habit exists, which is the uncomfortable part.** `| head -40` is not
+carelessness. It is the correct reflex everywhere else in this system, and
+[F-023](#) is why: dumping full command output into a context window was 23% of
+run spend. Every agent here has learned to bound output. **On a notification
+channel that habit is a data-loss bug**, because the delivery is ordered oldest
+first — so the bound keeps the least important messages and drops the one the
+wait was armed for. The token discipline and the notification design are in
+direct conflict, and nothing in the contract says which wins.
+
+**Three rules, in order of how much they would have saved.**
+
+1. **Never bound a notification payload from the head.** If it must be bounded,
+   bound it by type (`grep worker_done`), or take the tail. The newest and most
+   consequential message is last by construction.
+2. **Acknowledge only what you have actually read.** Lelouch acked a delivery id
+   it had parsed two of six messages out of. Ack-after-truncate converts a
+   recoverable miss into permanent loss. If the payload was filtered at all, the
+   ack cannot be for the whole delivery.
+3. **A wait that returns only heartbeats should be treated as suspicious, not as
+   reassurance.** Lelouch read five-hour-old "alive" messages as evidence of
+   present activity. [F-015](#) and [F-047](#) are the same mistake in other
+   costumes: *a presence signal says nothing about the present.* The timestamps
+   were right there in the JSON it did parse — 12:40 and 13:08, against a wall
+   clock of 19:07.
+
+**One harness observation I am deliberately not building a rule on.** The wait
+was armed `--types worker_done,escalation,question` and the delivery contained
+five heartbeats, none of which is any of those types. So either `--types` filters
+which messages *wake* the wait rather than which are *returned*, or it does not
+filter the payload at all. Both readings are consistent with one delivery and I
+have not tested a second. What matters here is that it made the truncation lethal:
+had the payload honoured the filter, the `worker_done` would have been the only
+message in it and `head -40` would have kept it.
+
+**Detection.** Nothing reported this. The watch showed `** DONE` from the worker
+and then a silence alarm eighteen minutes later; the contradiction between those
+two lines is the whole finding. Lelouch believes the run is healthy and will
+believe it until 20:07:50Z. Reported to C.C live rather than held for the
+debrief, because [F-026](#) is what holding it costs.
