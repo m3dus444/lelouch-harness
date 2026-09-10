@@ -4592,3 +4592,73 @@ and then a silence alarm eighteen minutes later; the contradiction between those
 two lines is the whole finding. Lelouch believes the run is healthy and will
 believe it until 20:07:50Z. Reported to C.C live rather than held for the
 debrief, because [F-026](#) is what holding it costs.
+
+---
+
+## CORRECTION to F-067 — the timeout was the backstop, and it worked  <!-- F-068 -->
+
+**Category:** contract · **Status:** corrected · **Cost of the defect, measured:
+one hour of dead time**
+
+I filed [F-067](#) as *"the run is stalled"* and told C.C it was their call how
+to unstick it. The mechanism in that entry is correct and every fact in it still
+checks out. **The consequence was wrong, and it was wrong in the safe
+direction — the run unstuck itself, and I should not have implied a human was
+needed.**
+
+**What actually happened.** The re-armed wait `bbgiqj6bk` was armed at 19:07:50Z
+with `--timeout-ms 3600000`. It timed out at 20:07:50Z. Lelouch woke, read the
+empty output file, and then — this is the part that matters — **did not re-arm.**
+
+```
+20:08:02  read bbgiqj6bk.output            (empty)
+20:08:10  gh-axi pr list; git -C <worktree> log
+20:08:20  gh-axi pr checks 13; git diff origin/master...origin/<branch>
+20:08:28  "PR #13 is open and green on both legs ... the seam is untouched"
+20:08:33  read the worker's answer on the store question
+20:08:53  tasks-axi add wa-seam-import-lint      (follow-up filed)
+20:09:06  reported to C.C: open, green, ready to merge
+```
+
+**No human intervened.** I checked Lelouch's transcript for user messages across
+the whole window 19:07:56 -> 20:09:07 and there are none. The recovery is
+entirely the timeout plus what Lelouch chose to do on waking.
+
+**Measured cost of F-067: 19:07:53 to 20:08:28 — one hour and thirty-five
+seconds** of the orchestrator believing a finished worker was still building.
+Not indefinite. Bounded, exactly, by the timeout on its own wait.
+
+**The behaviour worth keeping, since I predicted the opposite.** I wrote that
+Lelouch would *"either re-arm again (indefinite stall) or check the worker."* It
+checked. Woken by a timeout with nothing in the payload, it went to ground truth
+— the PR list and the git log — rather than trusting the channel that had just
+told it nothing. That is the correct instinct and it is the only reason F-067
+cost an hour instead of a night. **File it as working behaviour**, alongside
+[F-049](#): the correction loop runs upward, and it also runs on empty.
+
+**The design point this exposes, which is the real yield.** The one-hour timeout
+on the §7 wait is not a safety margin. It is **load-bearing**, and it is
+load-bearing *because* delivery is unreliable. A wait with a bounded timeout
+degrades to polling when the notification is lost; an unbounded wait would have
+hung until C.C noticed. So the parameter that looks like a formality is the only
+thing standing between a truncated payload and a dead run.
+
+That cuts against the instinct — mine included, in [F-016](#) and
+[F-023](#) — to treat every poll as waste. **Some of the polling in this system
+is not redundancy, it is the recovery path for a channel that drops messages.**
+Before anyone lengthens that timeout at the debrief to save turns, this hour is
+the argument against it.
+
+**What still stands from F-067, unchanged.** The delivery did contain six
+messages ending in the `worker_done`; `head -40` did keep only the two oldest
+heartbeats; the `--ack` did mark all six read; Lelouch did conclude the worker
+was moving from timestamps five hours stale. All three rules in that entry hold,
+and rule 1 — never bound a notification payload from the head — would have saved
+the hour outright.
+
+**My own error, named.** I had the timeout value in front of me. I quoted it in
+F-067 (*"will sit until its one-hour timeout at 20:07:50Z"*) and then still
+described the state as a stall requiring intervention, because I was reasoning
+about the broken path and not about what happens when it ends. Same shape as the
+near-miss recorded inside [F-064](#), four hours apart: **I read the failure and
+stopped reading before the recovery.**

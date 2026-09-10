@@ -20,7 +20,7 @@ grep -c '^| F-0'   run-02-index.md
 
 ## Categories
 
-- **`contract`** (10) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`contract`** (11) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (15) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (14) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
@@ -114,6 +114,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-066 | 4399 | gate | confirmed | 3 of 13 PRs | Three PRs shipped without a completed traverse; the bypass ledger has zero rows |
 
 | F-067 | 4502 | contract | confirmed | run stalled | `head -40` ate a worker_done, and the ack made it unrecoverable |
+
+| F-068 | 4598 | contract | corrected | 1 h measured | CORRECTION to F-067: the timeout was the backstop, and it worked |
 
 ## What the shape says
 
