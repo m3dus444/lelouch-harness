@@ -5361,3 +5361,82 @@ which this run took at least three times ([F-003](#), [F-051](#), [F-053](#)).
 acknowledgement timeline. **A non-recurrence investigated is worth more than a
 recurrence assumed**, and I would have written neither entry if I had only
 watched for the failure to happen again.
+
+---
+
+## The contract says call tools directly; the `lavish` skill says use `npx -y`  <!-- F-078 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** ~20 fetches at ~28s
+= about **9 minutes** of pure overhead · **Invalidates a scorecard check**
+
+The monitor's scorecard has a line: *"called tools directly, not via npx —
+`npx -y <tool>` costs ~28s a call vs 0.5s."* I have been scoring Lelouch
+against it all run. It is not a fair check, and tonight is how I found out.
+
+**The measurement.** Across every Lelouch session in the project, counting
+`lavish-axi` invocations in Bash commands:
+
+```
+direct:  17
+npx:     20
+```
+
+`lavish-axi` is installed globally at `~/AppData/Roaming/npm/lavish-axi`. So
+twenty fetches were paid for a binary already on disk.
+
+**Then the cause, which is not the agent.** `~/.claude/skills/lavish/SKILL.md`:
+
+```
+21: - `npx -y lavish-axi --help` for commands and the review-loop workflow
+22: - `npx -y lavish-axi design` for design-direction priority and current snippets
+23: - `npx -y lavish-axi playbook <id>` for focused artifact guidance
+25: You do not need lavish-axi installed globally - invoke it with
+    `npx -y lavish-axi <html-file>`.
+26: If lavish-axi output shows a follow-up command starting with `lavish-axi`,
+    run it as `npx -y lavish-axi ...` instead.
+```
+
+**Line 26 is the one that settles it.** The tool prints follow-up commands in
+direct form, and the skill instructs the agent to *rewrite them into npx*. An
+agent that reads its skill and does what it says produces exactly the twenty
+calls I was about to file as a discipline problem.
+
+**So Lelouch is not violating the contract — it is obeying the more specific of
+two documents that disagree.** The contract says call installed tools directly.
+The skill says you do not need it installed and here is how to fetch it every
+time. Nothing reconciles them, and the skill wins because it is the one open in
+front of the agent at the moment of the call.
+
+**Three consequences, in order of how much they matter.**
+
+1. **The scorecard check is measuring the wrong thing.** *"Called tools
+   directly"* scores the agent for a decision the skill made for it. It should
+   either be dropped or restated as *"do the project's skills contradict the
+   contract's tool-invocation rule?"* — which is a question about documents, not
+   behaviour.
+2. **The fix is one line and belongs in the skill, not the contract.** Line 25's
+   *"you do not need lavish-axi installed globally"* is written for a reader who
+   does not have it. On this machine everyone does. `npx --no-install
+   lavish-axi` would preserve the skill's intent at ~4s instead of ~28s, and a
+   direct call at ~1.2s is better still.
+3. **This is the general shape, not a one-off.** Every `*-axi` tool here ships
+   a skill. Whichever of those skills embeds an invocation style silently sets
+   policy for every agent that loads it, and the contract's rule applies only
+   where no skill has an opinion. **A skill is a stronger contract than the
+   contract.**
+
+**CORRECTION to `instrument-log.md` entry 17, written forty minutes ago.** I
+concluded there that the npx check *"passes, and passes by a wide margin — one
+~28s lapse in two and a half days."* Wrong twice over. It is twenty calls, not
+one; I had counted `!! npx` rows in the watch stream, which begins on 8 Sep and
+therefore misses most of the run — the same "counts come from the transcripts"
+rule I had written into that very entry, broken in the paragraph that states it.
+And the check itself was never sound, so even a true count would have graded the
+wrong party.
+
+**The monitor's own judgement rules name this exactly.** *"The obvious cause is
+often wrong. Half of what looks like a contract defect is the user's own steer,
+**a skill's internal instructions**, or a stage that has not happened."* I
+walked into the documented trap and out of it inside ten minutes, and the only
+reason I got out is that two npx calls arrived back to back and made me look
+twice at something I had already written down as settled.

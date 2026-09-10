@@ -535,3 +535,19 @@ actions — against `lavish-axi` being installed directly at
 `~/AppData/Roaming/npm/lavish-axi`. The scorecard's *"called tools directly, not
 via npx"* check **passes**, and passes by a wide margin. A single ~28s lapse in
 two and a half days is not a defect; it is a habit that took.
+
+## 17b  CORRECTION to entry 17 -- the npx check was never sound
+
+Entry 17 closed with *"the scorecard's 'called tools directly' check passes, and
+passes by a wide margin -- one ~28s lapse in two and a half days."* Both halves
+are wrong, and [F-078](runs/run-02-findings.md) has the detail.
+
+The count is **20 npx calls against 17 direct**, from the transcripts. I got "one"
+by grepping `!! npx` out of the watch stream, which starts on 8 Sep and misses
+most of the run -- breaking *"counts come from the transcripts"* in the same
+entry that states the rule.
+
+And the check was unsound regardless: `~/.claude/skills/lavish/SKILL.md` tells
+the agent to invoke `npx -y lavish-axi`, and line 26 tells it to rewrite direct
+invocations into npx ones. The scorecard was grading Lelouch for a decision its
+skill made. **Drop the check or restate it as a question about documents.**
