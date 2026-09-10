@@ -5173,3 +5173,75 @@ one session by reading a number instead of the artifact behind it
 ([F-071](#)'s exit code, [F-073](#)'s missing CLI command) and right once by
 remembering not to. The monitor's own rule — *read files, not command strings* —
 extends to durations, exit codes and schema tables. **Read the log.**
+
+---
+
+## `no-mistakes rerun` validates the previous head, not the current one  <!-- F-075 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** 2 min and one aborted
+run — *because it was caught* · **Caught by the worker, not by me**
+
+The most dangerous gate defect of the run, and the only one so far that a
+worker found before it did damage.
+
+**The sequence**, 10-11 Sep, `wa-traversal-institution`:
+
+```
+23:53  run 1 (01M26J3W...) completes intent->pr. PR #14 open, CI green, head 962d99b
+00:00  worker finds a real UI bug by hand: retyping leaves a stale candidate list live
+00:04  fixes it, 490 tests + lint + typecheck green, verifies in a real browser
+00:04  commits 029609e on top of 962d99b
+00:04  runs `no-mistakes rerun`
+       -> run 1 cancelled: "superseded by new push"
+       -> run 2 (01M26NKAT...) created, head = 962d99b        <- THE OLD HEAD
+00:05  worker: "The new run's head is 962d99b6, not my follow-up commit."
+00:05  branch_sync confirms:  local head 029609ed  /  pipeline submitted 962d99b
+00:05  worker: "rerun submitted the previous run's head rather than my new
+        commit, so it's validating the wrong tree." Aborts.
+00:06  `axi run` -> run 3 (01M26NPTP...), head 029609ed. Correct.
+```
+
+**`rerun` re-submitted the head of the run it was replacing.** The commit that
+prompted the rerun — the entire reason for running it — was not in the tree
+being validated. Left alone, run 2 would have reviewed, tested, documented and
+**pushed** a tree that did not contain `029609e`, and reported green on it.
+
+**Why this is worse than [F-066](#) rather than another instance of it.** F-066
+is about commits that shipped without a completed traverse, and its saving grace
+is that everything it found turned out to be good code. This is the opposite
+shape: a traverse that **completes** and certifies, against the wrong tree,
+while the branch's actual head goes unexamined. F-066 loses the record. This
+loses the meaning of the record.
+
+**Two false strings on the way past, both [F-060](#)'s family.**
+
+- Run 1's cancellation reason is `cancelled: superseded by new push`. **There
+  was no push.** The remote branch head is still `962d99b`; I checked, and
+  `git log 962d99b..origin/<branch>` is empty. A local commit plus `rerun` was
+  reported as a push.
+- Run 2's `review.log` ends with the `dopecert.cer` TLS warning again — but
+  here the log *also* carries `error: agent review: cancelled: aborted by user`
+  on the next line. So the real cause is recorded and the log is fine; it is the
+  `runs.error` **column** that keeps the wrong half. That is a useful
+  narrowing of F-060: the information exists, the field everyone reads is the
+  one that is wrong.
+
+**What actually caught it, and this is the part worth keeping.** Not a check,
+not an alarm, not me. The worker read the run's `head` out of `axi status`,
+noticed it did not match the commit it had just made, and went to `branch_sync`
+to confirm before acting. **The only defence against a gate certifying the wrong
+tree is an agent that compares the submitted head to its own HEAD every time**,
+and nothing in the contract or the gate asks anyone to do that.
+
+That is the rule: after any `rerun`, `run`, or resumption, **read
+`branch_sync.local.head` against the run's `head` and refuse to proceed if they
+differ.** It costs one command and it is the difference between a certified tree
+and a certified fiction.
+
+**Two more things this worker did right, recorded because [F-049](#) says the
+correction loop is load-bearing.** It found the UI bug by driving a real browser
+with `chrome-devtools-axi` — clicking through a retype and reading the
+accessibility tree before and after — rather than trusting its unit tests, which
+were all passing. And it waited on the gate with `Monitor` running a polling
+loop, which is exactly the cheap, sanctioned wait [F-072](#) identified two
+hours ago and which no one told it about.
