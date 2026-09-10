@@ -255,7 +255,11 @@ def last_rows(needle: str) -> str:
                 ts = _dt.datetime.fromisoformat(str(last).replace("Z", "+00:00"))
             except ValueError:
                 continue
-            age = (now - ts).total_seconds() / 60
+            # Clamp: the scan of every jsonl takes seconds, and a session
+            # that writes a row mid-scan reads as negative. A negative age
+            # in an alarm whose whole job is trustworthy ages is worse than
+            # the rounding it comes from.
+            age = max((now - ts).total_seconds() / 60, 0.0)
             if age < 240:
                 out.append((age, tag))
     if not out:
@@ -377,9 +381,20 @@ def main() -> int:
                 quiet = 0.0
         if quiet > SILENCE_AFTER and not silence_reported:
             detail = last_rows(needle)
-            emit(f"!! SILENT   no activity in any {needle} session for {quiet/60:.0f}m. "
-                 f"Last ROW per session (not mtime): {detail or 'none in 4h'}. "
-                 f"Anything over 15m is stalled - do not re-check with mtime.")
+            # `quiet` is time since the last WATCHED ACTION, not since the
+            # last row. A session can write prose and thinking for 15m
+            # without emitting one action this watcher reports. Saying "no
+            # activity" over a row age of 0m makes the alarm contradict the
+            # evidence it carries, and the standing rule ("over 15m is
+            # stalled") then points at a session that is plainly alive.
+            # Do NOT suppress on a fresh row: on 9 Sep an alarm was talked
+            # down and the stall ran 2h20m. Name the two measurements apart
+            # and let the reader apply the rule to the right one.
+            emit(f"!! SILENT   no watched ACTION in any {needle} session for "
+                 f"{quiet/60:.0f}m. Last ROW per session (not mtime): "
+                 f"{detail or 'none in 4h'}. A row age over 15m is stalled; a "
+                 f"fresh row with no action is thinking or prose, not health. "
+                 f"Do not re-check with mtime.")
             silence_reported = True
         time.sleep(POLL)
 

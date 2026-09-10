@@ -2636,6 +2636,32 @@ watchdog proposal C.C pushed for is back on the table and should be evaluated on
 its merits at the debrief rather than dismissed on a constraint that turns out to
 be inconsistent.
 
+**What the block costs when it does fire, which I had not connected.** At 13:0x
+`wa-05-resolve` waited on its gate like this:
+
+```
+for i in $(seq 1 45); do sleep 60; if no-mistakes axi status | grep ...; fi; done
+```
+
+**One tool call. Forty-five polls.** The model's context is read once, the loop
+runs inside the shell, and the turn ends when the condition is met.
+
+Now compare the pattern the token accounting measured: a worker polling its gate
+every ~29 seconds, **one turn per poll**, each turn re-reading the whole
+conversation. That was the single largest line of run spend.
+
+The two are the same wait. The difference between them is entirely whether
+`sleep` is available. So the block is not an inconvenience that costs a retry --
+**when it fires it removes the cheap way to wait and leaves only the expensive
+one.** An agent told "do not sleep, use a notification" and then given no
+notification that fires has exactly one option left, and it is the one that costs
+a turn a minute.
+
+That makes the inconsistency worse rather than better. A rule that always fired
+would at least be designed around. A rule that fires sometimes means an agent
+cannot know which waiting strategy is available to it until it tries, and the
+fallback is the expensive one.
+
 **The wider point, which is the reason this is worth a whole entry.** I wrote a
 correction that was more confident than its evidence -- one observation,
 generalised to a property of the harness, used to close off a design C.C had

@@ -437,3 +437,61 @@ built tonight has a failure mode where it simply stops, and the signature of tha
 is silence -- which is the one signal this whole log says cannot be trusted. The
 heartbeat file from entry 13 is not an improvement any more, it is the only thing
 that would make a night watch honest.
+
+## 16  The silence alarm contradicted the evidence it carries
+
+Found on restarting supervision after the supervisor session died of token
+exhaustion, 10 Sep ~20:55. The last two alarms on the stream read:
+
+```
+!! SILENT   no activity in any weave-atlas session for 15m.
+            Last ROW per session (not mtime): lelouch -1m; wa-05-resolve 15m; gate 16m; ...
+```
+
+Two defects in one line, and the second is the one that matters.
+
+**The `-1m`.** `last_rows()` takes `now` once, then walks every `.jsonl` in
+every session directory — 8.7 MB for lelouch alone. A session that writes a row
+*during* that walk reads as newer than `now`, and `{age:.0f}` rounds -0.6 to
+`-1`. Cosmetic in isolation. Not cosmetic in an alarm whose entire purpose,
+since entry 13 and [F-044](runs/run-02-findings.md), is to arrive with ages you
+can trust without taking a second measurement. Clamped at zero.
+
+**The wording, which is the real fault.** `quiet` is time since the last
+**watched action** — `last_data`, updated only when the watcher emits a line.
+`last_rows()` reports the age of the last **transcript row of any kind**. These
+are different clocks, and the alarm printed one under a label describing the
+other. So it announced *"no activity in any weave-atlas session for 15m"* about
+a session whose last row was seconds old, and then attached the standing rule
+*"anything over 15m is stalled"* — pointing that rule directly at lelouch, which
+was alive and mid-turn.
+
+A supervisor obeying its own instrument here concludes the orchestrator has
+stalled and intervenes in a run that is fine. That is the mirror image of
+[F-044](runs/run-02-findings.md): there I talked a correct alarm down, here the
+alarm invites a wrong intervention. Both come from an age whose meaning was
+never stated.
+
+**What I did not do: suppress it.** The obvious fix — hold the alarm when some
+row is fresh — is the F-044 mistake with the reasoning automated. An
+orchestrator can write prose for fifteen minutes while every worker under it is
+dead, and that is precisely when the alarm must still fire. The alarm now names
+the two measurements apart and says what each means:
+
+```
+!! SILENT   no watched ACTION in any weave-atlas session for 15m.
+            Last ROW per session (not mtime): ...
+            A row age over 15m is stalled; a fresh row with no action is
+            thinking or prose, not health. Do not re-check with mtime.
+```
+
+**Same root cause as every other entry here.** A value I did not inspect —
+this time a variable whose name (`quiet`) was accurate and whose printed label
+was not. The instrument was correct; the sentence wrapped around it was the bug,
+and a sentence is what the supervisor actually reads at 3 AM.
+
+**Not live yet.** The running watch has had `watch.py` loaded in memory since
+8 Sep 09:27Z and is now the longest-lived background task of the run. The patch
+applies on its next start. I am not restarting a two-day-old healthy watch to
+land a wording fix — the reaping behaviour in entry 15 says I might not get it
+back.

@@ -103,7 +103,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-061 | 2763 | docs | corrected | 46s/worker | CORRECTION to F-038: a worker did read the glossary, by hunting for it |
 
-| F-062 | 2594 | harness | corrected | reopens §W | CORRECTION to F-036: the sleep block is real but not uniform |
+| F-062 | 2594 | harness | corrected | turn/min | CORRECTION to F-036: the sleep block is real but not uniform |
 
 | F-063 | 4023 | gate | confirmed | 4 decisions | An ask-user finding expires into the worker own judgement |
 
