@@ -21,10 +21,10 @@ grep -c '^| F-0'   run-02-index.md
 ## Categories
 
 - **`contract`** (9) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (9) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (12) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`gate`** (12) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`harness`** (13) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
-- **`docs`** (3) -- Documentation and artifact links, where the writing itself is the defect
+- **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (7) -- Confirmed working -- kept because a run with none of these scores better and is worse
 - **`supervisor`** (7) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
@@ -95,6 +95,15 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-055 | 3545 | contract | confirmed | 4 days | Ship the MVP as early as it is honest to; make ordering a decision |
 | F-056 | 3624 | gate | confirmed | 73 min | The review step's 30-minute timeout discards a completed traverse |
 | F-057 | 3695 | meta | guide | -- | SCOPE NOTE: what in this log is a Lelouch finding, and what is not |
+
+| F-058 | 3732 | gate | confirmed | 7 rounds | The review does not converge: five rounds, no repeated finding id |
+| F-059 | 3774 | gate | confirmed | history | The gate writes a PR number into history before the PR exists |
+
+| F-060 | 3809 | gate | confirmed | 6 runs | Every gate failure reports the same error, and it is the wrong one |
+
+| F-061 | 2763 | docs | corrected | 46s/worker | CORRECTION to F-038: a worker did read the glossary, by hunting for it |
+
+| F-062 | 2594 | harness | corrected | reopens §W | CORRECTION to F-036: the sleep block is real but not uniform |
 
 ## What the shape says
 

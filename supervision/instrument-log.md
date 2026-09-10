@@ -274,3 +274,166 @@ Fix: a gate-state check per active worktree, alarming on `status: failed` and on
 `active_for` past a threshold — a **positive check on a schedule**, which is
 exactly what I demanded of the Lelouch resume-after-token-cap skill. I asked the
 system under test for a discipline the instrument watching it did not have.
+
+---
+
+## 12  `gatewatch.py`, and the bug I caught in it before trusting it
+
+Written to close entry 11: a positive check on gate state, every three minutes
+per worktree, alarming on `status: failed`, on a step past 45 minutes, and on a
+run id that changes while the previous run was still `running` — which is how a
+discarded traverse looks from outside.
+
+**The first version returned almost nothing.** `run` parsed; `status`, `head`,
+`findings`, `step` and `active_for` all came back empty. The cause was one
+missing flag: `grab()` used `re.search(pattern, out)` with patterns anchored on
+`^`, and **without `re.M` that anchor matches only the start of the whole
+document**. Every field in `axi status` lives on its own indented line, so
+exactly one of them could ever match — the first.
+
+That is the twelfth instance of the same thing, and the tally is now boring in a
+useful way: a backspace where I expected a regex, mtime where I expected
+activity, a noun where I expected a sentence, a comma where I expected a decimal
+point, a zero exit where I expected success, a `merge-tree` output format I never
+looked at, and now a regex flag. **Every one is a value I did not inspect.**
+
+The difference this time is only that I ran the parser against a live gate and
+printed every field before believing any of it. That is the whole discipline, and
+it cost one command:
+
+```
+run=01M246PRRAEKG…  status=running  head=4fbdfb3d
+findings='2 awaiting, 2 auto-fix'   step=review  fixing  48m55s  round='fix 2'
+```
+
+Had I skipped it, the watch would have run all night reporting nothing, and the
+absence of alarms would have read as the absence of failures — which is the
+precise error this instrument exists to prevent.
+
+---
+
+## 13  The memory ceiling kills the instruments too
+
+`gatewatch.py` ran for forty minutes and was then **killed by the harness**:
+*"Background command was stopped because the system is running low on memory."*
+Built to watch a failure mode, killed by the one standing next to it.
+
+Worth separating two mechanisms that this run has now shown both of:
+
+- **The OS reclaiming memory** — what took six gate agents at 16:12 and left
+  transcripts ending mid-sentence.
+- **The harness pre-emptively stopping background tasks** — what took this one.
+  Politer, announced, and equally blinding.
+
+The second is the more dangerous of the two for a supervisor, because it targets
+exactly the processes that have no user watching them. A foreground turn is
+protected by someone waiting on it; a background monitor is the cheapest thing in
+the room to stop.
+
+**The failure mode this creates is silence that reads as calm.** Between the kill
+and the restart there was no gate watch at all, and nothing anywhere said so
+except a task notification I happened to be awake for. Had it arrived while I was
+mid-report on something else, the log would show a monitor that simply stopped
+having opinions — which is indistinguishable, at a distance, from a gate that
+stopped having problems. That is [F-051](runs/run-02-findings.md) in miniature:
+death and quiet produce identical evidence.
+
+What would fix it properly is a monitor that records its own liveness where
+something else can read it — a heartbeat file with a timestamp, checked by
+whatever reads the alarms. Restarting by hand works only while someone is awake
+to notice, which is the opposite of the shift a night watch is for.
+
+Restarted at 02:38 with 4.2 GB free. Brave had left the top-five consumers
+entirely by then, which is also the answer to why the pressure existed.
+
+---
+
+## 14  CORRECTION to 12 and 13 -- the subprocess was not why the watch kept dying
+
+Entry 12 said the gate watch was killed because it spawned a Node process per
+poll, and that rewriting it against `state.sqlite` removed the cause. **The
+sqlite version was killed too**, at 05:04, after 86 minutes -- with no subprocess
+of any kind, and with **3.5 GB of physical memory free**:
+
+```
+free_MB=3,524
+node 21 procs 1675 MB · claude 4 procs 1457 MB · chrome 16 procs 1297 MB
+```
+
+Three kills, three versions, one message each time: *"stopped because the system
+is running low on memory."* The system was not low on memory on the third. So
+whatever the harness measures to decide this, **it is not free physical RAM**,
+and my explanation in entry 12 was a story that fit two data points and died on
+the third.
+
+What is actually observable is a lifetime, not a cause:
+
+```
+version 1 (subprocess)   ~40 min    killed
+version 2 (subprocess)   ~50 min    killed
+version 3 (sqlite only)  ~86 min    killed
+```
+
+Each watch does useful work and then stops. The third had just reported PR #11,
+an `AWAITING AGENT` alarm on `wa-landing-route`, and two step transitions before
+it went.
+
+**The part that transfers, and is worth someone testing properly.** Lelouch
+backgrounds its filtered `orchestration check --wait` as a harness task
+([F-017](runs/run-02-findings.md)). If long-running background tasks are reaped
+on roughly this horizon regardless of footprint, **Lelouch's wait is being reaped
+the same way** -- which would explain the re-arming, the shortened wait cycles it
+described, and why the orchestrator keeps discovering it has no listener. I am
+flagging that as a hypothesis with one supporting observation, not a finding. The
+test is cheap: watch whether a Lelouch wait ever survives past ninety minutes.
+
+**And the operational conclusion, which does not depend on the cause.** A watch
+that has to be restarted by hand three times in one night is not a night watch.
+Entry 13's fix -- a heartbeat file the monitor writes and something else reads --
+is now the minimum, because the failure is recurrent rather than incidental, and
+its signature is silence.
+
+---
+
+## 15  Five kills, three explanations, none of them right
+
+Entry 12 blamed the subprocess. Entry 14 corrected that and offered a lifetime
+pattern. Then I proposed a background-task cap, tested it by stopping the memory
+watch to free a slot, and the gate watch was killed in that slot too.
+
+Every hypothesis and what killed it:
+
+| hypothesis | test | result |
+|---|---|---|
+| it spawns Node per poll | rewrote against `state.sqlite`, no subprocess | killed anyway |
+| it uses too much memory | 3.5 GB free, commit 54%, at a kill | killed anyway |
+| footprint decides | memory watch spawned 2 PowerShell procs/min, all night | never touched |
+| the third task gets reaped | stopped the memory watch, ran it in the freed slot | killed after 85m |
+
+Observed lifetimes: **40, 50, 86, 2, 85 minutes**. The two-minute one has no
+explanation at all under any of the above.
+
+**What I actually know**, stated without a theory attached: background tasks in
+this harness are stopped with the message *"the system is running low on
+memory"*, at times that do not correspond to free memory, footprint, subprocess
+use, or task count. One task -- `watch.py`, the oldest -- has run for **eight
+hours untouched** while five successive gate watches died around it.
+
+That last fact is the only real regularity, and I am not going to build a fourth
+theory on one observation. Writing down "the oldest task survives" would be
+exactly the mistake of entries 12 and 14, and of [F-062](runs/run-02-findings.md),
+where I generalised a rule from a single refusal and closed off a design C.C had
+argued for.
+
+**What I am doing instead of theorising.** The run currently has zero `in_flight`
+tickets and no active gate runs, so there is nothing for a gate watch to watch.
+Rather than restart it a sixth time into an empty room, the gate check goes back
+to being an inline sqlite read -- one command, on demand, when work resumes. It
+costs a few seconds when I need it and cannot be reaped.
+
+**The standing cost, unchanged and worth the debrief's attention.** A supervisor
+in this harness cannot rely on a background monitor staying up. Every alarm I
+built tonight has a failure mode where it simply stops, and the signature of that
+is silence -- which is the one signal this whole log says cannot be trusted. The
+heartbeat file from entry 13 is not an improvement any more, it is the only thing
+that would make a night watch honest.

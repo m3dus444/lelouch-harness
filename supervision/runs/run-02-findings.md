@@ -2591,6 +2591,60 @@ one, not that one.
 
 ---
 
+## CORRECTION to F-036 -- the sleep block is real but not uniform  <!-- F-062 -->
+
+F-036 records that the harness blocks sleep-based polling, and concludes the §W
+watchdog therefore cannot be built. That conclusion rested on one observation --
+mine -- and it does not generalise.
+
+**What the workers actually do.** `wa-landing-route`, 02:02 and 02:04:
+
+```
+cd .../wa-landing-route && sleep 45; orca orchestration check    -> "No messages."
+cd .../wa-landing-route && sleep 60; echo w                      -> "waited"
+```
+
+Both ran. The first is *precisely* the sleep-then-poll shape F-036 says is
+prohibited, and it returned a normal result.
+
+**What was blocked, for me:**
+
+```
+sleep 45; cd "..." && orca terminal list | grep -A2 ... | head -12
+   -> Blocked: sleep 45 followed by ... To wait for a condition, use Monitor
+      with an until-loop. Do not chain shorter sleeps to work around this block.
+```
+
+**What I tested, to isolate it:**
+
+| command | result |
+|---|---|
+| `sleep 2; echo ok` | allowed |
+| `cd ... && sleep 2; echo ok` | allowed |
+| `cd ... && sleep 45; echo ok` | **allowed** |
+
+So it is not the duration, and it is not whether a `cd` comes first. The one
+blocked case differed by ending in a polling command with a pipeline; the
+worker's allowed case also ended in a polling command. **I cannot state the rule,
+and I am not going to guess at one** -- three tests narrowed it and none of them
+explains the discrepancy.
+
+**What this changes.** F-036's factual observation stands: the block exists, and
+it fired on me. Its *conclusion* does not: sleep-based polling is demonstrably
+available to workers in this harness, so "§W cannot work" is not established. The
+watchdog proposal C.C pushed for is back on the table and should be evaluated on
+its merits at the debrief rather than dismissed on a constraint that turns out to
+be inconsistent.
+
+**The wider point, which is the reason this is worth a whole entry.** I wrote a
+correction that was more confident than its evidence -- one observation,
+generalised to a property of the harness, used to close off a design C.C had
+argued for. The correction was itself the error. A rule inferred from a single
+refusal is the same class of mistake as a direction inferred from a single
+field, and this log now records both from me on the same day.
+
+---
+
 ## ARCHITECTURE — one README conflict cost over an hour, and the gate is not why  <!-- F-037 -->
 
 9 Sep. A single README merge conflict on PR #6 — seconds of work by hand — became
@@ -2757,6 +2811,47 @@ Three ways out, and they are not equivalent:
 Option 1 unless someone can name a reason the glossary must stay private. What
 should not survive is the current state, where the contract instructs every
 worker to read a file that cannot be there.
+
+---
+
+## CORRECTION to F-038 -- a worker did read the glossary, by hunting for it  <!-- F-061 -->
+
+F-038's headline, *"no worker has ever read the glossary"*, stopped being true at
+01:48 on 10 Sep. `wa-landing-route`, dispatched twenty minutes earlier, found it:
+
+```
+01:47:48  cat CONTEXT.md                           -> No such file (worktree)
+01:47:57  find . -iname "CONTEXT.md"               -> nothing
+01:48:17  git log --all -- CONTEXT.md              -> never committed, so not recoverable
+01:48:28  ls .../projects/weave-atlas/CONTEXT.md   -> found, OUTSIDE the worktree
+01:48:34  cat .../projects/weave-atlas/CONTEXT.md  -> read, 10,652 bytes
+01:51:07  board: "Read brief+CONTEXT; mapped /a..."
+```
+
+Four commands and forty-six seconds, ending in the **project directory** rather
+than the worktree. Nothing told it to look there. It reasoned from the file being
+gitignored to the file existing somewhere a git worktree would not carry it.
+
+**How I nearly got this wrong.** I saw `cat: CONTEXT.md: No such file` at 01:47
+and a board comment claiming *"Read brief+CONTEXT"* at 01:51, and started writing
+that a worker was reporting work it had not done. Reading the intervening tool
+calls showed the opposite: it did exactly what a careful person would, and the
+claim was true. **The two facts I had were both real and the story joining them
+was mine.** That is the same error as the mtime episode and the memory-kill
+misattribution, caught this time before it reached C.C -- and it would have been
+an accusation against a worker, which is the worst kind to get wrong.
+
+**What the correction does to the finding.** F-038's mechanism is unchanged and
+still a defect: the contract requires reading a file that the repository is
+configured to exclude, so no worktree has it. What changes is the cost. It is not
+"workers never read it" -- it is **"reading it requires an inference the brief
+does not supply, and most workers do not make it."** One worker in the run did;
+the others proceeded without the project's shared vocabulary and nobody noticed,
+because failing to read it produces no signal.
+
+That is arguably worse than a hard failure. A file that some agents find and
+others silently miss makes the vocabulary inconsistent across workers in ways
+that only show up as disagreement later.
 
 ---
 
@@ -3711,6 +3806,218 @@ the current head would have cost minutes. Restarting at `intent` re-ran the whol
 traverse to reach the same step. Nothing about an agent timeout requires
 discarding `intent` and `rebase`, which had both already completed.
 
+**02:38 — `active_for` is the step, not the agent, and I had been reading it as
+the agent.** The gate now reports `review (fixing, fix 3) active 1h32m` while the
+agent pid has changed at least twice. So the 30-minute ceiling applies to a
+single agent process; the *step* accumulates across replacements and has no
+ceiling at all. My earlier note — "31m30s, past the 30-minute limit and still
+alive" — was comparing an agent budget against a step clock. They are different
+numbers and I treated them as one.
+
+That does not explain the fatal case, and I am not going to invent a link. What
+it does establish is the honest shape of the cost: **three fix rounds, ninety-two
+minutes and counting, still 2 findings awaiting, on a ticket whose whole content
+is replacing a mock with a fetch.** Every round has produced entirely new finding
+ids — 9, then 2, then 3, no repeats — which by [F-025](#) is not convergence but
+fresh surface exposed by each fix. A step with no ceiling and a review that keeps
+finding new things is a combination nothing in the gate currently bounds.
+
+---
+
+## The review does not converge: five rounds, no repeated finding id  <!-- F-058 -->
+
+`wa-app-shell`, one ticket, gate run `01M246PRRAEKGYVJ80P5CR5RHM`:
+
+| round | findings raised | any id seen before? |
+|---|---|---|
+| review 1 | 9 — `spent-claim-false-on-502`, `condition-fields-not-checked-against-boundary`, … | — |
+| fix 1-2 | 2 + 2 auto — `ds-reexports-the-builder-that-must-not-be-used`, `retry-on-screen-6-shows-nothing-while-running` | **no** |
+| fix 3 | 3 — `reopens-at-throws-on-out-of-range-retry`, `unread-status-on-refused-outcome`, `reset-at-format-untested` | **no** |
+| fix 4 | 3 — `reopens-in-goes-stale-beside-reopens-at`, `field-published-with-no-admitted-operator`, `cellsfor-is-now-a-po…` | **no** |
+| fix 5 | in progress at 1h54m | — |
+
+**Not one id has repeated across five rounds.** By [F-025](#) — convergence is
+judged on ids, not counts — this is the opposite of converging. Counts would
+suggest progress (9 → 2 → 3 → 3); ids say each fix exposes surface the previous
+review could not see, and the review is finding genuinely new things every time.
+
+Two of the round-4 ids are the signature of it: `reopens-in-goes-stale-beside-
+reopens-at` exists **because** round 3 fixed `reopens-at`. The fix created the
+finding.
+
+**What is unbounded here.** The step has no ceiling — `active_for` accumulates
+across agent replacements ([see F-056](#)) — and the round count has no ceiling
+either. A review that keeps finding new things and a step that never expires can,
+in principle, run until something else kills it. Nothing in the gate's contract
+says when a ticket is *finished being reviewed*, as opposed to *currently
+passing*.
+
+**Not a criticism of the review.** Every finding named above sounds real, and the
+round-5 agent opened with *"I'll verify each finding against the current code
+before changing anything"* — the exact discipline this log keeps asking for. The
+defect is structural: **a good reviewer with no stopping rule is a loop.** For a
+ticket whose whole content is replacing a mock with a `fetch`, two hours of
+review is the wrong shape regardless of how correct each round is.
+
+For the debrief: a review needs a stopping rule that is not "no findings" — a
+round budget, a severity floor below which findings become follow-up tickets, or
+both. `wa-tracer-followups` already exists as a ticket for exactly that pattern,
+which means the project knows how to defer a finding. The gate does not.
+
+### Confirmed on a second ticket, and the severity data changes the fix
+
+`wa-landing-route`, run `01M24J4ZQYVKP9D50VYN0AVFMS`, read from `step_rounds`:
+
+```
+round 1   6 findings, 6 never seen before   [6m]    selected 5 of 6 for fix
+round 2   2 findings, 2 never seen before   [12m]   selected 1 of 2 for fix
+```
+
+**Zero repeated ids, on an independent ticket, by a different worker.** Across
+both tickets that is seven rounds and not one finding recurring. Non-convergence
+is a property of the review, not of the app shell being complicated.
+
+**And not one finding in either round was an error.** All eight were `warning` or
+`info`:
+
+```
+warning  readme-stale-entry-point            info  file-protocol-cta-regression
+warning  landing-dc-html-and-shots-at-...    info  traversal-test-comment-mismatch
+warning  dead-timer-handle-field             info  brief-verbatim-line-now-stale
+warning  duplicate-app-served-test           warning  entering-latch-survives-bfcache-restore
+```
+
+The gate held a ticket at `awaiting_approval` over, among other things, **a
+comment mismatch in a test** and **a stale line in the ticket's own brief**. The
+second is worth dwelling on: by round 2 the review had expanded from the diff to
+the paperwork describing the diff.
+
+**The severity judgement already exists -- in the workers, not the gate.** The
+`step_rounds` table records `selected_finding_ids` and `selection_source`, and
+both workers used them: 5 of 6, then 1 of 2. They deferred
+`landing-dc-html-and-shots-at-origin-root` and `brief-verbatim-line-now-stale` on
+their own initiative. Lelouch did the same thing one level up by turning
+`field-published-with-no-admitted-operator` into the `wa-operator-guard` ticket.
+
+So three different agents independently invented the missing policy, at three
+different points, none of them written down. **The mechanism is in the schema and
+the judgement is in the humans and agents; only the rule is absent.** That makes
+this cheaper to fix than it looked: the gate does not need a new capability, it
+needs a default -- `info` never blocks, `warning` blocks once then becomes a
+follow-up ticket, `error` blocks until fixed.
+
+---
+
+## The gate writes a PR number into history before the PR exists  <!-- F-059 -->
+
+On the `wa-app-shell` branch, authored 23:49 on 9 Sep:
+
+```
+f234db9 feat(app): stand the delivered app up against the live engine (#11)
+```
+
+**Pull request #11 does not exist.** `gh-axi pr view 11` → `error: Item #11 does
+not exist in this repository`. The commit lives only on the local branch and the
+shadow remote; `origin/master` is still at `2e697fe (#10)`. The run that would
+have created the PR failed at `pre_push` before the `pr` step ran.
+
+So a commit message in permanent history carries `(#11)` — **in exactly the
+format GitHub uses for a real squash-merge** — asserting a merge that never
+happened. The number was predicted from "next after #10" and baked in before it
+was earned.
+
+**Why this is worse than untidy.** It is immutable, it is authoritative-looking,
+and it will shortly be *actively* false: the next PR anyone opens on this
+repository becomes #11, and this commit will point at it. Anyone reading history
+later — or any agent reading it, which is the likelier case — sees a merged
+feature PR that belongs to someone else's work.
+
+**It fooled me for about ninety seconds.** I read that line and my first draft to
+C.C said their MVP had already merged. What caught it was checking `origin/master`
+and the PR itself rather than trusting a commit message — the same rule that has
+now caught four wrong reports in this run. A number formatted like a fact is
+still a guess.
+
+The fix is ordering: the `pr` step knows the real number, and nothing before it
+does. A commit written before that step should not name one.
+
+**Outcome, 03:43 -- the guess was right, and that changes nothing.** The retry
+traverse completed and PR #11 was created for the same work, so `f234db9`'s
+`(#11)` now points at a real, merged pull request. It landed by luck: no PR was
+opened on this repository in the four hours between the commit being written and
+the number being allocated. Had `wa-app-shell` stayed broken while any other
+ticket shipped, #11 would have belonged to different work and the commit would
+have asserted a merge that never happened, permanently, in a format
+indistinguishable from GitHub's own.
+
+Recording the outcome rather than quietly dropping the finding, because **a
+number that is right by luck is produced by the same mechanism as one that is
+wrong**. The defect is writing an unallocated identifier into immutable history,
+not the value it happened to take.
+
+---
+
+## Every gate failure reports the same error, and it is the wrong one  <!-- F-060 -->
+
+Read from `~/.no-mistakes/state.sqlite` directly -- **six failed runs, four
+different steps, one error text**:
+
+| run | branch | step | error as recorded |
+|---|---|---|---|
+| `01M243VXPG` | wa-app-shell | review | timed out after 30m0s ... `claude exited: exit status 1: warn: ignoring extra certs` |
+| `01M23M1Z7Q` | wa-hydrate | review | `claude exited: exit status 1: warn: ignoring extra certs` |
+| `01M23HTCPH` | wa-asof-progress | **document** | `claude exited: exit status 1: warn: ignoring extra certs` |
+| `01M23GTNQ6` | wa-hydrate | review | timed out after 30m0s ... same |
+| `01M2382Q99` | wa-hydrate | review | same |
+| `01M237KNG3` | wa-asof-progress | **test** | `agent run tests: claude exited: exit status 1: warn: ignoring extra certs` |
+
+The recorded cause in all six is the missing-certificate warning from
+`Documents/Coding/HUM/dopecert.cer` -- *"load failed: No such file or directory"*.
+
+**That warning is not the cause of anything.** It is printed on *every* Node
+invocation in this environment. It has appeared in every `gh-axi`, `npx` and
+`tasks-axi` call in this log, including every one that succeeded, and in the
+successful gate runs too. It is stderr noise from a certificate path that does
+not exist and has never needed to.
+
+What the gate has done is capture the child's stderr and report **the loudest
+line in it** as the failure reason. The actual cause of `exit status 1` -- six
+times, across `review`, `document` and `test` -- was never recorded and is now
+unrecoverable from state. Every failure in this system looks like the same
+failure, and it looks like a certificate problem.
+
+**Consequences, in order of how much damage they do:**
+
+1. **All six failures are indistinguishable.** A debrief reading this database
+   concludes the gate has one bug. It has at least three -- they failed at three
+   different steps -- and there is no way to tell them apart.
+2. **The red herring is actionable-looking.** A path, a filename, "load failed".
+   Anyone triaging chases `dopecert.cer` and finds nothing wrong, because
+   nothing is wrong with it.
+3. **It hides whatever is actually killing agents at exit 1.** Six occurrences in
+   one day is not an edge case, and no evidence survives to diagnose it.
+
+**And it answers half of F-056.** The two timeout rows say:
+
+> *agent review timed out after 30m0s: agent last produced output **1s ago**
+> (105 observed)*
+
+The agent was **actively producing output when it was killed**. The 30-minute
+limit is a wall-clock guillotine, not a hang detector: it does not ask whether
+progress is being made, and in both recorded cases progress had been made one
+second earlier. The `exit status 1` on those rows is plausibly a *consequence* of
+the kill rather than a cause -- which would make the error text not merely
+mislabelled but inverted.
+
+I am not claiming that last step as established. What is established: **the
+timeout fires on live agents**, and every failure record points at a warning that
+has never broken anything.
+
+**For the debrief.** The gate should record the child's exit path -- last command
+run, last stderr line that is not a known warning, and whether the process was
+signalled -- rather than the first thing it happened to print. A failure store
+where every entry is identical has stopped being evidence.
+
 ---
 
 ## SCOPE NOTE — what in this log is a Lelouch finding, and what is not  <!-- F-057 -->
@@ -3757,6 +4064,16 @@ Lelouch too" note:
   in Lelouch**, which pays 2-3 commands to answer "from whom?".
 - **Alarms without evidence attached.** My silence alarm now carries per-session
   last-row ages. The orchestration nudge carries nothing equivalent.
+- **The cp1252 crash is not a supervisor problem.** I logged this as instrument
+  housekeeping after it killed my whole watch on a single `print`. At 03:4x
+  Lelouch hit the identical `UnicodeEncodeError: 'charmap' codec can't encode
+  character` while reading PR #11 -- the machine's Python defaults to cp1252, and
+  any agent that prints a name, a path or a quote containing a non-ASCII
+  character dies on the spot. **Both sides of this system hit it in one night.**
+  Fixed on my side with `sys.stdout.reconfigure(encoding="utf-8")`; **unfixed in
+  Lelouch**, where it costs a turn each time and, in my case, cost an entire
+  monitoring session. This belongs in the contract or the environment, not in
+  each agent's memory of having been burned once.
 - **Gate failure is invisible to everyone outside the gate.** A failed run
   reports `status: failed` inside a command that exits **0**, and says nothing to
   the orchestrator at all. C.C found the `wa-app-shell` timeout by reading a
