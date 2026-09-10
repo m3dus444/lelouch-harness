@@ -4662,3 +4662,103 @@ described the state as a stall requiring intervention, because I was reasoning
 about the broken path and not about what happens when it ends. Same shape as the
 near-miss recorded inside [F-064](#), four hours apart: **I read the failure and
 stopped reading before the recovery.**
+
+---
+
+## CORRECTION to F-002 — release works; watching a worker is what keeps it alive  <!-- F-069 -->
+
+**Category:** harness · **Status:** corrected · **Cost:** 17 of 33 terminals
+retained, and 34% of all dispatch attempts lost to one error
+
+Checked at the right moment — a worker had just completed and been merged — and
+[F-002](#) does not survive it.
+
+**What F-002 claimed:** *"`worker-release` has never run; finished workers stay
+open forever."* I wrote that from the absence of `worker-release` in the action
+stream, which is the [F-026](#) mistake: inferring from what I could not see
+rather than reading the state.
+
+**What `worker_terminal_resources` actually says**, 33 terminals:
+
+```
+ownership_state  release_state   retained_reason        n
+external         not_requested   external_terminal      10
+owned            not_requested   --                      1
+owned            retained        identity_unproven       1
+released         released        --                      4
+user_owned       retained        user_takeover          17
+
+release_requested = 5    release_completed = 4
+```
+
+**Release has run, and it works.** Four terminals are fully released, a fifth
+was requested and retained. The headline of F-002 is simply false and should be
+read as superseded by this entry.
+
+**The real finding is the 17.** More than half of every worker terminal in this
+run is held by `retained_reason = user_takeover`, with `ownership_state`
+flipped from `owned` to `user_owned`. The orchestrator cannot release those —
+they are no longer its terminals. And the thing that transfers ownership is
+**someone opening the worker's terminal to look at it.**
+
+So the causal chain, which nothing in the design makes visible:
+
+> C.C checks on a worker → the terminal becomes `user_owned` → it is retained
+> forever → its memory is never reclaimed → [F-032](#)'s RAM ceiling arrives
+> sooner → the fan-out that ceiling permits gets smaller.
+
+**Observation retains resources.** In a run where the binding constraint is RAM
+([F-032](#)), where memory pressure killed five successive background monitors
+(`instrument-log.md` 13 and 15), and where the whole supervision design rests on
+*looking at things*, that is not a footnote. **The act of supervising the run
+consumes the budget the run needs**, and it does so silently and permanently.
+
+**What would settle the mechanism.** I am reading `user_takeover` as "a human
+focused or typed into the terminal" from the field names plus the fact that C.C
+demonstrably opened worker terminals this run. I have not watched the flip
+happen. One deliberate open of a live worker terminal, with a before/after read
+of `ownership_state`, would confirm it — worth doing at the debrief rather than
+now, since it costs a terminal.
+
+**Second measurement, same query: [F-031](#) has a number and a name.** Of 50
+dispatch attempts across the run:
+
+```
+succeeded  19
+failed     26
+abandoned   5
+```
+
+and the failures break down by the error the system records against them:
+
+```
+17  agent_prompt_stalled
+ 6  Terminal closed by operator request
+ 3  Terminal <id> already has an active dispatch (ctx_... for task ...)
+```
+
+`agent_prompt_stalled` **is** F-031 — the stall on a fresh ticket that C.C's
+notes say needs a retry with `--worktree` *and* `--terminal`. It accounts for
+**17 of 50 dispatch attempts, 34% of every `worker-start` in the run.** 21 of
+the 26 failures are followed by another dispatch within five minutes, and the
+chronological sequence contains runs of up to eight consecutive failures before
+one takes:
+
+```
+S S S S F F F F F F F F F S S F S F A A S F S F F S S S F S S F S F F F S A A F F F S S F F F F A S
+```
+
+**Do not read 26 failures as 26 lost work items.** Almost all of them are the
+retry tax on a dispatch that eventually succeeds. The cost is turns and
+wall-clock, not work — but at eight retries for one ticket it is not a rounding
+error either, and unlike most of this log it is a defect with a single named
+error string that someone could go and fix.
+
+**The correction habit that produced this.** Both halves came out of one
+`pragma table_info` and three `group by` queries against a database nobody
+asked me to read. F-002 stood for two days because I measured it by watching
+for a command instead of reading the state it writes — the same error as
+[F-064](#) and [F-066](#), where the evidence was on disk and addressed to no
+one. The rule I keep re-learning: **read files, not command streams**, is in the
+monitor's own SKILL.md, and I keep applying it to artifacts and forgetting it
+for state.

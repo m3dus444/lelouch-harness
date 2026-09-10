@@ -22,7 +22,7 @@ grep -c '^| F-0'   run-02-index.md
 
 - **`contract`** (11) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (15) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (14) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (15) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (7) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -39,7 +39,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | id | line | category | status | cost | finding |
 |---|---|---|---|---|---|
 | F-001 | 6 | working | confirmed | -- | What the contract got right; first observations, not re-runs |
-| F-002 | 85 | harness | confirmed | -- | `worker-release` has never run; finished workers stay open forever |
+| F-002 | 85 | harness | superseded | -- | `worker-release` has never run -- SUPERSEDED by F-069, release does run |
 | F-003 | 239 | resources | confirmed | near-loss | Worker hit a usage limit mid-ticket; third instance, C.C wants a skill |
 | F-004 | 688 | meta | unproven | -- | Do not act on these: single instances, no counter-example yet |
 | F-005 | 830 | supervisor | moved | -- | Monitor bugs found while watching (moved to instrument-log.md) |
@@ -117,11 +117,13 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-068 | 4598 | contract | corrected | 1 h measured | CORRECTION to F-067: the timeout was the backstop, and it worked |
 
+| F-069 | 4668 | harness | corrected | 17 of 33 | CORRECTION to F-002: release works; watching a worker is what keeps it alive |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (14)**, **`harness` (11)** and **`contract` (9)**.
+are concentrated in **`gate` (14)**, **`harness` (10)** and **`contract` (9)**.
 `gate` has overtaken `harness` since that sentence was first written. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout
