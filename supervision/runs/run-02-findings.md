@@ -4826,3 +4826,92 @@ four tries in F-031 and runs of up to eight in [F-069](#)'s sequence. So the
 race is deterministic in *whether* it fires and variable in *how long* it takes
 to win. I have one clean two-attempt trace and would not put a distribution on
 it.
+
+---
+
+## `python3` is a decoy on this machine, and it fails in French  <!-- F-071 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** one turn per agent
+that reaches for it · **Fourth member of [F-041](#)'s family**
+
+`wa-traversal-institution` hit this at 20:33, twelve minutes into its first
+ticket, writing a perfectly ordinary edit script:
+
+```
+python3 - <<'PYEOF'
+import io
+p='src/engine/live/compile.test.ts'
+...
+```
+
+```
+Exit code 49
+Python est introuvable ; ex�cutez sans arguments � installer � partir du
+Microsoft Store ou d�sactivez ce raccourci dans Param�tres > Applications ...
+```
+
+**Verified directly rather than inferred:**
+
+```
+which python   -> /c/Users/.../Programs/Python/Python312/python      Python 3.12.4
+which python3  -> /c/Users/.../Local/Microsoft/WindowsApps/python3   Store alias stub
+which py       -> /c/Users/.../Programs/Python/Launcher/py
+```
+
+`python` is a real 3.12.4. **`python3` is the Microsoft Store alias stub** — a
+zero-byte shim Windows installs to nag you into the Store. Same command,
+same shell, same machine; one works and one is a decoy.
+
+**Three things make it worse than a missing binary.**
+
+1. **It is the habitual name.** Every agent here comes with a Linux/macOS reflex
+   that `python3` is the safe, unambiguous choice and `python` is the risky
+   legacy alias. On this machine that is exactly inverted.
+2. **The message does not say what to do.** It suggests installing Python —
+   which is already installed, and on PATH, under the other name. An agent that
+   believes it will go and try to install a working interpreter.
+3. **It is localized and then mangled.** The stub emits French, and it arrives
+   through the pipeline as `ex�cutez` / `d�sactivez` — the cp1252 problem the
+   shared-findings section already flags on both sides of this system. So the
+   one diagnostic an agent gets is in an unexpected language *and* corrupted.
+
+**The rule.** Add to the environment notes beside `/tmp` ([F-034](#),
+[F-065](#)) and heredoc quoting ([F-029](#)): **use `python`, never `python3`.**
+This is now the fourth trap in that family, and the argument in [F-041](#) —
+that these belong written down once rather than learned by each agent getting
+burned — gets stronger with each one. Three of the four fired tonight within
+forty minutes, across three different agents including me.
+
+**A measurement error of my own, recorded because the log keeps these.** I first
+ran `python3 --version 2>&1 | head -2; echo "exit=$?"` and read `exit=0`, and
+briefly had "the stub exits 0, which is worse" in this entry. `$?` there is
+`head`'s status, not `python3`'s. The real exit code is the **49** the worker
+observed, and I only have it because the worker's transcript recorded it. Same
+shape as every instrument bug in `instrument-log.md`: I measured the wrong end
+of a pipe and nearly published it.
+
+**How it recovered, and this is the useful half.** It did not retry, and it did
+not try to install anything. It dropped the script and used the native `Write`
+and `Edit` tools to make the same change, then ran the test green:
+
+```
+20:33:20  python3 heredoc            -> Exit code 49
+20:33:58  Write  compile.test.ts     -> ok
+20:34:06  Edit   compile.test.ts     -> ok
+20:34:10  npx vitest run             -> green
+```
+
+**Total cost: 38 seconds and one wasted turn.**
+
+**Why that matters more than the trap does.** Compare [F-065](#): the
+`wa-05-resolve` worker hit the `/tmp` trap and needed *three* attempts, because
+what it wanted was a runtime timing measurement and there is no native tool for
+that — it had to get a script executing somehow. Here the blocked action was
+editing a file, and editing a file has a first-class tool sitting right there.
+
+So: **an environment trap costs in proportion to the distance between the
+blocked action and the nearest native tool.** The same fault is a 38-second
+detour for an edit and a three-attempt hunt for a measurement. That is worth
+knowing before anyone prices these traps as uniformly cheap because this
+instance was — and it is an argument for the environment notes leading with the
+traps that block things no tool covers.
