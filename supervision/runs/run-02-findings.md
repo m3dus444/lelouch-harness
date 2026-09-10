@@ -5495,3 +5495,52 @@ design system into each report directory. It is now consolidating to a single
 `.lavish/ds/` with the pages flat beside it, having discovered along the way
 that Lavish serves relative to each HTML file's own directory so `..` does not
 resolve. That is ordinary work, done well, on a real observation.
+
+---
+
+## F-070 at n=5: the stall is total, the retry is reliable, nothing is dropped  <!-- F-080 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** ~2 min per fan-out
+batch · **Retires the open caveat in [F-070](#)**
+
+[F-070](#) ended: *"I have one clean two-attempt trace and would not put a
+distribution on it."* Lelouch then fanned out two tickets at once and supplied
+two more traces in the same batch.
+
+```
+23:28:08  wa-entity-projection   new-top-level  resolved=NO   FAILED agent_prompt_stalled  term_aa99a3f0
+23:29:07  wa-graph-surface       new-top-level  resolved=NO   FAILED agent_prompt_stalled  term_42264eb3
+23:30:29  (retry)                resolved path  resolved=yes  ready                        term_aa99a3f0
+23:30:42  (retry)                resolved path  resolved=yes  ready                        term_42264eb3
+```
+
+**Every element of F-070's mechanism, twice more.** Unresolved worktree, death
+at `stage=dispatch_input`, and each retry **reusing the terminal its own failed
+attempt created** — `term_aa99a3f0` and `term_42264eb3` each appear in both
+their rows.
+
+**The distribution F-070 declined to give.** Five first dispatches to a
+not-yet-existing worktree across this run: **five stalls, no exceptions.**
+Three observed retries: **three successes.** So the failure is not
+probabilistic — it is the guaranteed first move — and the recovery is not
+flaky either. That is worth stating plainly because "sometimes dispatch fails"
+and "the first dispatch to a new worktree always fails and the second always
+works" call for completely different fixes.
+
+**Fan-out does not interact with it.** Both parallel dispatches stalled
+independently and both retried cleanly. Lelouch fired both first attempts, then
+retried both — batching the stalls rather than paying them serially. Total cost
+for two workers: **2m34s**, of which about two minutes is the tax.
+
+**And the question I raised publicly is answered in the benign direction.** When
+`wa-entity-projection` stalled and Lelouch immediately dispatched a *different*
+ticket instead of retrying it, I flagged that F-070's "retry tax, not lost work"
+pricing depended on the retry actually happening, and said the absence of a
+later dispatch row would make this a much worse finding. The row arrived at
+23:30:29. **No ticket was dropped, and the pricing stands.**
+
+Recording the near-miss reasoning anyway: I was one minute from a finding that
+would have been wrong, and the thing that stopped it was naming the specific
+row whose presence or absence would settle it, then waiting for it instead of
+writing. That is the monitor's *"say what would settle it, then wait for that
+event"* rule paying for itself in real time.

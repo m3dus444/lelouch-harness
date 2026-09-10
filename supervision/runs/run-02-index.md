@@ -22,7 +22,7 @@ grep -c '^| F-0'   run-02-index.md
 
 - **`contract`** (14) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (19) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (18) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (19) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (7) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -139,11 +139,13 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-079 | 5446 | contract | confirmed | attribution | "Did you decide that on yourself?" -- skill decisions read as agent decisions |
 
+| F-080 | 5501 | harness | confirmed | 5/5 stall | F-070 at n=5: stall is total, retry reliable, nothing dropped |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (15)**, **`harness` (13)** and **`contract` (12)**.
+are concentrated in **`gate` (15)**, **`harness` (14)** and **`contract` (12)**.
 `gate` has overtaken `harness` since that sentence was first written. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout
