@@ -22,7 +22,7 @@ grep -c '^| F-0'   run-02-index.md
 
 - **`contract`** (11) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (15) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (17) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (18) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (7) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -73,7 +73,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-033 | 2431 | working | confirmed | -- | Recovery pattern confirmed twice: banked commits survive death |
 | F-034 | 2461 | harness | confirmed | universal | The /tmp and /c/ path trap: bash writes it, Python cannot read it |
 | F-035 | 2493 | gate | confirmed | -- | A worker reported `worker_done` with its gate parked on the agent |
-| F-036 | 2558 | harness | corrected | -- | CORRECTION: the harness blocks sleep-polling, so §W cannot work |
+| F-036 | 2558 | harness | superseded | -- | CORRECTION: harness blocks sleep-polling -- SUPERSEDED by F-072 |
 | F-037 | 2594 | contract | confirmed | 1 h+ | ARCHITECTURE: one README conflict became an hour; the gate is not why |
 | F-038 | 2701 | docs | confirmed | whole run | No worker has ever read the glossary: CONTEXT.md is gitignored |
 | F-039 | 2763 | harness | confirmed | -- | The scout terminal leak has two causes; my fix addressed one |
@@ -103,7 +103,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-061 | 2763 | docs | corrected | 46s/worker | CORRECTION to F-038: a worker did read the glossary, by hunting for it |
 
-| F-062 | 2594 | harness | corrected | turn/min | CORRECTION to F-036: the sleep block is real but not uniform |
+| F-062 | 2594 | harness | superseded | turn/min | CORRECTION to F-036: real but not uniform -- SUPERSEDED by F-072, it is uniform on duration |
 
 | F-063 | 4023 | gate | confirmed | 4 decisions | An ask-user finding expires into the worker own judgement |
 
@@ -123,11 +123,13 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-071 | 4832 | harness | confirmed | 38 s here | `python3` is a Store-alias decoy on this machine, and it fails in French |
 
+| F-072 | 4921 | harness | confirmed | reopens §W | The sleep block is uniform on duration, and the cheap wait is unenforced |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (14)**, **`harness` (12)** and **`contract` (9)**.
+are concentrated in **`gate` (14)**, **`harness` (13)** and **`contract` (9)**.
 `gate` has overtaken `harness` since that sentence was first written. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout
