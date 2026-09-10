@@ -4992,3 +4992,77 @@ Two commands settled a question that had produced one wrong finding (F-036), one
 correction (F-062), and one wrong addendum (mine, this session). The cost of the
 experiment was about four seconds, because a blocked command returns instantly.
 **Three rounds of inference lost to a test nobody ran.**
+
+---
+
+## CORRECTION to F-064 — the gate's analysis was one documented command away  <!-- F-073 -->
+
+**Category:** gate · **Status:** corrected · **Cost:** the finding was right
+about the waste and wrong about the cause
+
+[F-064](#) said the gate's step analysis was *"written to a log directory keyed
+by run id, discarded when a later step fails, invisible to the worker holding
+the branch"* and *"referenced by nothing the worker reads."* **That is false,
+and I published it to C.C four hours ago.**
+
+**What caught it.** `wa-traversal-institution` ran this, unprompted, in the
+middle of its own gate traverse:
+
+```
+no-mistakes axi logs --step review 2>&1 | tail -25
+```
+
+A worker reading gate step logs — the exact thing F-064 said could not be done.
+
+**What the CLI actually offers:**
+
+```
+no-mistakes axi logs   Show the log output of one pipeline step
+  --full          show the entire log instead of the tail
+  --run string    run ID (default: current branch's active or MOST RECENT)
+  --step string   intent, rebase, review, test, document, lint, push, pr, ci
+```
+
+It is a first-class subcommand, listed in `no-mistakes axi --help` beside
+`status` and `respond`. And the `--run` default is *the current branch's active
+or most recent run* — so `wa-05-resolve`'s worker, standing in its own worktree
+on the branch whose run had just failed, could have typed
+`no-mistakes axi logs --step test` and been handed the cold-start analysis
+verbatim. One command, no run id, no path.
+
+**What survives from F-064, unchanged.** Every fact. The gate did reach the
+diagnosis at 17:24; the worker did re-derive it at 19:02; the two conclusions
+did agree to within a hundred milliseconds; it did cost about six minutes and a
+probe script; Lelouch's spec did say *"do not re-derive"* without attaching the
+work. The waste was real. **My explanation of it was wrong.**
+
+**The corrected rule, which is tighter and more fixable than the original.** The
+analysis is not unreachable — it is *unadvertised at the only moment anyone
+needs it*. When that run failed, what surfaced was a single `error` string about
+a TLS certificate ([F-060](#)). Nothing in the failure said:
+
+> steps `intent`, `rebase`, `review` and `test` completed; read them with
+> `no-mistakes axi logs --step <name>`
+
+So the fix is not "make the gate write its conclusions somewhere else." It is
+**make the gate's failure report enumerate the steps that succeeded and name the
+command that reads them.** And on the orchestrator's side: Lelouch's resume spec
+should have carried `no-mistakes axi logs --step test` in place of the bare
+instruction not to re-derive — [F-064](#)'s own line, *"an instruction not to
+redo work is worthless without the work attached,"* stands, and now has a
+concrete thing that should have been attached.
+
+**The part that makes this a contract finding rather than a tooling one.** Two
+workers on the same project, three hours apart, with the same gate: one knew
+`axi logs` existed and used it mid-traverse, the other did not and paid six
+minutes. Nothing distinguishes them but what each happened to discover. That is
+the same gap as [F-071](#)'s `python3` and [F-072](#)'s sleep rule — **a
+capability that exists, works, and is learnable only by accident.**
+
+**On my own error.** I inferred "invisible" from having found the logs myself by
+reading `~/.no-mistakes/logs/<run-id>/` off the filesystem, and never checked
+whether the CLI exposed them. I had run `no-mistakes axi status` against that
+same database twenty minutes earlier. **I tested the state store and not the
+tool**, which is [F-069](#)'s mistake — reading state instead of the interface —
+run in the opposite direction, four hours later, in the same session. Twice
+tonight the fix was one `--help`.

@@ -21,7 +21,7 @@ grep -c '^| F-0'   run-02-index.md
 ## Categories
 
 - **`contract`** (11) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (15) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`gate`** (16) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (18) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
@@ -107,7 +107,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-063 | 4023 | gate | confirmed | 4 decisions | An ask-user finding expires into the worker own judgement |
 
-| F-064 | 4238 | gate | confirmed | 6 min | The gate solved it at 17:24; the worker solved it again at 19:02 |
+| F-064 | 4238 | gate | corrected | 6 min | Gate solved it at 17:24, worker again at 19:02 -- cause CORRECTED by F-073 |
 
 | F-065 | 4350 | harness | confirmed | 1 trip | ADDENDUM to F-034: Node resolves modules against /tmp too |
 
@@ -125,11 +125,13 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-072 | 4921 | harness | confirmed | reopens §W | The sleep block is uniform on duration, and the cheap wait is unenforced |
 
+| F-073 | 4998 | gate | corrected | -- | CORRECTION to F-064: the gate's analysis was one documented command away |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (14)**, **`harness` (13)** and **`contract` (9)**.
+are concentrated in **`gate` (13)**, **`harness` (13)** and **`contract` (9)**.
 `gate` has overtaken `harness` since that sentence was first written. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout
