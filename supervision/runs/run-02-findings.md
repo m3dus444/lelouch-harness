@@ -4232,3 +4232,164 @@ where I expected activity, a noun where I expected a sentence, a comma where I
 expected a decimal point. That is the same failure mode as this run's Lelouch
 findings, which is why it kept feeling like the same story. It is not evidence
 about Lelouch, though, and should not be counted as such.
+
+---
+
+## The gate solved it at 17:24; the worker solved it again at 19:02  <!-- F-064 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** ~6 min re-derivation, one
+probe script, and a near-miss on my side
+
+The clearest single instance this run of the gate producing real analysis and
+throwing it away.
+
+**The sequence, with times.** Gate run `01M25KZBTGJFXYDP5ENTBT8SZ3`, branch
+`m3dus444/wa-05-resolve`, read out of `~/.no-mistakes/state.sqlite`:
+
+```
+ 1 intent     completed  exit=0      16ms   14:16:49
+ 2 rebase     completed  exit=0     10.8s   14:16:49
+ 3 review     completed  exit=0   2h36m05   14:17:00 -> 17:14:47
+ 4 test       completed  exit=0    9m14s    17:14:47 -> 17:24:02
+ 5 document   FAILED     exit=--   6m00s    17:24:02 -> 17:30:02
+ 6 lint       pending
+ 7 push       pending
+ 8 pr         pending
+ 9 ci         pending
+```
+
+`review_approved_head_sha` and `head_sha` are both `17aed15` -- the same seven
+commits the worker later fast-forwarded to. So step 4 ran the suite on exactly
+the tree in question.
+
+**What step 4 wrote**, in `~/.no-mistakes/logs/<run-id>/test.log`:
+
+> One test, `POST /search > answers a documented search with ranked rows`, timed
+> out at 5s on the first cold run of the six files together (26s of
+> transform/collect contention) and passed in 675ms on every run after. It's a
+> pre-existing test unrelated to this feature, timing-only.
+
+**What the worker did at 18:56**, ninety minutes later, having fast-forwarded
+those same seven commits into its checkout and been told to verify:
+
+- ran the suite; the same one test failed, 15.9s against a 5s timeout
+- ran it alone; failed again at 11.6s
+- wrote a probe against the engine directly: **construct 20ms, search 83ms** --
+  so the query path is not slow
+- ran with `--reporter=verbose`: the test passes at **755ms** on a warm run
+- concluded: cold-start cost -- native sqlite binding, `@fastify/static` scanning
+  two delivered asset trees, a 293 KB fixture -- against vitest's 5s default, on
+  a machine memory-starved all session, and *made more likely to fire* by this
+  ticket adding three test files and a large fixture
+- raised the first-test timeout in `vitest.config.ts`, verified two consecutive
+  clean full runs (416 tests, 18 files), committed it as `aaccf8a`
+
+**That is the same diagnosis.** Same test, same "cold first run", same
+"pre-existing, timing-only", same warm-run number to within a hundred
+milliseconds (675ms vs 755ms). Derived twice, ninety minutes apart, by two
+agents, from scratch.
+
+**Why the second derivation happened.** Not because the worker was careless --
+it could not have known. Three things had to line up:
+
+1. The gate's step logs live in `~/.no-mistakes/logs/<run-id>/`, **outside the
+   worktree**, referenced by nothing the worker reads.
+2. The run **failed at step 5**, so nothing surfaced steps 1-4 at all. A failed
+   run reports its failure; it does not report what it had already established.
+3. Lelouch's resume spec said *"do not re-derive, re-review or re-run the
+   gate"* -- and the worker re-derived anyway, because the instruction names the
+   thing to skip without giving it the result that makes skipping safe.
+
+Point 3 is the sharp one. **An instruction not to redo work is worthless without
+the work attached.** The spec correctly identified that the analysis existed. It
+could not hand it over, because the orchestrator could not see it either.
+
+**The rule this changes.** The gate is not only a checker -- steps 3 and 4 are
+agents that produce reasoning, and that reasoning is often the most valuable
+thing the run generates. Right now it is addressed to nobody: written to a log
+directory keyed by run id, discarded when a later step fails, invisible to the
+worker holding the branch. **A gate step that reaches a conclusion must write it
+where the branch's owner will find it** -- the worktree, the PR body, or the
+ticket -- not only into its own log. Everything downstream currently pays list
+price to rediscover it.
+
+**The re-derivation was not pure waste, and this cuts the other way.** The gate
+observed the flake, called it pre-existing, and shipped it unchanged. The worker
+reached the same diagnosis and **fixed it forward**. Same analysis, better action
+-- because the worker owned the branch and the gate only owned an opinion. So the
+argument is not "the worker should have been told and skipped it." It is that
+the worker should have been told *and then still fixed it*, in one minute
+instead of six.
+
+**Confirms [F-060](#) again, unprompted.** The run's stored `error` is:
+
+```
+step document failed: agent document: claude exited: exit status 1:
+warn: ignoring extra certs from ...\dopecert.cer, load failed: No such file...
+```
+
+The document step died because the worker's session hit its usage limit at
+17:30. The recorded error is a TLS certificate warning. Sixth instance of the
+gate reporting the wrong cause; the first where I could read the real one out of
+the timestamps in the same query.
+
+**A supervisor near-miss, recorded because [F-044](#) is what not recording one
+costs.** I read the worker's 18:59 line -- *"It fails alone too, at 11.6s where
+it was 175ms before the fix rounds. That's a real regression, not a flake"* --
+and began writing this entry as *"nine rounds of gate review introduced a 66x
+performance regression and the gate certified it green."* That would have been a
+strong, wrong, and very quotable finding. It survived about four minutes, until
+I read the next three timestamps and found the engine probe at 83ms. Nothing was
+published, so this is not a correction. It is the same failure as every
+instrument bug in `instrument-log.md`: **I acted on a value at the moment it was
+most alarming and least complete.** The worker's own first reading was the same
+one; the difference is that it went and measured.
+
+---
+
+## Third variant of the /tmp trap: Node resolves modules against it too  <!-- F-065 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** one round trip ·
+**Addendum to [F-034](#)**
+
+[F-034](#) recorded the trap as *bash writes `/tmp`, Python cannot read it*, and
+[F-041](#) called it universal. Here is the third runtime to hit it, in a new
+way, at 18:59. The worker wrote a timing probe to `/tmp/t.mjs` with a heredoc
+and ran `node` on it:
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module
+  'C:\Users\JULIEN~1\AppData\Local\Temp\dist\engine\live\index.js'
+  imported from C:\Users\JULIEN~1\AppData\Local\Temp\t.mjs
+Did you mean to import
+  "../../../../JulienH%C3%A9lie/orca/workspaces/weave-atlas/wa-05-resolve/dist/..."
+```
+
+The new part is *how* it fails. Python's version is a read that returns nothing.
+Node's is subtler: the file **is** found and **does** run -- it is the script's
+own relative imports that resolve against `C:\...\Temp` instead of the repo. So
+the failure surfaces one level away from its cause, as a missing dependency
+rather than a missing script.
+
+Two details worth keeping:
+
+- The fix Node suggests is a relative path containing `%C3%A9` -- the `é` in the
+  user's home directory, URL-encoded, inside a path it is telling you to paste.
+  Following that advice fails.
+- The worker's next attempt, `cp /tmp/t.mjs ./t-probe.mjs`, moved the script into
+  the repo but the `.mjs` extension still bypassed the TypeScript path setup, so
+  it failed again on a fixture path. It took a third attempt -- writing
+  `t-probe.ts` in the repo root -- to get a measurement.
+
+**Restatement of the rule, wider than F-034's.** Not "bash `/tmp` is unreadable
+by Python." **Any interpreter invoked on a file under `/tmp` resolves that file's
+relative references against the Windows temp directory.** The correct habit is
+not "avoid `/tmp` for Python" but *a scratch file that imports anything belongs
+inside the repo*, in the language the repo is already configured for.
+
+**Footnote, and not a coincidence.** Writing this entry, my own `cat >> ... <<'EOF'`
+died with ``unexpected EOF while looking for matching `'`` -- [F-029](#), the
+heredoc trap, in the middle of the paragraph documenting the trap next to it.
+Both of this run's universal environment faults fired inside one write-up. That
+is the argument for [F-041](#) being an environment note rather than something
+each agent learns by being burned.
