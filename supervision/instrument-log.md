@@ -495,3 +495,43 @@ and a sentence is what the supervisor actually reads at 3 AM.
 applies on its next start. I am not restarting a two-day-old healthy watch to
 land a wording fix — the reaping behaviour in entry 15 says I might not get it
 back.
+
+## 17  The stream is annotated, not tabular -- do not count rows from it
+
+Chased this after `npx -y lavish-axi design` appeared twice in the stream, once
+as `!! npx` and once as `lavish`, and I suspected double emission.
+
+It is not a bug. `watch.py` appends the npx flag **independently** of the
+category loop, because the `!!` is an annotation on a call, not a classification
+of it. One command that trips the npx rule therefore produces **two lines**. By
+design, and the right design — the flag would be useless if it replaced the
+label telling you what the call was.
+
+**The hazard is mine, not the tool's.** I counted `!! npx` occurrences straight
+out of the stream to answer "is Lelouch doing this systematically". That count
+happened to be right, but *any* count of category rows is inflated by the npx'd
+ones. **The stream is an annotated log, not a table. Counts come from the
+transcripts.** Which is the monitor's own first rule — read files, not command
+streams — and I broke it while auditing the monitor.
+
+**Second false alarm in the same check.** I then looked for adjacent lines with
+identical commands under different labels and found seven `hb`/`board` pairs.
+Those are not duplicates either: the stream truncates commands, and a worker
+sends `--type heartbeat` and a board update through the same
+`orca orchestration send --from term_… --dispatch-capability …` prefix. The
+first ninety characters are identical; the flag that distinguishes them is past
+the cut. **Two genuinely different calls that render the same.** My comparison
+was on the rendering.
+
+Fourth time tonight I reached for a derived value instead of the source
+([F-071](runs/run-02-findings.md)'s exit code, [F-073](runs/run-02-findings.md)'s
+missing CLI command, [F-074](runs/run-02-findings.md)'s lint duration, now this).
+Every one was cheap to catch and every one was one command away from being
+published wrong.
+
+**The finding that came out of it, and it is a good one for the debrief.** One
+`!! npx` in the entire watched stream — roughly two and a half days of Lelouch's
+actions — against `lavish-axi` being installed directly at
+`~/AppData/Roaming/npm/lavish-axi`. The scorecard's *"called tools directly, not
+via npx"* check **passes**, and passes by a wide margin. A single ~28s lapse in
+two and a half days is not a defect; it is a habit that took.
