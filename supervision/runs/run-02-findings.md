@@ -3899,6 +3899,47 @@ both workers used them: 5 of 6, then 1 of 2. They deferred
 their own initiative. Lelouch did the same thing one level up by turning
 `field-published-with-no-admitted-operator` into the `wa-operator-guard` ticket.
 
+### Third ticket, and the measure I was using is not good enough
+
+`wa-05-resolve`, run `01M25KZBTGJFXYDP5ENTBT8SZ3`:
+
+```
+round 1   7 findings, 7 never seen before   [10m]   selected 7 of 7
+round 2   6 findings, 6 never seen before   [26m]   selected 4 of 6
+```
+
+**Three tickets, nine rounds, zero repeated ids anywhere**, and still not one
+finding at `error` severity. The pattern is settled.
+
+But two of these ids are the same finding wearing different names:
+
+```
+round 1   seam-test-source-grep              the seam test greps source
+round 2   seam-layering-test-parses-source   the seam test parses source
+```
+
+The worker rewrote the seam test so it would stop grepping source -- one of the
+four `ask-user` findings from [F-063](#) -- and the next review flagged the
+rewrite for *parsing* source. Same concern, second lap, fresh identifier. On my
+metric it scores as "never seen before".
+
+**So [F-025](#) needs qualifying.** Judging convergence by finding ids rather
+than counts was right as far as it went, and it is what let this pattern be seen
+at all. It is not sufficient: **a review can circle one concern indefinitely so
+long as it renames it each lap**, and an id-based check will report novelty every
+time. Counts hide progress; ids hide repetition. Neither sees the thing that
+matters, which is whether the reviewer and the implementer are converging on the
+same understanding.
+
+I have no tool for that and am not going to pretend otherwise. What is available
+cheaply: flag when a new finding's id shares a stem with an answered one
+(`seam-test-*`, `seam-layering-*` both contain `seam` and `source`), and treat
+that as a signal to read rather than a verdict. It would have caught this one.
+
+The honest position for the debrief is that **the run currently has no reliable
+measure of whether a review is finishing**, and every stopping rule proposed
+above -- round budgets, severity floors -- is a way of not needing one.
+
 So three different agents independently invented the missing policy, at three
 different points, none of them written down. **The mechanism is in the schema and
 the judgement is in the humans and agents; only the rule is absent.** That makes
@@ -4017,6 +4058,69 @@ has never broken anything.
 run, last stderr line that is not a known warning, and whether the process was
 signalled -- rather than the first thing it happened to print. A failure store
 where every entry is identical has stopped being evidence.
+
+---
+
+## An `ask-user` finding expires into the worker's own judgement  <!-- F-063 -->
+
+The gate raised seven findings on `wa-05-resolve`, **four of them marked
+`ask-user`** -- the gate's own signal that a human should decide. The worker
+asked, on thread `msg_323478b7d94a`. Ten minutes later, 12:39:
+
+> *"The ask timed out -- and an unanswered ask is not permission, so I won't
+> treat silence as approval for anything new. But all seven findings are defects
+> in my own work against my own documented contract, which is mine to fix as the
+> implementer. Recording that on the thread, then proceeding."*
+
+It then sent an **escalation**, not a status update, naming the thread, the
+ten-minute expiry, and the narrower ground it was proceeding on -- one of the
+four being deference to a rule the ticket had already settled (*"where
+no-mistakes and tdd disagree on test quality, no-mistakes wins"*).
+
+**The worker's conduct is exemplary and is not the finding.** It separated
+"silence is not approval" from "this is mine to fix anyway", refused the first,
+justified the second, and left a record. That is the behaviour this log has been
+asking for since the quiet-obedience entry.
+
+**The finding is the path.** An `ask-user` finding exists because the gate judged
+that the implementer should not be the one deciding. The route it actually takes:
+
+```
+gate raises ask-user  ->  worker asks orchestrator  ->  10 minutes  ->  timeout
+                                                                          |
+                          worker decides  <---------------------------------
+```
+
+**C.C is nowhere in it.** Not as an endpoint, not as a notification, not as a
+fallback. The window is ten minutes, it is invisible from outside, and its expiry
+returns the decision to precisely the party the gate wanted overruled. C.C was
+awake and at the keyboard while this happened and had no way to know a question
+had been asked.
+
+**This is the inverse of quiet obedience, and it belongs beside it.** There, a
+worker complied silently with the wrong master. Here, a worker was *meant* to be
+overruled by a human, the human never heard the question, and the worker had to
+manufacture its own authority to continue. Both produce unauthorised work; they
+differ only in which direction the missing conversation ran.
+
+**Why the good outcome is not reassuring.** This resolved well because this
+worker was scrupulous about what silence means. A less careful one reads an
+expired `ask-user` as tacit approval and proceeds without the distinction --
+**and nothing in the machinery tells the two apart afterwards.** The thread shows
+the same thing either way: an ask, a gap, then work.
+
+**For the debrief:**
+
+1. **An `ask-user` finding should not have a timeout that favours proceeding.**
+   If it expires, it should park the run, not release it. The gate already knows
+   how to park -- `awaiting_agent` exists.
+2. **The path needs a human endpoint.** Right now the orchestrator is the only
+   addressee, and the orchestrator is itself an agent that may be mid-turn,
+   waiting, or reaped. A question the gate marks for a human should reach the
+   human the way a captain hold does.
+3. **Ten minutes is not a human timescale.** C.C sleeps, eats, and works on other
+   things. Any expiry short enough to fire while someone is making coffee is a
+   mechanism for deciding without them.
 
 ---
 

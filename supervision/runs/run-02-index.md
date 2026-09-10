@@ -21,7 +21,7 @@ grep -c '^| F-0'   run-02-index.md
 ## Categories
 
 - **`contract`** (9) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (12) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`gate`** (13) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (13) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
@@ -96,7 +96,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-056 | 3624 | gate | confirmed | 73 min | The review step's 30-minute timeout discards a completed traverse |
 | F-057 | 3695 | meta | guide | -- | SCOPE NOTE: what in this log is a Lelouch finding, and what is not |
 
-| F-058 | 3732 | gate | confirmed | 7 rounds | The review does not converge: five rounds, no repeated finding id |
+| F-058 | 3732 | gate | confirmed | 9 rounds | The review does not converge: five rounds, no repeated finding id |
 | F-059 | 3774 | gate | confirmed | history | The gate writes a PR number into history before the PR exists |
 
 | F-060 | 3809 | gate | confirmed | 6 runs | Every gate failure reports the same error, and it is the wrong one |
@@ -104,6 +104,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-061 | 2763 | docs | corrected | 46s/worker | CORRECTION to F-038: a worker did read the glossary, by hunting for it |
 
 | F-062 | 2594 | harness | corrected | reopens §W | CORRECTION to F-036: the sleep block is real but not uniform |
+
+| F-063 | 4023 | gate | confirmed | 4 decisions | An ask-user finding expires into the worker own judgement |
 
 ## What the shape says
 
