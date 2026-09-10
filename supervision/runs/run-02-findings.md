@@ -4762,3 +4762,67 @@ for a command instead of reading the state it writes — the same error as
 one. The rule I keep re-learning: **read files, not command streams**, is in the
 monitor's own SKILL.md, and I keep applying it to artifacts and forgetting it
 for state.
+
+---
+
+## F-031's mechanism: the first dispatch races worktree creation  <!-- F-070 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** 59 s and one retry
+this time · **Sharpens [F-031](#) and [F-069](#)**
+
+I predicted the stall out loud before it happened — C.C had just cleared the
+next ticket and Lelouch dispatched `wa-traversal-institution` with
+`--worktree new-top-level`, which [F-031](#) says stalls every time. It stalled.
+The value of calling it first is that I went and read both attempts instead of
+only the failure.
+
+**The two dispatches, one minute apart, same task, same terminal:**
+
+```
+20:13:47  state=failed   stage=dispatch_input  err=agent_prompt_stalled
+          worktree           "new-top-level"
+          resolvedWorktreeId  null
+          terminal            term_e085edfa-...
+
+20:14:46  state=ready    stage=input_accepted  err=None
+          worktree           "C:/.../workspaces/weave-atlas/wa-traversal-institution"
+          resolvedWorktreeId  "836b0aae-...::C:/..."
+          terminal            term_e085edfa-...   <- the same one
+```
+
+**That is the whole mechanism.** The failing attempt carries a worktree that
+does not exist yet — `new-top-level` is an instruction to create one, and
+`resolvedWorktreeId` is `null`. The dispatch dies at `stage=dispatch_input`,
+which is the prompt-injection step: **the worktree and its terminal are being
+created while the prompt is already being typed at them.** By the retry the
+worktree exists on disk, so the second call passes a real path and a resolved
+id, and it is accepted in three seconds.
+
+Note the terminal handle is **identical in both rows**. Attempt 1 created the
+terminal, failed to inject into it, and left it behind; attempt 2 reused it.
+That is exactly why C.C's own note says the retry needs `--worktree` *and*
+`--terminal` — you have to hand back both things the failed attempt created.
+
+**So `agent_prompt_stalled` is not a flaky agent.** It is a race with a
+deterministic loser: the first dispatch to a worktree that does not exist yet.
+[F-069](#) counted it at 17 of 50 dispatch attempts; this entry says why it is
+17 and not a random number — **it is one per new ticket**, plus retries that
+lose the race again.
+
+**The rule, and it is a fixable one.** Two clean options, either of which ends
+34% of the dispatch failures in this run:
+
+1. `worker-start` waits for `resolvedWorktreeId` to be non-null before entering
+   `dispatch_input`, or
+2. worktree creation is a separate call the orchestrator makes first, so
+   dispatch only ever receives a resolved path.
+
+Both are better than the current contract, where the documented remedy is *try
+again with different arguments* — advice that only works because the failed
+attempt leaves usable debris.
+
+**Caveat on the cost.** This one cost 59 seconds and a single retry, against the
+four tries in F-031 and runs of up to eight in [F-069](#)'s sequence. So the
+race is deterministic in *whether* it fires and variable in *how long* it takes
+to win. I have one clean two-attempt trace and would not put a distribution on
+it.
