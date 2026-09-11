@@ -6554,3 +6554,54 @@ heartbeating only every fifth iteration. [F-084](#)'s ran blind to its own
 purpose for 70 minutes. A loop that can end when the thing it waits for happens
 is exposed to the reaper for a fraction of the time, and that is a property the
 author controls — unlike the reaping, which nobody has managed to predict.
+
+## The committed ADR caught a decision drift within three hours  <!-- F-098 -->
+
+**Category:** working · **Status:** confirmed · **Cost:** — · **The payoff of
+[F-092](#)–[F-094](#), and the argument for giving `docs/adr/**` a writer**
+
+`wa-04b`'s gate parked at the **document** step on an `ask-user` finding whose
+`file:` is the ADR itself:
+
+```
+id:       adr-0001-path-rule-names-conditionFieldsFor
+severity: info
+file:     docs/adr/0001-answering-a-non-papers-anchor.md
+"Decision 3 of ADR 0001 (lines 64-67) says the rule for choosing a path is
+ conditionFieldsFor and traversalFieldsFor. This change makes that choice in
+ pathFor (src/engine/live/compile.ts), which reads the compiler's verified-key
+ tables and says outright it does not read conditionFiel…"
+```
+
+**A pipeline step compared shipped code against a decision C.C made in
+conversation, and stopped the run on the difference.** Nobody built that. The
+document agent reads the repo; the ADR is now in the repo; the comparison
+followed.
+
+**The timeline is the argument.**
+
+| | |
+|---|---|
+| 11:39 | ADR 0001 written — first in six days ([F-092](#)) |
+| 11:54 | a worker told it was *binding* cannot find it — uncommitted ([F-093](#)) |
+| 12:12 | that worker hunts it down and commits it ([F-094](#)) |
+| 13:4x | PR #18 merges; the ADR reaches master and every new worktree |
+| 14:48 | the gate uses it to catch an implementation drifting from decision 3 |
+
+**Three hours from "this file does not reach workers" to "this file stopped a
+run."** [F-092](#) argued `docs/adr/**` had a reader and no writer, and that the
+decisions were living in `CONTEXT.md`, captain holds and Lavish artifacts
+instead. This is the concrete cost of that: for six days, **every decision
+recorded outside `docs/adr/**` was invisible to the one step that would have
+checked code against it.** The gate could have been doing this all along.
+
+**What it does not show.** One instance, one ADR, and the finding is `info`
+rather than blocking on its own — the run parked because the finding is
+`ask-user`, not because the gate ranked a contradicted ADR as severe. Whether
+the document agent reliably reads `docs/adr/**`, or happened to here because the
+diff touched a file beside it, is untested. **What would settle it:** a later
+gate run on a change that contradicts an ADR it does *not* touch.
+
+**Also, the worker volunteered its push state again** — *"nothing pushed yet"* —
+unprompted, in the subject line. Second instance of [F-096](#)'s instruction
+propagating without being repeated.

@@ -25,7 +25,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`harness`** (22) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
-- **`working`** (12) -- Confirmed working -- kept because a run with none of these scores better and is worse
+- **`working`** (13) -- Confirmed working -- kept because a run with none of these scores better and is worse
 - **`supervisor`** (9) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
@@ -174,6 +174,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-096 | 6457 | working | confirmed | loss pre-empted | Asking "is your work pushed?" surfaced F-088's stranding before it cost anything |
 
 | F-097 | 6507 | harness | confirmed | n=2 | F-084 bounded: a 60s-sleep loop survived two intervals; sleep length and lifetime are confounded |
+
+| F-098 | 6558 | working | confirmed | 3 h | The committed ADR caught an implementation drifting from decision 3 -- F-092's payoff |
 
 ## What the shape says
 
