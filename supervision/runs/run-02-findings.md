@@ -6242,3 +6242,64 @@ it quiet the rest of the time.
 one divergence. The seam is not routinely broken — it breaks under supersede,
 which is exactly the path [F-082](#)'s worker took when it pushed mid-CI. The
 two findings share a root event.
+
+---
+
+## `docs/adr/**` had a reader and no writer for six days  <!-- F-092 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** 6 days, ~35 decisions
+recorded only in gitignored or unfalsifiable places
+
+C.C, on the first ADR landing today: *"we took a lot of decisions since we
+started weave atlas and our first ADR lands now?"* The repo's first commit is
+**2026-09-05**; `docs/adr/0001-answering-a-non-papers-anchor.md` was written
+**2026-09-11 11:39Z**. Six days, and Lelouch's own words: *"overdue given
+CLAUDE.md has been pointing at `docs/adr/**` all along."*
+
+**Every mention of ADRs in the contract:**
+
+| line | what it says | direction |
+|---|---|---|
+| 24 | *"Read `CONTEXT.md` and any relevant `docs/adr/**` before naming things"* | **read** — every worker, every ticket |
+| 143 | listed among the durable docs | inventory |
+| 267 | routing table: *"Terminology or ADR work → `domain-modeling`"* | **write — but only if a ticket already asks for one** |
+
+So the sole write path fires when someone has *already decided* an ADR is the
+work. Nothing in the ordinary flow of deciding produces one. A decision gets
+made in conversation, and the contract offers no step that turns it into a
+record.
+
+**And the read instruction was a silent no-op.** Line 24 tells every dispatched
+worker to read `docs/adr/**` before naming things. That directory did not exist
+until today. Every worker followed the instruction, read nothing, and reported
+nothing wrong — because reading an empty glob is indistinguishable from reading
+a directory with nothing relevant in it. The contract's most-followed ADR
+instruction has been satisfied vacuously by every worker in the run.
+
+**Where the decisions actually went**, all three with failure modes already in
+this log:
+
+| destination | count | its defect |
+|---|---|---|
+| `CONTEXT.md` | ~35 entries | gitignored — [F-038](#)/[F-061](#): workers cannot read it |
+| captain holds in `backlog.md` | 3 | prose, no falsifier, no expiry — [F-086](#) |
+| `.lavish/*.html` | 9 | report-link loss — [F-014](#) |
+
+The decisions were not lost. They were distributed across the three places in
+this project *least* able to keep them: one invisible to the agents instructed
+to read it, one that went stale for 31 hours without anyone noticing, and one
+whose links have already been lost once.
+
+**This reframes [F-038](#).** That finding said no worker has ever read the
+glossary because `CONTEXT.md` is gitignored, and treated it as a packaging bug.
+It is worse than packaging: `CONTEXT.md` was carrying load that belonged in
+`docs/adr/**`, which *is* committed and *does* reach worktrees. The ignored file
+became the decision store by default, because the committed one had no way to
+get written to.
+
+**For the debrief.** A contract that instructs agents to read an artifact must
+name the moment that artifact gets written. The candidates are obvious once
+asked: a `captain` ticket resolving should emit an ADR; a hold whose reason is a
+decision should become one when it retires; the `to-spec` stage should ask
+whether the spec settles anything durable. Any of the three would have produced
+ADRs from day one out of work that was already happening.
