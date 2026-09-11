@@ -21,7 +21,7 @@ grep -c '^| F-0'   run-02-index.md
 ## Categories
 
 - **`contract`** (16) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (19) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`gate`** (20) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
@@ -152,6 +152,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-085 | 5829 | working | confirmed | -- | Blanket overnight authority used narrowly: the unwritten rule two agents both found |
 
 | F-086 | 5892 | contract | confirmed | ~31 h | A captain hold has no falsifier and no expiry; its own refutation sat in the same file |
+
+| F-087 | 5953 | gate | confirmed | none realised | PR #15 shows green CI for a head the branch moved past; the new commit was never pushed |
 
 ## What the shape says
 

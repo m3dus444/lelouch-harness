@@ -5947,3 +5947,65 @@ falsify it — a file, a commit, a ticket id — so retiring it is a check rathe
 than a re-derivation. Where a hold is waiting on work that is *already in the
 backlog*, it should be a `blocked-by` edge, which retires itself, and not prose,
 which does not.
+
+---
+
+## A PR advertises green CI for a head its branch has moved past  <!-- F-087 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** none realised here — the
+delta is one cosmetic commit · **Sibling of [F-075](#) and [F-059](#)**
+
+`gh pr view 15` says `checks: "2 passed, 0 failed, 2 total"`. Read on its own,
+that is a mergeable PR. It is green for a commit the branch no longer ends at.
+
+```
+PR #15 head on GitHub      bf9ad990  "no-mistakes(document): Update README cache
+                                      refill note to per-record projection"
+                                      updated 00:18:14Z
+remote refs/heads/…        bf9ad990        (git ls-remote)
+gate run 01M26XMW2S14 head ec5900f0  "fix(cache): put hasColumn below
+                                      openDatabase, not between it and its
+                                      docblock"                parked at review
+check-runs for ec5900f0    VALIDATION_ERROR — GitHub has never seen this sha
+```
+
+**How it arises.** The first gate run pushed `bf9ad990` and opened PR #15. The
+worker then committed `ec5900f0` locally; that push superseded and cancelled the
+first run ([F-082](#)'s sibling event, recorded as
+`cancelled: superseded by new push`). The replacement run reached `review`,
+parked on an `ask-user` finding, and **has not run its `push` step** — the steps
+after `review` are all still `pending`. So the newer commit exists only in the
+worktree, while the PR keeps displaying the older commit's green ticks.
+
+**Nothing anywhere says so.** The PR page shows green. `gh pr view` shows green.
+The gate's own status shows a run in progress but does not say its head is
+absent from the PR. The three artifacts are individually accurate and jointly
+misleading, and the only way to see it is to compare `pulls/15.head.sha` against
+`runs.head_sha` by hand.
+
+**Severity here is low, and saying so is part of the finding.** The entire
+unpushed delta is `ec5900f0`, which moves `hasColumn` below `openDatabase` so it
+no longer sits between that function and its docblock. Merging PR #15 tonight
+would ship everything of substance and lose a code-ordering fix. **The mechanism
+is the finding, not this instance** — the same shape with a behavioural commit
+in the gap ships work that was never validated, and presents as green while it
+does.
+
+**What it does to the overnight hold.** The gate has been parked 2h35m waiting
+on C.C to rule on `mixed-version-stale-carried`, and the re-run it is holding
+open would validate a branch whose only new commit is that ordering change. The
+ruling is still worth having — the cache-compatibility question is real — but
+the *urgency* attached to the park is lower than the park's existence implies,
+and that is invisible from the board.
+
+**Relation to the neighbours.** [F-075](#) is `no-mistakes rerun` validating the
+previous head rather than the current one. [F-059](#) is the gate writing a PR
+number into history before the PR exists. This is the third in the family: the
+gate and GitHub each hold a different idea of what "this PR" points at, and no
+step reconciles them. The common root is that **a PR is treated as a stable
+identity when it is really a moving reference**, and every one of these findings
+is some component reading it at the wrong moment.
+
+**For the morning.** If C.C wants PR #15 merged before ruling, it is safe on
+substance — but `ec5900f0` must be carried over separately or it is lost with
+the worktree.
