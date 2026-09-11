@@ -758,3 +758,56 @@ had already been issued **before** the first error (-239s, -520s, -752s, -51s).
 So it is not an empty worktree; it is a worker starting checks before its
 install finishes. Four instances, all self-corrected, no cost to the run — an
 anecdote, and deliberately not written into the findings file.
+
+## 22  A latch is right for an episode and wrong for a quantity
+
+`fanwatch.py` fired once, at 14:00:50, on `free 0.87 GB`. Then it went quiet and
+stayed quiet while memory sat at 1.58, 1.65, 1.34 GB — all below its own 2.0 GB
+floor. The alarm was mute for the entire window it existed to cover.
+
+**The code:**
+
+```python
+if free < FREE_GB_FLOOR and not low_reported:
+    emit(...); low_reported = True
+elif free >= FREE_GB_FLOOR + 0.5:
+    low_reported = False
+```
+
+`low_reported` only clears **upward**, past 2.5 GB. Memory never recovered that
+far, so after the first alarm nothing below the floor could ever fire again —
+including a drop to 0.1 GB.
+
+**Where the pattern came from, and why it was wrong here.** I copied it from
+`watch.py`'s silence alarm, where entry 15's *"fire once per silent episode,
+then re-arm when the run comes back"* is correct: silence is binary, a session
+either is writing or is not, and repeating the same alarm every poll is the
+noise that alarm was built to replace. Free memory is not binary. It is a
+continuous quantity that can keep degrading, and *"already told you"* is not a
+reason to stay silent about a value that has since halved.
+
+**The fix keeps the level, not a flag:**
+
+```python
+first = low_at is None and free < FREE_GB_FLOOR
+worse = low_at is not None and free <= low_at - REALARM_DROP_GB   # 0.4 GB
+```
+
+Re-alarm on material further degradation, naming the previous reading so the
+trend is legible in the line itself; clear only on real recovery. Validated
+against six seeded cases before arming, including the exact 0.87 → 1.58 pair
+that produced the bug — which must *not* fire, because that direction is
+improvement.
+
+**What found it was not the alarm.** It was reading the alarm's own output file
+and noticing two lines where there should have been six. An alarm that has gone
+mute produces exactly what a healthy system produces, which is the thesis of
+this entire log and which I keep rediscovering from the other side: entry 16's
+alarm said the wrong thing, entry 20's clock measured the wrong thing, and this
+one said nothing at all. **Silence from an instrument is the one output that
+never proves anything**, and the only defence is to go and look at it.
+
+**Generalises to every threshold alarm here.** `parkwatch`'s quiet alarm has the
+same latch and it is correct there for the same reason `watch.py`'s is — quiet
+is an episode. Anything measuring a level rather than a state needs this shape
+instead.
