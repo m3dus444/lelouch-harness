@@ -14,9 +14,14 @@ sed -n '3624,3695p' run-02-findings.md  # read one entry at its offset
 **Drift check** -- these two must agree:
 
 ```
-grep -c '<!-- F-0' run-02-findings.md
-grep -c '^| F-0'   run-02-index.md
+grep -c '<!-- F-[0-9]' run-02-findings.md
+grep -c '^| F-[0-9]'   run-02-index.md
 ```
+
+**Do not narrow these to `F-0`.** That was the original pattern and it stopped
+matching at `F-100`, under-counting *both* sides by the same amount -- so it
+returned a matching 99/99 and read as healthy while a finding was invisible to
+it. A check that fails into agreement is worse than no check.
 
 ## Categories
 
