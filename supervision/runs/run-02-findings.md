@@ -6503,3 +6503,54 @@ shape: [F-047](#)'s `awaiting_agent` invisible to the agent waiting on it,
 [F-015](#)'s quiet worker, [F-084](#)'s heartbeat loop nobody told the worker had
 died. **Before instrumenting a question, check whether some agent already holds
 the answer and has never been asked.**
+
+## F-084 at n=2: a backgrounded loop survived, and the two differ in sleep length  <!-- F-097 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** — · **Bounds
+[F-084](#); the counter-example it asked for**
+
+[F-084](#) ended: *"What would raise this from n=1. A second worker arming a
+backgrounded loop that outlives one interval."* `wa-04a-compile-papers` armed
+one at 14:27:32 and it did.
+
+```
+14:27:36   heartbeat   phase "waiting: gate test step"      <- i=1
+14:33:32   heartbeat   phase "waiting: gate test step"      +356s   <- i=6
+14:38:29   heartbeat   phase "waiting: gate push/pr/ci"     <- worker re-armed,
+                                                              new phase, not a repair
+```
+
+**It survived roughly six minutes and two intervals.** So backgrounded loops do
+not universally die after one beat, and [F-084](#)'s observation cannot be
+stated as a rule about backgrounded loops.
+
+**The two loops differ in exactly two ways:**
+
+| | [F-084](#) — died | here — survived |
+|---|---|---|
+| iterations | `seq 1 14` | `seq 1 9` |
+| sleep | **300 s** | **60 s** |
+| planned lifetime | **70 min** | **9 min** |
+| beats delivered | 1 of 14 | 2 of 2 due |
+| exit condition | none — runs to completion | `exit 0` when gate status changes |
+
+Sleep length and planned lifetime move together here, so **this pair cannot tell
+them apart.** What would: a long loop with short sleeps (`seq 1 60` … `sleep
+60`). If that survives, the variable is sleep duration and it points at
+[F-072](#)'s *"the sleep block is uniform on duration"*; if it dies around the
+same wall-clock mark as [F-084](#)'s, the variable is lifetime and it points at
+instrument-log entry 15's unexplained reaping.
+
+**Do not read this as "short loops are safe."** Entry 15 recorded observed
+lifetimes of 40, 50, 86, **2** and 85 minutes for background tasks that died,
+and the two-minute one has never had an explanation. A six-minute survival is
+consistent with that distribution by luck. What it rules out is only the
+strongest reading of [F-084](#) — that arming a backgrounded heartbeat loop
+reliably buys you one beat and nothing more.
+
+**The design difference worth copying, independent of all of the above.** This
+loop polls the gate every 60 s and **exits early when the status changes**,
+heartbeating only every fifth iteration. [F-084](#)'s ran blind to its own
+purpose for 70 minutes. A loop that can end when the thing it waits for happens
+is exposed to the reaper for a fraction of the time, and that is a property the
+author controls — unlike the reaping, which nobody has managed to predict.

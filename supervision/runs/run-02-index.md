@@ -22,7 +22,7 @@ grep -c '^| F-0'   run-02-index.md
 
 - **`contract`** (18) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (22) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (12) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -172,6 +172,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-095 | 6415 | working | confirmed | n=3 | F-085 at n=3: three agents independently escalate behaviour changes and fix false claims |
 
 | F-096 | 6457 | working | confirmed | loss pre-empted | Asking "is your work pushed?" surfaced F-088's stranding before it cost anything |
+
+| F-097 | 6507 | harness | confirmed | n=2 | F-084 bounded: a 60s-sleep loop survived two intervals; sleep length and lifetime are confounded |
 
 ## What the shape says
 
