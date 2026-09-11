@@ -6605,3 +6605,83 @@ gate run on a change that contradicts an ADR it does *not* touch.
 **Also, the worker volunteered its push state again** — *"nothing pushed yet"* —
 unprompted, in the subject line. Second instance of [F-096](#)'s instruction
 propagating without being repeated.
+
+## CONFOUND: Claude Code memory was enabled, and it wrote several of today's findings  <!-- F-099 -->
+
+**Category:** supervisor · **Status:** corrected · **Cost:** re-reads
+[F-085](#), [F-095](#), [F-096](#) · **Raised by C.C, not by me**
+
+C.C: *"Memory is enabled in the Claude Code settings, so for example that
+awareness regarding memory could be due to that… next run memory is gonna be
+disabled."*
+
+**What is actually on disk.** `~/.claude/projects/C--Users-…-weave-atlas/memory/`
+holds nine memory files plus `MEMORY.md`. Two matter most, and **neither was
+written by Lelouch**:
+
+| file | originSessionId | that session is | written |
+|---|---|---|---|
+| `escalation-beats-ask-for-blockers.md` | `a1dfacdc` | the **wa-05-resolve worker** | 2026-09-10 |
+| `regate-after-checks-passed-strands-fix.md` | `df199721` | the **wa-entity-projection worker** | **2026-09-11 08:05Z** |
+| `ship-gate-strands-commits.md` | `75166262` | Lelouch (pre-clear) | 2026-09-09 |
+
+**Every worker loads them at session start.** Not inferred — the transcripts
+carry an `attachment` row seconds after dispatch (`wa-04b` 13:47:38, `wa-04a`
+13:49:12, `wa-anchor-not-yet` 13:49:29), 5,129 chars, bundling the user
+`CLAUDE.md` and the full `MEMORY.md` index.
+
+### What this breaks
+
+**[F-096](#) is causally wrong.** I wrote that Lelouch's *"make sure your work
+is pushed"* sentence extracted the push status. The memory index line the worker
+was already carrying reads:
+
+> *"the PR keeps the old head until the new run pushes; **say so when
+> escalating**."*
+
+`wa-04a` said so. It was following a written instruction, not answering a
+question. Worse, that memory was written **at 08:05 today by the worker that
+lost `ec5900f0`** — so the loop I described as "the orchestrator learning from
+this morning" is really *a worker writing a note and a later worker reading it*,
+which is a different and more interesting mechanism, and not the one I claimed.
+
+**[F-095](#) mostly collapses.** Its whole force was three agents reaching the
+escalate-vs-ask rule independently. The index line
+
+> *"`ask` times out in minutes; Lelouch's wait runs on the hour, so silence is
+> scheduling, not a ruling"*
+
+was in `wa-04b`'s context before it did anything. **One** genuine derivation
+survives — [F-063](#)'s `wa-05-resolve` worker on 2026-09-10, which reasoned it
+out and then wrote the memory. The later two instances are reads, not
+convergence. n=3 becomes n=1 plus two citations.
+
+**[F-085](#) loses its best quote.** I praised Lelouch's *"Silence is
+scheduling, not a ruling"* to the parked worker as evidence of judgement. It is
+**verbatim** from the memory index. The *decision* to hold PR #15 overnight
+rather than rule may still be Lelouch's; the sentence is not evidence of it.
+
+### What survives untouched
+
+No memory file covers these, and each rests on artifacts: [F-082](#) (waiter
+deadlock), [F-086](#) (stale hold), [F-093](#)/[F-094](#) (ADR absent, then
+hunted down), [F-097](#) (loop lifetimes), [F-098](#) (the gate catching an ADR
+drift). [F-063](#) itself is the origin of a memory, so it predates the
+confound.
+
+### The methodological point, which is C.C's and is the real finding
+
+**This run cannot distinguish contract-produced behaviour from
+memory-produced behaviour**, because both arrive in the same context window and
+neither is labelled in the transcript beyond one `attachment` row I had not
+thought to look for. Every "the system learned X" claim in this log needs the
+memory directory checked against it before it goes in a debrief — and I made
+three such claims today without doing that.
+
+Disabling memory next run is the right control. It also predicts something
+testable: **the escalate-vs-ask rule and the push-state report should disappear**
+unless the contract itself produces them. If they persist with memory off, they
+are contract behaviour after all and these corrections were too harsh. If they
+vanish, run 2's apparent "learning" was a filesystem.
+
+**Checking the memory directory is now step one of any behavioural claim.**

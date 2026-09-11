@@ -26,7 +26,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (13) -- Confirmed working -- kept because a run with none of these scores better and is worse
-- **`supervisor`** (9) -- My own errors, kept in place because corrections must sit where they happened
+- **`supervisor`** (10) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
 `status`: **confirmed** stands on evidence · **unproven** is one instance, do
@@ -176,6 +176,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-097 | 6507 | harness | confirmed | n=2 | F-084 bounded: a 60s-sleep loop survived two intervals; sleep length and lifetime are confounded |
 
 | F-098 | 6558 | working | confirmed | 3 h | The committed ADR caught an implementation drifting from decision 3 -- F-092's payoff |
+
+| F-099 | 6609 | supervisor | corrected | 3 findings | CONFOUND: Claude Code memory was enabled; it wrote F-095/F-096's behaviour and F-085's best quote |
 
 ## What the shape says
 
