@@ -6737,3 +6737,59 @@ and drew a conclusion one level more general than the evidence — the same move
 as [F-090](#) (ancestry read as reachability) and [F-099](#) (behaviour read as
 learning). Each time the disconfirming detail was inside the artifact I had
 already quoted.
+
+## An expired `ask` leaves litter nothing ever collects  <!-- F-101 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** 3 threads, 2 days each
+· **The half [F-063](#) did not see**
+
+[F-063](#) established that an unanswered `ask` expires and hands the decision
+back to the implementer. Preparing for the Orca update turned up what happens to
+the thread afterwards: **nothing.**
+
+```
+question_threads, whole run   33 total
+  answered   26     have an answer_message_id
+  closed      4     closed with no answer
+  pending     3     still open
+```
+
+The three still `pending`:
+
+| thread | asked | age | its dispatch now | ticket |
+|---|---|---|---|---|
+| `msg_3eef6b7e5dd5` | 09-09 21:46 | **2d 1h** | `failed` | wa-app-shell |
+| `msg_32cdfe750cf6` | 09-10 02:07 | **1d 21h** | `failed` | wa-landing-route |
+| `msg_392687777cd8` | 09-10 03:20 | **1d 20h** | `failed` | wa-landing-route |
+
+**Every one is attached to a dispatch that has since failed, on a ticket that
+shipped days ago.** The asker is gone. The question was real — *"two decisions I
+do not think are mine to make alone"*, *"three small decisions on the one
+permitted design/ edit, before I ship"* — and each sat open for two days while
+the work went out without an answer.
+
+**There is no reaper.** A thread moves to `answered` when someone replies, or to
+`closed` when something closes it. An expiry does neither: the worker's timeout
+fires locally and the row is untouched. Nothing in Orca, the contract, or the
+gate walks these. The only thing that will ever clear them is **schema migration
+v38 in Orca 1.4.199**, which closes pending threads on already-settled
+dispatches — a database upgrade doing the garbage collection an orchestration
+system never did.
+
+**Same shape one table over.** Two deliveries are still `outstanding`, aged
+**6 days** and **4 days**. Undelivered mail from 5 and 7 September, on a run that
+has been continuously supervised since.
+
+**Why this sharpens [F-063](#) rather than repeating it.** That finding's
+complaint was about *decision authority* — the expiry returns the call to the
+party the gate wanted overruled. This is about *state*: the mechanism leaves no
+trace that a question went unanswered. Read the board afterwards and every
+ticket is green. The only record that three workers asked for help and never got
+it lives in a table nobody reads, and it is about to be cleaned up by a
+migration that will make it look like it never happened.
+
+**For the debrief.** [F-063](#) asked for an `ask-user` finding to park the run
+rather than release it. Add: an expired ask should transition the thread to a
+terminal state that *says it expired*, distinct from `answered` and from
+`closed`. Twenty-six answered against three silently abandoned is a good ratio
+and an invisible one — you cannot compute it from anything the run reports.
