@@ -22,7 +22,7 @@ grep -c '^| F-0'   run-02-index.md
 
 - **`contract`** (18) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (22) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (23) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (13) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -178,6 +178,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-098 | 6558 | working | confirmed | 3 h | The committed ADR caught an implementation drifting from decision 3 -- F-092's payoff |
 
 | F-099 | 6609 | supervisor | corrected | 3 findings | CONFOUND: Claude Code memory was enabled; it wrote F-095/F-096's behaviour and F-085's best quote |
+
+| F-100 | 6689 | harness | corrected | -- | CORRECTION to F-052: force-push is blocked by auto mode, not by the system; bypass-mode workers publish fine |
 
 ## What the shape says
 
