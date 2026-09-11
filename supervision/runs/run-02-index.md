@@ -25,7 +25,7 @@ it. A check that fails into agreement is worse than no check.
 
 ## Categories
 
-- **`contract`** (18) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`contract`** (19) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (24) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
@@ -187,6 +187,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-100 | 6689 | harness | corrected | -- | CORRECTION to F-052: force-push is blocked by auto mode, not by the system; bypass-mode workers publish fine |
 
 | F-101 | 6741 | harness | confirmed | 3 threads / 2d | An expired ask leaves a pending thread forever; only a schema migration collects it |
+
+| F-102 | 6797 | contract | confirmed | 45 shots / 0 shown | Browser verification is real but headless and unauditable; no report carries a screenshot |
 
 ## What the shape says
 

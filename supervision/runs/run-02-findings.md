@@ -6793,3 +6793,59 @@ rather than release it. Add: an expired ask should transition the thread to a
 terminal state that *says it expired*, distinct from `answered` and from
 `closed`. Twenty-six answered against three silently abandoned is a good ratio
 and an invisible one — you cannot compute it from anything the run reports.
+
+## "Browser-verified" is real and unauditable: the browser is headless and the proof is thrown away  <!-- F-102 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** 45 screenshots, 0
+delivered · **Raised by C.C: "I've never seen a worker open my browser"**
+
+The builder spec says:
+
+> *"Use `chrome-devtools-axi` to drive the real page against the live engine.
+> Turn pages in a browser and **LOOK at it**. Say in your report that you did."*
+
+**The workers do it.** Ten to thirty-five CLI calls each — `open`, `click`,
+`fill`, `snapshot`, `console`, `network-get`. `wa-traversal-institution` typed
+"MIT" into a real input and read the suggestions back. `wa-app-shell` filled
+100000, clicked Run search, and re-read the value after a reload. This is real
+verification, not a claim.
+
+**C.C cannot ever see it, by construction:**
+
+```
+chrome.exe --headless=new
+           --user-data-dir=…\Temp\puppeteer_dev_chrome_profile-VDxQk6
+```
+
+`chrome-devtools-axi` launches its **own** Chrome through Puppeteer, headless,
+in a throwaway temp profile. Not C.C's browser, not their profile, not their
+tabs. There is no window to watch and never was. The instruction "LOOK at it"
+is satisfied by the agent reading an accessibility snapshot.
+
+**And the one artifact that could carry the evidence is discarded:**
+
+| | |
+|---|---|
+| screenshots taken across the run | **45** (39 via explicit `screenshot` calls) |
+| written to session scratchpad temp dirs | all of them |
+| `worker_done` reports total | 30 |
+| that mention browser verification in prose | **3** |
+| that include a screenshot path | **0** |
+
+So the loop is: the worker looks, the worker proves it to itself, the proof is
+written to a temp directory that is cleaned with the session, and the report says
+nothing. **C.C is asked to trust a verification whose only evidence is
+deliberately produced and then dropped.**
+
+**This is not the worker's failure.** Nothing tells it to publish the image. The
+spec's last clause — *"Say in your report that you did"* — asks for an
+assertion, and an assertion is what it gets. Three of thirty even skipped that.
+
+**For the debrief.** The fix is cheap and lands in the spec, not the tooling:
+require the screenshot path in `worker_done`, and write it somewhere durable —
+the worktree, or attached to the PR — rather than the scratchpad. A PR that
+shows the page it changed is reviewable by a human who was asleep when it ran;
+`"I looked at it"` is not. Worth pairing with the standing question of whether
+the headless profile is even the right target: it never has C.C's extensions,
+cookies, or window size, so "works in the browser" means "works in *a* browser
+nobody uses".
