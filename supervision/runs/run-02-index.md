@@ -25,7 +25,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
-- **`working`** (11) -- Confirmed working -- kept because a run with none of these scores better and is worse
+- **`working`** (12) -- Confirmed working -- kept because a run with none of these scores better and is worse
 - **`supervisor`** (9) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
@@ -170,6 +170,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-094 | 6364 | working | confirmed | 34 s | F-093's outcome: the worker globbed the ADR out of the main tree and committed it |
 
 | F-095 | 6415 | working | confirmed | n=3 | F-085 at n=3: three agents independently escalate behaviour changes and fix false claims |
+
+| F-096 | 6457 | working | confirmed | loss pre-empted | Asking "is your work pushed?" surfaced F-088's stranding before it cost anything |
 
 ## What the shape says
 

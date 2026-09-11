@@ -6453,3 +6453,53 @@ norm is reliable where the agent has time and a channel; it is the machinery
 around it — expiring asks, silent timeouts — that decides whether the norm gets
 to operate. Writing the rule down would not fix [F-063](#); it would make the
 gap visible.
+
+## Asking "is your work pushed?" surfaced F-088's stranding before the loss  <!-- F-096 -->
+
+**Category:** working · **Status:** confirmed · **Cost:** — (the loss was
+pre-empted) · **The cheap intervention [F-088](#) did not think of**
+
+This morning `ec5900f0` died because a gate parked before its `push` step while
+an earlier run's PR showed green, and nobody compared the two ([F-087](#),
+[F-088](#)). Lelouch's stop broadcast at 14:15 carried one added sentence:
+
+> **BEFORE YOU STOP, MAKE SURE YOUR WORK IS PUSHED. This is not a formality.**
+
+Eight minutes later `wa-04a-compile-papers` answered it:
+
+> *"Waiting on your call; **work NOT pushed yet (gate parked before push)**. …
+> I have not answered it, so the run has NOT pushed and there is no PR. Nothing
+> is on origin. The work is two commits on local branch
+> `m3dus444/wa-04a-compile-papers` … `5de20ba9…` … `0f1d4874…`"*
+
+**Verified independently, every clause:**
+
+```
+git ls-remote origin refs/heads/m3dus444/wa-04a-compile-papers   -> empty
+runs.last_pushed_sha                                              -> None
+runs.pr_url                                                       -> None
+review                                                            -> awaiting_approval
+319d5aa..m3dus444/wa-04a-compile-papers                           -> 0f1d487, 5de20ba
+```
+
+**This is [F-091](#)'s precondition, live and named in advance.** A run parked
+before `push`, work existing only on a local branch, a worktree that will be
+reclaimed. Identical to the configuration that lost `ec5900f0` — except that
+this time it is a reported fact with hashes attached, eight minutes after the
+question was asked, rather than something I found by diffing after a merge.
+
+**The worker always knew.** It did not need to be taught, instrumented, or
+given a new tool. It could state its own push status precisely, including the
+reason (`ask-user` finding unanswered), the two SHAs, and the worktree path.
+Nothing had ever asked. [F-088](#) proposed a mechanical head comparison in the
+gate and the orchestrator, and that is still worth building — but **one sentence
+in a stop instruction extracted the same information at zero cost**, and it
+arrived before the loss rather than after.
+
+**The general form, and why it is worth the debrief's attention.** The
+supervisor, the gate and the orchestrator were all reasoning about a fact that
+the worker could simply be asked for. A surprising amount of this log is that
+shape: [F-047](#)'s `awaiting_agent` invisible to the agent waiting on it,
+[F-015](#)'s quiet worker, [F-084](#)'s heartbeat loop nobody told the worker had
+died. **Before instrumenting a question, check whether some agent already holds
+the answer and has never been asked.**
