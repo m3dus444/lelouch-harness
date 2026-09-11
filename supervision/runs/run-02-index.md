@@ -25,7 +25,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
-- **`working`** (8) -- Confirmed working -- kept because a run with none of these scores better and is worse
+- **`working`** (9) -- Confirmed working -- kept because a run with none of these scores better and is worse
 - **`supervisor`** (8) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
@@ -156,6 +156,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-087 | 5953 | gate | confirmed | none realised | PR #15 shows green CI for a head the branch moved past; the new commit was never pushed |
 
 | F-088 | 6015 | gate | confirmed | 1 commit lost | F-087 realised: ec5900f never reached master, and worker_done reported succeeded |
+
+| F-089 | 6077 | working | confirmed | fix redone | The dropped commit was caught by its symptom, unprompted -- but filed as new work, not as a loss |
 
 ## What the shape says
 

@@ -6071,3 +6071,54 @@ orchestrator should refuse to report `worker_done succeeded`, while the branch
 head differs from what was merged. The comparison is two SHAs and neither
 component makes it. This is the third member of the family with [F-075](#) and
 [F-059](#), and the first where it cost something.
+
+---
+
+## The dropped commit was caught by its symptom, not as a loss  <!-- F-089 -->
+
+**Category:** working · **Status:** confirmed · **Cost:** the fix is redone
+rather than recovered · **ADDENDUM to [F-088](#)**
+
+Fifty minutes after the merge dropped `ec5900f0`, Lelouch filed:
+
+```
+wa-docblock-stranded - A docblock on master describes the wrong function
+  (kind: ship) (priority: 2) (since 2026-09-11)
+```
+
+**Unprompted.** C.C's only inputs after the merge were *"i've merged both"*
+(08:01:58) and *"Ok what's left to do"* (08:49:19). Neither mentions the dropped
+commit, and my own finding never reached that session. Lelouch read master and
+noticed the defect on its own.
+
+**So the outcome converges — and the cause does not.** The docblock will be
+fixed. But it is filed as **new work discovered on master**, not as *a commit
+that was lost at merge*. Nothing in the backlog, the ticket, or the run's
+history will say a commit existed and vanished. The system is self-healing in
+effect and blind in cause, and the two are easy to mistake for each other: a
+debrief reading this backlog sees a tidy find-and-fix, not [F-088](#).
+
+**Why that distinction is the whole point.** This loss was detectable because
+its symptom is *legible by reading* — a docblock sitting above the wrong
+function is visible to anyone who opens the file. Change the contents of the
+seam and the detection story collapses:
+
+- a dropped **ordering/comment** commit → visible on inspection (this case)
+- a dropped **behavioural** commit with test coverage → caught by CI, eventually
+- a dropped **behavioural** commit whose tests went with it → invisible, and
+  master is silently wrong
+
+Detection here depended on the accident that the lost change was cosmetic.
+[F-088](#) recommends comparing the branch head against the merged head before
+reporting success; this is the evidence for why that comparison has to be
+mechanical. **The symptom path works only when the symptom is loud, and nothing
+guarantees it will be.**
+
+**Credit where it belongs.** An orchestrator with an empty board read the
+shipped result and found a defect nobody asked about, an hour after being told
+the work was done. That is the same instinct as [F-086](#)'s stale-hold audit,
+twice in one night, and it is the most encouraging behaviour in this run.
+
+**Practical consequence.** Recovering `ec5900f0` is now optional — the ticket
+will redo the work. The branch-preserving command in [F-088](#) is worth running
+only to keep the evidence, not the fix.
