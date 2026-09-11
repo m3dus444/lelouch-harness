@@ -5544,3 +5544,87 @@ would have been wrong, and the thing that stopped it was naming the specific
 row whose presence or absence would settle it, then waiting for it instead of
 writing. That is the monitor's *"say what would settle it, then wait for that
 event"* rule paying for itself in real time.
+
+---
+
+## A resume artifact must derive state, not record it — and a static one would have shipped my blind spot  <!-- F-081 -->
+
+**Category:** supervisor · **Status:** confirmed · **Cost:** one orientation
+per restart, plus one wrong finding · **FIX NEEDED IN LELOUCH TOO — a resume
+skill is planned there**
+
+C.C is about to `/clear` me for the second time in this run. I offered to write
+a `supervision/RESUME.md` so the next restart is one line instead of ten
+commands. C.C's answer was to refuse the obvious version of it:
+
+> "having a file would be great only if it adapts on whatever the current
+> context of the project is, and whatever the project is."
+
+That is correct, and the argument for it is stronger than convenience. Writing
+it down here rather than building it, per C.C's instruction.
+
+**What the last restart actually cost.** Rediscovered by hand, in this order:
+the findings log and its index; that the watch was still running (found by
+accident, when a notification arrived mid-orientation); the watch's own command
+line, recovered by parsing the *previous session's transcript* for its `Monitor`
+tool call; `~/.no-mistakes/state.sqlite`, after two failed `find` runs;
+`~/AppData/Roaming/Orca/orchestration.db`, after two more. Call it ten commands
+and a quarter of the orientation.
+
+**But the turns are the cheap part.** Four hours into the session I watched a
+worker type `no-mistakes axi logs --step review` and learned that the gate's step
+logs have a first-class CLI. I had spent the evening reading them off the
+filesystem at `~/.no-mistakes/logs/<run-id>/`. On the strength of that gap I
+filed [F-064](#) claiming the gate's analysis was *"invisible to the worker
+holding the branch, referenced by nothing the worker reads"* — and reported it
+to C.C. [F-073](#) is the correction.
+
+**So: had I written `RESUME.md` when I offered to, it would have said "gate step
+logs live in `~/.no-mistakes/logs/<run-id>/`" and would not have mentioned
+`axi logs`, because I did not know it existed.** The next session would have
+inherited my blind spot as documentation, and inherited it with more authority
+than I had — a file in the repo reads as established, where a memory reads as a
+guess. **A static resume artifact does not just go stale. It launders a
+misconception into a fact.**
+
+**Which gives the design rule.** A resume artifact should record **where to look
+and how to ask**, never **what is true**:
+
+- not "the gate's logs are at `<path>`" but "the gate CLI is `no-mistakes axi`;
+  run `--help` on it and its subcommands before assuming what it can do"
+- not "two workers are in flight" but "worker state is in
+  `orchestration.db:worker_dispatches`; here is the query"
+- not "the watch is task `bysf7hkyf`" but "a watch may already be running and
+  survives `/clear`; check before starting one"
+- not a project name at all, but a way to find which project is under
+  supervision from the run's own artifacts
+
+Everything in the first half of each pair was true when written and is a
+liability afterwards. Everything in the second half stays true across restarts,
+across projects, and across my being wrong.
+
+**The general form, and why it is not trivial to build.** The useful resume is
+closer to a *procedure* than a document — it has to interrogate the environment
+at read time: which of these tools are installed, what do their `--help`
+surfaces offer *now*, which state stores exist, what is currently running, what
+does this project's own log say its conventions are. That is why C.C is right
+that it is too early: the thing worth building is not a file, it is a small
+discovery routine, and the interesting part is deciding what it is allowed to
+assume about a project it has never seen.
+
+**Same problem, one level up, and C.C has already named it.** A `resume` skill
+is planned for Lelouch. Lelouch has been cleared and re-cast repeatedly this run
+([F-008](#), [F-021](#), [F-053](#)), and every one of those restarts had the
+same shape: reload the contract, rediscover the board, re-derive what was in
+flight. If that skill is built as a written handover — a file the dying session
+composes for the next one — it inherits this entry's failure mode exactly, and
+worse, because Lelouch's misconceptions are about the run rather than about a
+CLI. **The handover Lelouch needs is a way to re-derive the board, not a
+description of it.** [F-064](#)'s line applies to both of us: an instruction not
+to redo work is worthless without the work attached — and a *description* of the
+work is not the work.
+
+**Not building either one now.** Recorded for the debrief at C.C's direction.
+The one thing I would carry into the design from tonight: **the author of a
+handover is the worst-placed party to know what they failed to learn**, which is
+the whole reason it has to be derived rather than written.

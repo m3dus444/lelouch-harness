@@ -26,7 +26,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (7) -- Confirmed working -- kept because a run with none of these scores better and is worse
-- **`supervisor`** (7) -- My own errors, kept in place because corrections must sit where they happened
+- **`supervisor`** (8) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
 `status`: **confirmed** stands on evidence · **unproven** is one instance, do
@@ -140,6 +140,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-079 | 5446 | contract | confirmed | attribution | "Did you decide that on yourself?" -- skill decisions read as agent decisions |
 
 | F-080 | 5501 | harness | confirmed | 5/5 stall | F-070 at n=5: stall is total, retry reliable, nothing dropped |
+
+| F-081 | 5550 | supervisor | confirmed | 10 cmds + F-064 | A resume artifact must derive state, not record it -- FIX NEEDED IN LELOUCH TOO |
 
 ## What the shape says
 
