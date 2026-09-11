@@ -652,3 +652,71 @@ Also worth its own line: **a shared identifier is not a source.** Terminal
 handle, session id, branch name — each is used by more than one actor here, and
 grouping by one of them and calling the result "the loop" is the same class of
 error as counting `tasks-axi add` invocations instead of reading `backlog.md`.
+
+## 20  CORRECTION to entry 16 -- the alarm's clock counts bytes, and entry 16 only fixed the sentence
+
+Entry 16 found the silence alarm printing a label that described a different
+measurement from the one it took, rewrote the sentence, and closed. Tonight the
+alarm sat silent for **1h42m** while I watched, and checking why turned up the
+half entry 16 never looked at.
+
+**The observation.** The watch emitted nothing between 01:24:15Z and 03:06Z. No
+`!! SILENT` fired, though `SILENCE_AFTER` is 900s. In that window the weave-atlas
+sessions wrote **258 transcript rows** — 108 from lelouch, 150 from
+`wa-entity-projection`.
+
+**The cause, at `watch.py:346`:**
+
+```python
+with f.open("r", encoding="utf-8", errors="replace") as fh:
+    fh.seek(start)
+    chunk = fh.read()
+    offsets[f] = fh.tell()
+last_data = time.time()          # <- before parsing, before interesting(),
+                                 #    before the hb/gate-read throttle
+```
+
+`last_data` is the alarm's clock. It is re-armed by **any byte appended to any
+watched transcript** — prose, thinking, tool results, a worker's blocking wait —
+and the alarm it drives says *"no watched ACTION in any session for Nm"*. Those
+are different quantities, and N is the byte one.
+
+**Entry 16 wrote the better sentence over the unchanged clock.** Its patch is
+still not live (see entry 18), so when it does start it will print *"no watched
+**ACTION**"* next to a number that has never measured actions. Entry 16 made the
+label more specific and therefore **more wrong**: the old wording was vague
+enough to be merely unhelpful; the new one names a measurement the code does not
+take.
+
+**And it declined a suppression the code already had.** Entry 16's proudest
+paragraph:
+
+> **What I did not do: suppress it.** The obvious fix — hold the alarm when some
+> row is fresh — is the F-044 mistake with the reasoning automated. An
+> orchestrator can write prose for fifteen minutes while every worker under it
+> is dead, and that is precisely when the alarm must still fire.
+
+That suppression is already there, structurally, in `last_data`. The exact
+scenario named as must-fire — an orchestrator writing prose over dead workers —
+**cannot** fire this alarm, because the prose keeps re-arming its clock. I
+argued against adding a hold that the instrument had been applying all along,
+and the argument read as rigour because it was about a line of code I never
+opened.
+
+**What the alarm does still catch, stated fairly.** If everything stops writing,
+`last_data` freezes and it fires. That is [F-026](runs/run-02-findings.md)'s
+three-hour dead run, and the alarm would catch it. It is a **run-stopped**
+detector, and a sound one. It is not an **action-stopped** detector, and both its
+old and new sentences claim to be.
+
+**Not fixing it mid-run.** The same reason as always — the running watch is now
+34 hours old and re-casting the instrument that is producing the record is worse
+than a known, documented gap. Written down instead, which is the standing trade
+this log keeps making. Tonight the gap costs nothing: `parkwatch.py` measures
+the parked session's transcript age directly and per-session, which is the
+measurement the global alarm was being asked for and never took.
+
+**Third time the same shape.** Entry 16: a name that was accurate and a printed
+label that was not. Entry 19: a threshold sentence and a query that could not
+answer the question. This: a corrected sentence over an uncorrected clock. The
+sentence is always the part I fix, because the sentence is the part I read.
