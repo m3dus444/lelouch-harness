@@ -6303,3 +6303,60 @@ asked: a `captain` ticket resolving should emit an ADR; a hold whose reason is a
 decision should become one when it retires; the `to-spec` stage should ask
 whether the spec settles anything durable. Any of the three would have produced
 ADRs from day one out of work that was already happening.
+
+---
+
+## A spec named a binding document that does not exist in the worker's tree  <!-- F-093 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** a worker building the
+anchor contract without the decisions that define it · **[F-092](#) landing
+fifteen minutes later**
+
+`wa-04-anchor-contract`'s task spec, verbatim, twice:
+
+> `READ FIRST, it is binding: docs/adr/0001-answering-a-non-papers-anchor.md`
+
+The worker obeyed at **11:54:54** and got
+*"File does not exist. Note: your current working directory is
+…\workspaces\weave-atlas\wa-04-anchor-contract."*
+
+**Why it is not there:**
+
+```
+main tree   docs/adr/0001-answering-a-non-papers-anchor.md   5062 bytes, 11:39Z
+git status  ?? docs/adr/                                     <- UNTRACKED
+git ls-files docs/adr/                                       <- empty
+worktree    docs/{design,research}                           <- no adr/
+worktree HEAD  319d5aa                                       <- branched from master
+```
+
+The ADR was written at 11:39, the worktree was created at ~11:53, and nothing in
+between committed the file. A worktree is a checkout: it carries what is
+committed. An uncommitted file in the main tree is as invisible to a worker as a
+gitignored one.
+
+**This is the sharpest possible version of [F-038](#).** That finding was about
+a glossary no worker ever read because it was gitignored, and I reframed it in
+[F-092](#) as `CONTEXT.md` carrying load that belonged in `docs/adr/**` — which
+*is* committed-by-policy. Fifteen minutes after the first ADR was written to
+prove that point, it reached a worker no better than the gitignored file did.
+**Not ignored. Just never committed.** The policy distinction I drew in F-092 is
+real and made no difference in practice.
+
+**Three separate mechanisms said this would work, and all three were satisfied.**
+`CLAUDE.md` line 24 tells the worker to read `docs/adr/**`. The spec names the
+exact file and calls it *binding*. The path is correct relative to the repo
+root. Every instruction was well-formed; the artifact simply was not in the
+tree. **Nothing anywhere compares "files the spec declares binding" against
+"files the worktree contains"** — and that check is `test -f` per named path, at
+dispatch time, before a worker is told to obey a document it cannot open.
+
+**What the worker did next matters for the debrief.** It did not stall or
+escalate; it logged the miss and kept going. So the failure mode is not a
+blocked worker, it is a worker building from its own reading of the ticket while
+believing — correctly, per its spec — that a binding document exists. The
+divergence surfaces at review, or not at all.
+
+**Fix is one commit,** and it retires the class for this repo: commit
+`docs/adr/`, and have the dispatch step refuse to send a spec whose named
+binding paths are absent from the target worktree.

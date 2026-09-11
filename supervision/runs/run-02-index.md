@@ -20,7 +20,7 @@ grep -c '^| F-0'   run-02-index.md
 
 ## Categories
 
-- **`contract`** (17) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`contract`** (18) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
@@ -164,6 +164,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-091 | 6195 | gate | confirmed | 1 of 15 PRs | The head divergence needs a prior run's PR plus an unpushed live run; one query flags it |
 
 | F-092 | 6248 | contract | confirmed | 6 days | `docs/adr/**` has a read instruction and no writer; decisions went to three worse places |
+
+| F-093 | 6309 | contract | confirmed | live | A spec called ADR 0001 binding; it was never committed, so the worker's tree has no copy |
 
 ## What the shape says
 
