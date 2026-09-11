@@ -6009,3 +6009,65 @@ is some component reading it at the wrong moment.
 **For the morning.** If C.C wants PR #15 merged before ruling, it is safe on
 substance — but `ec5900f0` must be carried over separately or it is lost with
 the worktree.
+
+---
+
+## F-087 realised: the commit was lost, and the run recorded it as a success  <!-- F-088 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** one commit dropped, and a
+false completion claim in the run's own record · **Closes [F-087](#)**
+
+Four hours after [F-087](#) predicted it, it happened.
+
+```
+08:00:58Z  C.C merges PR #15  ->  master 68fbdfc
+           PR #15's head was bf9ad990.  ec5900f0 was never pushed.
+
+git merge-base --is-ancestor ec5900f0 origin/master   ->  NO
+origin/master:src/cache/database.ts:64  export function hasColumn
+origin/master:src/cache/database.ts:72  export function openDatabase
+```
+
+`hasColumn` still sits above `openDatabase` on master — the pre-fix ordering.
+`ec5900f0` — *"put hasColumn below openDatabase, not between it and its
+docblock"*, 10 insertions and 10 deletions in `src/cache/database.ts` — is not
+in the shipped history.
+
+**The loss is small. The way it was recorded is not.** Lelouch's stand-down
+message to the worker reads:
+
+> *"C.C merged PR 15 as it stands, at 08:00:58Z. **Your branch is on master as
+> 68fbdfc.** … Report worker_done with outcome succeeded"*
+
+The branch is not on master. The branch's head is `ec5900f0`; what reached
+master is the PR's head, `bf9ad990`, one commit behind. "Your branch is on
+master" is the same class of claim as the green checkmark in [F-087](#) — true
+of a reference that has moved, asserted about the thing it used to name.
+
+So the run closes this ticket as **succeeded**, the worker is released, the
+worktree is reclaimed, and the only record that a commit existed is an
+unreachable object in the main clone's store. Nothing in `backlog.md`, the PR,
+the gate's state, or the `worker_done` report will ever mention it. **A silent
+loss becomes a clean success in the same sentence.**
+
+**Why nobody was negligent.** C.C merged a PR that GitHub said was green, which
+it was. The worker never pushed `ec5900f0` because its gate parked before the
+`push` step and it was told to hold. Lelouch read the PR as the branch, which is
+what every other part of this system does. Each step is locally correct; the
+loss lives in the seam between "the PR" and "the branch", and no component owns
+that seam.
+
+**Recoverable, and the window is finite.** The object survives in the main
+clone — worktrees share an object store, so reclaiming the worktree does not
+delete it — but it is unreachable, so `git gc` prunes it on the usual schedule.
+It needs a ref, not a note.
+
+```
+git branch wa-hascolumn-order ec5900f06681c8a55db8ff9b80cff4de5a1e22f3
+```
+
+**For the debrief.** The gate should refuse to report a run complete, and an
+orchestrator should refuse to report `worker_done succeeded`, while the branch
+head differs from what was merged. The comparison is two SHAs and neither
+component makes it. This is the third member of the family with [F-075](#) and
+[F-059](#), and the first where it cost something.
