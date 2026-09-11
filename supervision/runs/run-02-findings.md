@@ -5628,3 +5628,74 @@ work is not the work.
 The one thing I would carry into the design from tonight: **the author of a
 handover is the worst-placed party to know what they failed to learn**, which is
 the whole reason it has to be derived rather than written.
+
+---
+
+## The §7 wait is a singleton, and `/clear` orphans its holder without releasing it  <!-- F-082 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** 2m12s unheld wait,
+recovered only by killing an Orca process · **ADDENDUM to
+[F-017](#) — and the reason F-017's advice is not sufficient**
+
+C.C cleared Lelouch at **00:12:49Z** (the outgoing session `75166262` wrote its
+last row at 00:12:09Z after 7482 rows / 11.4 MB; the new one is `c2d90830`).
+Two workers were in flight. The re-cast obeyed [F-017](#) exactly — it re-armed
+its own wait in the new session rather than inheriting the old one's file — and
+that is precisely where it deadlocked.
+
+```
+00:13:51  orca orchestration check --run run_a0362d87a778 --wait
+            --types worker_done,escalation,question --timeout-ms 3600000 --json
+00:14:01  ok:false  waiter_exists
+            "Run run_a0362d87a778 already has an active actionable waiter.
+             Orchestration mutation request ID: 6dd9c5da-7113-4eed-840a-d7d43924d695."
+00:14:36  orca orchestration request-show --request 6dd9c5da-... --json
+            state: "absent"
+            "No receipt for request 6dd9c5da-... under this caller identity."
+00:15:12  Get-CimInstance -> PID 25720
+            orca.exe orchestration check --run run_a0362d87a778 --wait ...
+            created 2026-09-10 23:31:22Z        <- armed by the pre-clear session
+00:15:36  Stop-Process -Id 25720,22152 -Force
+00:16:03  re-arm                                 <- succeeds
+```
+
+**The wait is held by a process, and the process outlives the conversation.**
+`/clear` ends the session; it does not end the backgrounded `check --wait`. The
+orphan keeps the run's single actionable waiter slot, so the new session cannot
+arm one. [F-017](#) recorded the orphan as a *resource to scavenge* — read its
+output file for the undelivered backlog. It is also a **lock**, and F-017 did
+not see that half.
+
+**The documented remediation cannot work for the only party that needs it.**
+The error hands you a request id. `request-show` on that id returns `absent`,
+and the message says why: *"under this caller identity."* Receipts are scoped to
+the caller, and the caller was the session that no longer exists. So the lookup
+is guaranteed to return nothing for anyone who hits this error, because hitting
+it means you are not the original caller. `absent` also explicitly declines to
+mean anything — *"Absent is not proof that nothing happened"* — so the one
+documented probe returns a value that is both empty and untrustworthy by
+construction.
+
+**The recovery is `Stop-Process -Force`, and nobody designed it.** Lelouch read
+`check --help`, pulled `orca skills get orchestration`, and grepped it for
+`waiter|retry-request|cancel`; nothing there releases another session's waiter.
+It then went outside the interface entirely: enumerate processes, match on the
+command line, force-kill. It killed **22152** as well — a second `Orca.exe`
+process — which I would call reckless if it had cost anything. It did not: both
+workers wrote transcript rows after 00:15:36 and the `wa-entity-projection` gate
+run kept stepping, so nothing observable broke. That is luck holding, not a
+procedure.
+
+**What this does to the resume skill.** [F-017](#) concluded: *"a resumed
+orchestrator must re-arm its own wait in the new session."* This run did that
+and it was not enough — the re-arm is **blocked** until the orphan dies, and
+killing it is not expressible in the orchestration CLI. A resume skill built on
+F-017's sentence alone deadlocks here, on its first command, every time. The
+skill needs the release step, and Orca needs somewhere to put it: a
+`--steal`/`--take-over` on `check`, or a waiter that dies with its session.
+
+**Why the cost line is small and the finding is not.** 2m12s of lost wait is
+nothing. What it cost is that recovery required an agent to invent a
+force-kill against an undocumented process, on its own authority, while two
+workers were live — and to get the blast radius right by inspection. The next
+re-cast has to reinvent it, or inherit it from this log.
