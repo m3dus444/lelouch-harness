@@ -5823,3 +5823,66 @@ the loop is the thing that does not.
 **What would raise this from n=1.** A second worker arming a backgrounded loop
 that outlives one interval. Until then the fact is "this loop died in under
 five minutes", not "backgrounded loops die".
+
+---
+
+## Given blanket authority, the orchestrator drew the line F-063 asked for  <!-- F-085 -->
+
+**Category:** working · **Status:** confirmed · **Cost:** — · **Evidence for
+[F-030](#); answers the open half of [F-063](#)**
+
+C.C's resume prompt at 00:13:17 ends:
+
+> *"I'm going afk, to bed, you do you until i wake up"*
+
+That is standing authorisation — informal, unbounded, and the thing
+[F-030](#) said §6 lacks a notion of. Within forty minutes Lelouch had two
+`ask-user` gate findings in front of it and **used the authority on one and
+declined it on the other**.
+
+| finding | gate marked | Lelouch | elapsed |
+|---|---|---|---|
+| `mixed-version-stale-carried` (PR #15) | `ask-user` | escalated to C.C, ticket held, worker told to stay parked **for hours** | — |
+| `panel-ignores-legend-filter` | `ask-user` | *"(a) — reword the docblock. Decided here, no need to wait on C.C."* | 48s |
+
+**The line it drew, in its own words.** On the one it decided:
+
+> *"the delivery is the authority on how this surface behaves … (b) would change
+> appearance away from the delivery, and that is not ours to decide — not yours,
+> not mine. (a) keeps the delivered [behaviour]"*
+
+So: **correct the code's own false claim yourself; wait for the human on
+anything that changes delivered behaviour.** It picked the option that avoids
+deciding, and reserved the human for the question where both options were real
+choices. That is very nearly verbatim the rule [F-063](#)'s worker invented
+under time pressure — *"defects in my own work against my own documented
+contract, which is mine to fix as the implementer"* — arrived at independently,
+by a different agent, in a different role.
+
+**Two agents converging on the same unwritten rule is the finding.** It is not
+in CLAUDE.md, not in the `no-mistakes` docs, and not in the gate's own notion of
+`ask-user`, which is a flat boolean. The system has a working doctrine for when
+a machine may answer a question marked for a human, and it lives nowhere.
+
+**The restraint is the surprising half.** Blanket authority was the easy path to
+a clean board: decide the cache question, unpark PR #15, ship both overnight.
+Lelouch had its own recommendation ready (option B) and still chose to hold.
+*"Silence is scheduling, not a ruling"* was said to a worker by an orchestrator
+that could have ruled and didn't.
+
+**The cost of that restraint, which C.C should price rather than assume.**
+Holding PR #15 buys a human decision on a real compatibility question. It pays
+for it with an **overnight park of unprecedented length** — the longest this run
+has survived is 47 minutes ([F-056](#) notwithstanding, the 30m clock is
+per-agent-round, not on a park) — and with a parked worker's exposure to
+[F-084](#), whose liveness cover is already dead. The trade may well be right.
+It was made silently, by an agent, on the strength of one line typed on the way
+to bed.
+
+**Near-miss, recorded per [F-080](#)'s habit.** I had the process evidence,
+the two contradictory instructions fifteen minutes apart, and C.C absent from
+the session since 00:13:44, and was drafting this as an unauthorised-authority
+finding. The prompt's last line refutes it. What stopped it was reading the
+resume prompt in full instead of the 600 characters my earlier query had
+truncated it to — the same house rule, *read the artifact*, that
+[entry 18](../instrument-log.md) had already caught me breaking tonight.

@@ -25,7 +25,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
-- **`working`** (7) -- Confirmed working -- kept because a run with none of these scores better and is worse
+- **`working`** (8) -- Confirmed working -- kept because a run with none of these scores better and is worse
 - **`supervisor`** (8) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
@@ -148,6 +148,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-083 | 5705 | contract | corrected | -- | CORRECTION to F-017: the task dir is the lineage's, not a dead session's |
 
 | F-084 | 5760 | harness | confirmed | 65 of 70 min | A worker's backgrounded heartbeat loop died after one beat; nothing told it |
+
+| F-085 | 5829 | working | confirmed | -- | Blanket overnight authority used narrowly: the unwritten rule two agents both found |
 
 ## What the shape says
 
