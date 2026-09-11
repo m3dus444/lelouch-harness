@@ -5886,3 +5886,64 @@ finding. The prompt's last line refutes it. What stopped it was reading the
 resume prompt in full instead of the 600 characters my earlier query had
 truncated it to — the same house rule, *read the artifact*, that
 [entry 18](../instrument-log.md) had already caught me breaking tonight.
+
+---
+
+## A captain hold records a world that moves on without it  <!-- F-086 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** ~31 h of a ticket
+blocked on a decision already made
+
+`wa-tracer-followups` carried this captain hold:
+
+> *"Blocked on one decision: which linter. The repo configures none, so the ship
+> gate's lint step is a no-op today. … TIMING MATTERS: the moment a linter lands,
+> every branch in flight starts failing its gate on lint, so this goes in when
+> the board is quiet."*
+
+Every factual claim in it was true when written and false by the next evening.
+
+| | |
+|---|---|
+| hold written | ~7–8 Sep |
+| `860381c` *"adopt oxlint … and wire it into the lint script and CI"* merged as PR #8 | **9 Sep 17:57Z** |
+| hold still reading "the repo configures none" | until **11 Sep ~01:2xZ** |
+| **stale** | **~31 hours** |
+
+**The refutation was sitting in the same file the whole time.** `backlog.md`
+records `wa-oxlint … (merged 2026-09-09)` in its Done section, eleven lines
+below the hold that says no linter exists. C.C's own resume prompt says
+*"backlog.md is truth"*, and truth contained a claim and its contradiction side
+by side for a day and a half, with a ticket blocked on the wrong half.
+
+**The hold was load-bearing while it was wrong.** This was not a stale note in a
+corner — `hold-kind: captain` means *a human must decide before this moves*.
+For 31 hours it reserved a decision that no longer existed, on a ticket whose
+remaining work Lelouch now describes as *"ordinary work … needed no decision in
+the first place"*. And the hold's most emphatic line, the all-caps timing
+warning, had inverted: it warned that a landing linter would break branches in
+flight, when the linter had already landed and the branches in flight were
+already green under it.
+
+**Nothing re-checks a hold.** A hold is written once, in prose, and then only a
+human or a lucky audit can retire it. It has no expiry, no stated falsifier, and
+no link to the ticket that would resolve it — `wa-tracer-followups` and
+`wa-oxlint` are not connected in either direction, though one exists to settle
+the other. Compare `blocked-by`, which the same file uses and which *does*
+resolve itself when its dependency reaches Done.
+
+**Lelouch found it unprompted, and that is the other half of the finding.**
+With C.C asleep and no one asking, it audited the hold against the repo and
+replaced it with a correction citing the commit hash, `.oxlintrc.json` on
+master, the `package.json` lint script and `ci.yml` line 32 — then said plainly
+*"the earlier reason was wrong"* and *"nothing here is waiting on C.C any
+more."* I verified all four claims; they hold. This is [F-049](#)'s correction
+loop running in a direction that finding did not cover: not a worker correcting
+upward, but an orchestrator auditing its own artifact and removing a blocker
+nobody had complained about.
+
+**For the debrief.** A captain hold should carry the observable that would
+falsify it — a file, a commit, a ticket id — so retiring it is a check rather
+than a re-derivation. Where a hold is waiting on work that is *already in the
+backlog*, it should be a `blocked-by` edge, which retires itself, and not prose,
+which does not.

@@ -20,7 +20,7 @@ grep -c '^| F-0'   run-02-index.md
 
 ## Categories
 
-- **`contract`** (15) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`contract`** (16) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (19) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
@@ -150,6 +150,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-084 | 5760 | harness | confirmed | 65 of 70 min | A worker's backgrounded heartbeat loop died after one beat; nothing told it |
 
 | F-085 | 5829 | working | confirmed | -- | Blanket overnight authority used narrowly: the unwritten rule two agents both found |
+
+| F-086 | 5892 | contract | confirmed | ~31 h | A captain hold has no falsifier and no expiry; its own refutation sat in the same file |
 
 ## What the shape says
 
