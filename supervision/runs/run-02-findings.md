@@ -6411,3 +6411,45 @@ still the fix.** This run got a diligent worker, not a safe system.
 committed only on the worker's branch, so until PR #18 merges, the canonical
 copy remains untracked and the next worktree created from master will be missing
 it exactly as this one was.
+
+## F-085 at n=3: a third agent drew the same line, unprompted  <!-- F-095 -->
+
+**Category:** working · **Status:** confirmed · **Cost:** — · **Strengthens
+[F-085](#) from "two agents converged" to a norm**
+
+`wa-04b-compile-authors`, 13:58:22, having found that the projection claim
+fails on the derive path:
+
+> **SMALLEST HONEST FIXES (C.C's call; I built neither):** (A) persisted-format
+> … (B) …
+
+It measured the defect thoroughly — 20 of 25 works capped, 1,011 authorships
+against 100 on the list page, 911 people silently missing from an authors-anchored
+result — then **named two fixes and built neither**, because either would change
+what the system returns.
+
+**Three agents, three roles, one unwritten rule.**
+
+| | agent | what it decided itself | what it sent up |
+|---|---|---|---|
+| [F-063](#) | `wa-05-resolve` worker | seven defects against its own documented contract | nothing — it had already been overruled by expiry |
+| [F-085](#) | Lelouch, holding blanket overnight authority | a docblock whose wording was false | the cache-compatibility question |
+| **here** | `wa-04b` worker | — | both fixes, unbuilt |
+
+The rule each arrived at independently: **correct what the code falsely claims
+about itself; escalate anything that changes what the system does.** It is in no
+document — not `CLAUDE.md`, not the `no-mistakes` docs, and the gate's own
+`ask-user` flag is a flat boolean with no notion of it.
+
+**At n=2 this was convergence worth noting. At n=3, across a worker, an
+orchestrator and a second worker in an unrelated ticket, it is a norm the system
+reliably produces and cannot state.** That asymmetry is the finding: the
+behaviour is dependable enough to design around, and nothing in the contract
+would let a new agent inherit it except by rediscovering it.
+
+**The counter-case still matters.** [F-063](#)'s worker reached the rule only
+*after* a ten-minute `ask` expiry had already handed it the decision. So the
+norm is reliable where the agent has time and a channel; it is the machinery
+around it — expiring asks, silent timeouts — that decides whether the norm gets
+to operate. Writing the rule down would not fix [F-063](#); it would make the
+gap visible.
