@@ -6360,3 +6360,54 @@ divergence surfaces at review, or not at all.
 **Fix is one commit,** and it retires the class for this repo: commit
 `docs/adr/`, and have the dispatch step refuse to send a spec whose named
 binding paths are absent from the target worktree.
+
+## F-093's outcome: the worker hunted the ADR down and committed it  <!-- F-094 -->
+
+**Category:** working · **Status:** confirmed · **Cost:** 34 s of hunting, no
+divergence · **Closes [F-093](#); second instance of [F-061](#)**
+
+The recovery, from the worker's own transcript:
+
+```
+11:54:54  Read  …\wa-04-anchor-contract\docs\adr\0001-…md   -> File does not exist
+11:55:07  git fetch; git log --all -- "docs/adr/*"; Get-ChildItem   -> not in history either
+11:55:08  Glob  **/adr/**                                    -> hunt the filesystem
+11:55:28  Read  …\projects\weave-atlas\docs\adr\0001-…md     -> FOUND, outside its worktree
+12:11:36  cp    from the main project into its own worktree
+12:12:10  git add docs/adr/0001-…md + sources               -> committed in b0ebaa2
+```
+
+**Thirty-four seconds from miss to read.** It did not guess, and it did not
+proceed on the ticket alone: it established the file was absent from git as well
+as from disk, globbed for it, found it in the *main project directory* — a tree
+it was never told about — and read it there.
+
+**Then it did better than recover.** It copied the ADR into its own worktree and
+committed it with its feature work, so the document reaches master through
+PR #18. The worker fixed the root cause of [F-093](#) as a side effect of
+working around it. Nobody asked.
+
+**No divergence, as far as the docblocks show.** [F-093](#) worried that
+decision 2 — *one paper satisfies all the paper-shaped conditions together* —
+was easy to get backwards. The shipped comments state it correctly: *"'has at
+least one paper where…' is asked of one paper of theirs, all of its conditions
+together."* I have verified the prose the worker wrote, **not** audited the
+compiled logic against it; that is the reviewer's job and the gate is running
+now.
+
+**Why this is not a reason to relax about [F-093](#).** The recovery worked
+because of three things that are true here and not in general:
+
+1. the main project tree was on the same filesystem and readable
+2. the worker was allowed to read outside its worktree
+3. it happened to glob widely rather than trust the declared path
+
+A worker in a container, on another machine, or with a narrower tool policy
+fails all three and proceeds without the binding document — and [F-093](#)
+showed it does not stall when that happens. **The dispatch-time `test -f` is
+still the fix.** This run got a diligent worker, not a safe system.
+
+**One thing still open.** The main tree *still* reads `?? docs/adr/`. The ADR is
+committed only on the worker's branch, so until PR #18 merges, the canonical
+copy remains untracked and the next worktree created from master will be missing
+it exactly as this one was.

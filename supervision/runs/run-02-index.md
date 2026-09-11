@@ -25,7 +25,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
-- **`working`** (9) -- Confirmed working -- kept because a run with none of these scores better and is worse
+- **`working`** (10) -- Confirmed working -- kept because a run with none of these scores better and is worse
 - **`supervisor`** (9) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
@@ -166,6 +166,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-092 | 6248 | contract | confirmed | 6 days | `docs/adr/**` has a read instruction and no writer; decisions went to three worse places |
 
 | F-093 | 6309 | contract | confirmed | live | A spec called ADR 0001 binding; it was never committed, so the worker's tree has no copy |
+
+| F-094 | 6364 | working | confirmed | 34 s | F-093's outcome: the worker globbed the ADR out of the main tree and committed it |
 
 ## What the shape says
 
