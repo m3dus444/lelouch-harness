@@ -5699,3 +5699,58 @@ nothing. What it cost is that recovery required an agent to invent a
 force-kill against an undocumented process, on its own authority, while two
 workers were live — and to get the blast radius right by inspection. The next
 re-cast has to reinvent it, or inherit it from this log.
+
+---
+
+## CORRECTION to F-017 — that was not a dead session's scratchpad, it was the lineage's  <!-- F-083 -->
+
+**Category:** contract · **Status:** corrected · **Cost:** none paid; one wrong
+sentence in the resume design
+
+[F-017](#) described the re-cast Lelouch as scavenging:
+
+> It is now session `87b85f0c`. Those task ids belong to `0615d09e`, which no
+> longer exists as a conversation. […] the new session recovered the undelivered
+> traffic by **reading the dead session's task output off disk**
+
+I inferred "dead session's directory" from an old session id in the path, and
+never checked where a *live* session's task output goes. It goes to the same
+place.
+
+**Two independent reads, both from this restart.** When the re-cast Lelouch
+armed its brand-new wait at 00:13:51 tonight, the harness told it where the
+output would land:
+
+```
+Command running in background with ID: bcz0cjpup. Output is being written to:
+  ...\C--Users-JulienH-lie-orca-projects-weave-atlas\
+     0615d09e-aab1-45c9-b341-08c2c17796b4\tasks\bcz0cjpup.output
+```
+
+`0615d09e` — the directory F-017 called dead, receiving a task armed two days
+later by a session two clears downstream. And in my own session, checked
+directly because one instance is not a mechanism: my scratchpad is
+`fd737a72-…`, while every Bash task I have run tonight writes to
+`340ecf34-…/tasks/`.
+
+**So the harness keys the task directory to the lineage's first session, not to
+the current one, and every later session in that lineage writes there.** The
+directory is live and shared. Reading it is a session reading *its own* task
+directory, not exhuming someone else's.
+
+**What still stands in F-017, unchanged.** The *notification* is bound to the
+session that armed the task. A wait armed before a clear will never wake the
+session after it, so polling the file really is the only way to see that it
+fired — and the three consequences F-017 drew from that (the process survives
+but the notification does not; latency becomes the poll gap; failure is silent)
+are all still correct. Only the framing was wrong.
+
+**Why the correction earns its place.** F-017 ruled the practice *"wrong as the
+steady state"* and told a resume skill to avoid it. That is backwards. A
+resumed orchestrator cannot look up a dead session id it never knew — but it
+does not need to: the harness prints the lineage path in the result of the
+resumed session's **own first background command**. That is the supported way
+to find the backlog, available to any session, requiring no memory of what came
+before. F-017's open debrief question — *"whether Lelouch ever re-armed, or is
+still living off `0615d09e`'s wait"* — was built on the same confusion and
+dissolves: it re-armed (see [F-082](#)), into `0615d09e`.
