@@ -5754,3 +5754,72 @@ to find the backlog, available to any session, requiring no memory of what came
 before. F-017's open debrief question — *"whether Lelouch ever re-armed, or is
 still living off `0615d09e`'s wait"* — was built on the same confusion and
 dissolves: it re-armed (see [F-082](#)), into `0615d09e`.
+
+---
+
+## A worker's heartbeat insurance died after one beat, and nothing told it  <!-- F-084 -->
+
+**Category:** harness · **Status:** confirmed (n=1 — the death is a fact, the
+rate is not) · **Cost:** 65 of 70 minutes of intended liveness cover, silently
+
+Before starting its ship gate, `wa-graph-surface` armed its own liveness
+insurance so a long blocking gate run would not read as a dead worker:
+
+```
+00:41:53   for i in $(seq 1 14); do
+             orca orchestration send … --type heartbeat --subject "alive"
+                  --phase "ship gate running"
+             sleep 300
+           done                                    # run_in_background: True
+```
+
+Fourteen beats, five minutes apart — **70 minutes of cover**. It delivered
+**one**.
+
+| what | when |
+|---|---|
+| loop armed | 00:41:53 |
+| loop heartbeat #1 | 00:41:57 |
+| loop heartbeat #2 due | 00:46:57 |
+| checked, nothing | 00:49:26 |
+
+**Established three ways, because absence is the weakest kind of evidence.**
+No process spawned in the 00:41:30–00:42:30 window still exists; no process
+carries the loop's dispatch capability except live inline calls; and every
+heartbeat after 00:41:57 correlates to a worker tool call seconds earlier
+(00:44:38←00:44:25, 00:47:39←00:47:28, 00:48:51←00:48:48). The loop is gone.
+
+**It is invisible right now, and that is the whole problem.** The worker is
+polling its gate every one to three minutes and heartbeating inline each time,
+so the board looks healthy and nothing is missing. The loop's failure only
+becomes observable when the worker stops emitting inline beats — **which is the
+single scenario the loop was armed for.** A safety mechanism that works
+whenever it is not needed and fails when it is. Structurally identical to
+[F-077](#), where the truncation only fires on recovery.
+
+**Nothing told the worker.** It backgrounded the loop, got a task id, and moved
+on. There is no completion notice it will read, no error, no exit status it
+waits on. It is proceeding into its gate believing it has an hour of cover it
+does not have.
+
+**This generalises instrument-log entry 15, and that is the part for the
+debrief.** Entry 15 catalogued five background monitors reaped at times that
+correlate with neither memory, footprint, subprocess use, nor task count, and
+filed it as a *supervisor tooling* problem — my instruments, my night watch.
+It is not. The same reaping just took a **worker's** liveness mechanism inside
+the system under test. Any Lelouch component that backgrounds a long-lived
+helper — heartbeat loops, watchdogs, poll loops — is exposed, and none of them
+would report their own death.
+
+**Correcting my own speculation from twenty minutes ago.** I flagged this loop
+as a candidate *false-presence* defect: a detached process that would keep
+asserting "alive" for 70 minutes after the worker died. The mechanism was right
+— backgrounded processes do outlive their session, which is how the watch
+feeding me these events survived two clears — but the direction was wrong. This
+loop does not over-report liveness. It **under-delivers** it, and stops
+reporting altogether. The failure I predicted requires the loop to survive, and
+the loop is the thing that does not.
+
+**What would raise this from n=1.** A second worker arming a backgrounded loop
+that outlives one interval. Until then the fact is "this loop died in under
+five minutes", not "backgrounded loops die".

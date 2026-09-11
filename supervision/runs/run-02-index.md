@@ -22,7 +22,7 @@ grep -c '^| F-0'   run-02-index.md
 
 - **`contract`** (15) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (19) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (20) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (7) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -146,6 +146,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-082 | 5634 | harness | confirmed | 2m12s | The §7 wait is a singleton; `/clear` orphans its holder and only a force-kill frees it |
 
 | F-083 | 5705 | contract | corrected | -- | CORRECTION to F-017: the task dir is the lineage's, not a dead session's |
+
+| F-084 | 5760 | harness | confirmed | 65 of 70 min | A worker's backgrounded heartbeat loop died after one beat; nothing told it |
 
 ## What the shape says
 
