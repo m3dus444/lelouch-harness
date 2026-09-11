@@ -96,6 +96,48 @@ def last_heartbeat_min():
         con.close()
 
 
+def blocking_wait_pid():
+    """PID of a live `orca … check … <terminal>` wait, or None.
+
+    A parked worker holds its turn open inside a blocking mail wait. While it
+    does, it writes no transcript rows and sends no heartbeats, so both clocks
+    this watcher reads go stale on a worker that is perfectly healthy. The wait
+    is a real OS process, so ask about it directly instead of inferring from two
+    silences.
+
+    Deliberately NOT used to suppress the alarm (F-044: a correct alarm talked
+    down cost 2h20m). It is reported alongside, so the reader can tell "blocked
+    in a live wait" from "gone" without taking a second measurement -- which is
+    the standing complaint against every silence alarm in this log.
+
+    Queried only when the alarm fires, not every poll: spawning a process per
+    poll is exactly the footprint instrument-log entries 12-15 spent a night
+    failing to pin a reaping on.
+    """
+    import subprocess
+
+    ps = (
+        "Get-CimInstance Win32_Process | ForEach-Object { $c=$_.CommandLine; "
+        "if ($c -and $c -match '%s' -and $c -match 'check') "
+        "{ '{0}|{1}' -f $_.ProcessId, $_.CreationDate.ToUniversalTime()"
+        ".ToString('HH:mm:ss') } }" % TERM_PREFIX
+    )
+    try:
+        out = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-Command", ps],
+            capture_output=True, text=True, timeout=30,
+        ).stdout
+    except Exception as exc:
+        return "query failed: %s" % type(exc).__name__
+    hits = [ln.strip() for ln in out.splitlines()
+            if ln.strip() and "orca" not in ln.lower()[:0]]
+    hits = [h for h in hits if "|" in h]
+    if not hits:
+        return None
+    pid, started = hits[0].split("|", 1)
+    return "pid %s since %sZ" % (pid, started)
+
+
 def main():
     print(
         "%s parkwatch armed  run=%s session=%s quiet_limit=%dm"
@@ -140,9 +182,11 @@ def main():
                     print(
                         "%s !! SESSION QUIET %s wrote no transcript row for %dm. "
                         "Gate: run=%s review=%s parked=%sm. Last heartbeat %sm. "
-                        "A parked worker heartbeats only when it acts, so a stale "
-                        "heartbeat alone is not death -- the transcript age is the "
-                        "measurement that moved."
+                        "Blocking wait: %s. A parked worker heartbeats only when "
+                        "it acts, so a stale heartbeat alone is not death -- the "
+                        "transcript age is the measurement that moved. A live "
+                        "blocking wait explains BOTH silences; no wait process "
+                        "and two stale clocks is the combination to act on."
                         % (
                             stamp(),
                             SESSION_TAG,
@@ -151,6 +195,7 @@ def main():
                             gate[1],
                             gate[2],
                             last_heartbeat_min(),
+                            blocking_wait_pid() or "NONE FOUND",
                         ),
                         flush=True,
                     )
