@@ -720,3 +720,41 @@ measurement the global alarm was being asked for and never took.
 label that was not. Entry 19: a threshold sentence and a query that could not
 answer the question. This: a corrected sentence over an uncorrected clock. The
 sentence is always the part I fix, because the sentence is the part I read.
+
+## 21  Seed every scan with a known positive
+
+Chasing whether every fresh worktree pays a missing-`node_modules` tax, I
+scanned nineteen worker transcripts for the shell's missing-binary message:
+
+```python
+pat = re.compile(r"n'est pas reconnu|is not recognized", re.I)
+```
+
+It reported `wa-docblock-stranded` as clean. I had watched that session throw
+three of those errors ninety seconds earlier.
+
+**The bug:** the shell writes `n’est pas reconnu` with U+2019, and I typed
+U+0027. A whole-corpus scan, silently near-empty, with no error and no warning —
+the exact failure shape of entries 16, 19 and 20, and this time in a throwaway
+query rather than a committed instrument.
+
+**What caught it was not care. It was an accident of ordering**: the known
+positive happened to be in the sample, and its row said `-`. Had I run the same
+scan an hour earlier, before that session existed, every row would have read
+clean and I would have concluded the tax is rare. The regex would never have
+been questioned, because a scan that finds nothing looks exactly like a
+phenomenon that is not there.
+
+**The practice, which costs one line:** before believing a corpus scan, point it
+at a case you have already seen with your own eyes and confirm it fires. If the
+known positive does not light up, the pattern is wrong, not the corpus. This is
+the same discipline as *read the artifact* applied to the reading instrument
+itself — and it is the only one of these four entries that yields a check I can
+actually run every time rather than a resolution to be more careful.
+
+**Footnote: the hypothesis died anyway, and correctly.** With the apostrophe
+fixed, 4 of 19 sessions hit a missing-binary error, and in all four `npm install`
+had already been issued **before** the first error (-239s, -520s, -752s, -51s).
+So it is not an empty worktree; it is a worker starting checks before its
+install finishes. Four instances, all self-corrected, no cost to the run — an
+anecdote, and deliberately not written into the findings file.
