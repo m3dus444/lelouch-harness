@@ -601,3 +601,54 @@ instinct -- do not disturb it -- is better founded today than it was when
 written, on evidence that did not exist then. That is a decision for C.C, and
 the price is small and worth stating: a restart needs `--from-now`, so it costs
 only the seconds it takes, and the entry-16 wording patch is still not live.
+
+## 19  A verdict I hardcoded, on a query that could not answer the question
+
+Checking whether `wa-graph-surface`'s backgrounded heartbeat loop was really
+sleeping 300s between beats, I wrote this:
+
+```python
+gap = int((b - a).total_seconds())
+print("VERDICT:", "spaced - background sleep held" if gap >= 240
+                  else "BURST - sleep collapsed, liveness fabricated")
+```
+
+It printed **`BURST - sleep collapsed, liveness fabricated`** on a gap of
+**161 seconds**, and I was one sentence away from reporting that to C.C.
+
+**Two independent faults, either one fatal.**
+
+**The threshold sentence.** A collapsed `sleep` produces a gap near *zero*. 161s
+is not a burst by any reading — it is a *short* interval, which means something
+entirely different and possibly nothing at all. I wrote a binary where the data
+is continuous, then let the `else` branch name a conclusion the number does not
+support. The instrument did not measure "burst"; it measured "not ≥240", and I
+labelled that "burst" because those were the only two words I had written.
+
+**The query, which is the worse one.** I asked for *heartbeats from
+`term_42264eb3`*. The question was *heartbeats from the detached loop*. That
+handle is shared: the worker sends inline heartbeats through it all run long. So
+the two rows I differenced came from **different sources** — the loop's first
+beat at 00:41:57 and an inline beat the worker sent by hand at 00:44:25. The gap
+between them is a meaningless number, and no threshold applied to it could have
+been right. The query was incapable of answering the question, and nothing in
+its output said so.
+
+**What fixed it.** Not a better threshold — a different output. The second
+version prints no verdict. It correlates each heartbeat against the worker's own
+tool calls and labels the row `INLINE (worker tool call at …)` or
+`DETACHED LOOP (no worker tool call within 25s)`, and lets me do the judging.
+That answered it immediately: every beat after the first was inline, and the
+loop was dead ([F-084](runs/run-02-findings.md)).
+
+**Third instance of entry 16's fault, and I wrote entry 16.** There, `quiet` was
+correct and its printed label described a different clock. Here the gap was
+correctly computed and its printed label described a different phenomenon,
+twice. The rule that keeps surviving: **an instrument may report measurements;
+the moment it reports a conclusion, the conclusion is the thing that breaks**,
+and it breaks silently, because a sentence looks like a finding.
+
+Also worth its own line: **a shared identifier is not a source.** Terminal
+handle, session id, branch name — each is used by more than one actor here, and
+grouping by one of them and calling the result "the loop" is the same class of
+error as counting `tasks-axi add` invocations instead of reading `backlog.md`.
