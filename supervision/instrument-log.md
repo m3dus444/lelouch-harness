@@ -551,3 +551,53 @@ And the check was unsound regardless: `~/.claude/skills/lavish/SKILL.md` tells
 the agent to invoke `npx -y lavish-axi`, and line 26 tells it to rewrite direct
 invocations into npx ones. The scorecard was grading Lelouch for a decision its
 skill made. **Drop the check or restate it as a question about documents.**
+
+## 18  CORRECTION to entry 16 -- the watch's age was asserted, not read
+
+Entry 16 closed by declining to land its own wording fix:
+
+> The running watch has had `watch.py` loaded in memory since 8 Sep 09:27Z and
+> is now the longest-lived background task of the run. The patch applies on its
+> next start. I am not restarting a two-day-old healthy watch to land a wording
+> fix -- the reaping behaviour in entry 15 says I might not get it back.
+
+Both halves of that reason are wrong, and I never checked either. The task
+`.output` files carry birth and last-write times and a `[killed]` sentinel on
+the last line, so the whole lineage was one `Get-ChildItem` away.
+
+**The ledger.** Every watch-format stream in this session's task directory:
+
+| task | born (UTC) | last write | ran | ended |
+|---|---|---|---|---|
+| `bxbhojfqv` | 09-08 09:33:03 | 09-08 14:44:37 | 312m | `[killed]` |
+| `bymx5ryaa` | 09-08 18:38:52 | 09-08 19:39:02 | 60m | `[killed]` |
+| `by4189vs2` | 09-08 19:39:29 | 09-09 01:20:28 | 341m | `[killed]` |
+| `bzdcv7sup` | 09-09 06:18:22 | 09-09 13:17:28 | 419m | `[killed]` |
+| `bftyb60a9` | 09-09 13:17:53 | 09-09 16:47:21 | 209m | `[killed]` |
+| `bysf7hkyf` | 09-09 16:49:39 | *alive* | 1897m+ | -- |
+
+**The 8 Sep process died on 8 Sep, after five hours.** The process running now
+was born **9 Sep 16:49:39Z**. Entry 16 was written on 10 Sep and described a
+process that had been dead for a day and a half, through four intervening
+restarts.
+
+**"I might not get it back" is the wrong reading of entry 15.** Every restart
+that was attempted came back, and fast: the kill-to-next-birth gaps are **27s,
+25s and 2m18s**. The one long gap -- 01:20Z to 06:18Z -- is five hours of no
+supervisor, not a failed restart. What entry 15 actually observed is that a
+restarted watch does not *survive*; entry 16 promoted that to "may not *start*"
+and then used the stronger claim to decline a fix.
+
+**The method error is the one that generalises.** This is the house rule --
+*read the artifact, never a derived value* -- failing on a value I derived from
+my own memory. A remembered process age feels like an observation and is not
+one, and it is worse than a stale file, because nothing about it looks stale.
+Entries 12, 14 and 15 each died of a number I had not inspected. This one died
+of a number I had not *taken*.
+
+**What is now true, stated from the artifact.** The current watch has run
+**31.6 hours**, against a previous best of 7.0 (`bzdcv7sup`). So entry 16's
+instinct -- do not disturb it -- is better founded today than it was when
+written, on evidence that did not exist then. That is a decision for C.C, and
+the price is small and worth stating: a restart needs `--from-now`, so it costs
+only the seconds it takes, and the entry-16 wording patch is still not live.
