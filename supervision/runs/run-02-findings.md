@@ -6122,3 +6122,70 @@ twice in one night, and it is the most encouraging behaviour in this run.
 **Practical consequence.** Recovering `ec5900f0` is now optional — the ticket
 will redo the work. The branch-preserving command in [F-088](#) is worth running
 only to keep the evidence, not the fix.
+
+---
+
+## CORRECTION to F-088 and F-089 — the commit was never unreachable, and Lelouch was not blind  <!-- F-090 -->
+
+**Category:** supervisor · **Status:** corrected · **Cost:** one wrong deadline
+given to C.C, one wrong characterisation of the orchestrator
+
+Two claims I made in the last hour, both asserted from a single observation
+instead of read from the refs.
+
+**Wrong claim 1 — "unreachable, and `gc` prunes it."** [F-088](#) said the
+dropped commit survived only as an unreachable object. It never was:
+
+```
+git rev-parse m3dus444/wa-entity-projection   ->  ec5900f0…
+git worktree list
+  …/workspaces/weave-atlas/wa-entity-projection   ec5900f  [m3dus444/wa-entity-projection]
+  remotes/no-mistakes/m3dus444/wa-entity-projection        <- the gate's own remote
+```
+
+A live branch ref, checked out in a live worktree, plus a copy on the gate's
+remote. I ran `git merge-base --is-ancestor` against master, saw NO, and
+concluded *unreachable* — but "not an ancestor of master" and "not reachable
+from any ref" are different statements, and I printed the second having measured
+the first. The `git branch -a` that refutes it is one command and I did not run
+it until Lelouch's own diff forced the question.
+
+**So the deadline I gave C.C was wrong.** Not `gc`'s two weeks on an unreachable
+object — **Orca's worktree cleanup**, which deletes the branch with the worktree
+the moment the docblock fix lands. Sooner, sharper, and triggered by the very
+ticket filed to fix it.
+
+**Wrong claim 2 — "blind in cause."** [F-089](#) said the system was
+self-healing in effect and blind in cause. That was true of the ticket as filed
+at ~08:50 from reading master. It stopped being true at **09:09:47**, when
+Lelouch — told to go ahead with the docblock — ran
+`git diff --stat origin/master m3dus444/wa-entity-projection`, then
+`git show --stat ec5900f`, and reported *"the stranded commit only exists on
+that branch and on the gate's own remote, and Orca's cleanup tries to delete the
+branch with the worktree."* Every part of that is correct, including the detail
+about the gate's remote that I had not looked at.
+
+**One caveat I will not resolve.** Lelouch prefaced it with *"Expected — I kept
+it on purpose."* That reads as having known at stand-down time and deliberately
+preserved the branch — which sits badly against its own *"Your branch is on
+master as 68fbdfc"* forty minutes earlier. It could equally be retroactive
+framing of a worktree it simply had not cleaned yet. **I cannot tell from the
+transcript, and I am not going to pick the reading that flatters my finding.**
+What stands in [F-088](#) is the stand-down sentence being false when written;
+what falls is any claim about what Lelouch knew.
+
+**The root, and it is the night's third instance.** Instrument-log entry 18: a
+process age asserted from memory. Entry 20: an alarm label describing a clock it
+does not read. Here: reachability inferred from ancestry. Each time I had a
+measurement in hand, drew a neighbouring conclusion, and published the
+conclusion rather than the measurement — the exact fault entry 19 named, now
+committed in prose instead of code.
+
+**The correct recovery, stated once:**
+
+```
+git branch wa-hascolumn-order ec5900f06681c8a55db8ff9b80cff4de5a1e22f3
+```
+
+Still worth running — not because the object is about to vanish, but because the
+ref that keeps it alive is scheduled for deletion by the fix.

@@ -26,7 +26,7 @@ grep -c '^| F-0'   run-02-index.md
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (9) -- Confirmed working -- kept because a run with none of these scores better and is worse
-- **`supervisor`** (8) -- My own errors, kept in place because corrections must sit where they happened
+- **`supervisor`** (9) -- My own errors, kept in place because corrections must sit where they happened
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
 `status`: **confirmed** stands on evidence · **unproven** is one instance, do
@@ -158,6 +158,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-088 | 6015 | gate | confirmed | 1 commit lost | F-087 realised: ec5900f never reached master, and worker_done reported succeeded |
 
 | F-089 | 6077 | working | confirmed | fix redone | The dropped commit was caught by its symptom, unprompted -- but filed as new work, not as a loss |
+
+| F-090 | 6128 | supervisor | corrected | wrong deadline | CORRECTION to F-088/F-089: the commit was reachable via a live branch, and Lelouch had read the cause |
 
 ## What the shape says
 
