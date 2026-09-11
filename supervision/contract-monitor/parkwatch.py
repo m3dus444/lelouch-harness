@@ -71,13 +71,31 @@ def gate_state():
         con.close()
 
 
-def transcript_quiet_min():
-    """Minutes since the worker session last wrote a transcript row."""
-    files = glob.glob(os.path.join(PROJECTS, "*%s*" % SESSION_TAG, "*.jsonl"))
+def transcript_quiet_min(tag=None):
+    """Minutes since the named session last wrote a transcript row."""
+    files = glob.glob(os.path.join(PROJECTS, "*%s*" % (tag or SESSION_TAG), "*.jsonl"))
     if not files:
         return None
     newest = max(os.path.getmtime(f) for f in files)
     return int((time.time() - newest) // 60)
+
+
+def coordinator_quiet_min():
+    """Minutes since the orchestrator's own project session wrote a row.
+
+    Nothing else watches Lelouch. watch.py's alarm only fires when EVERY
+    weave-atlas session goes quiet, so an orchestrator that dies while a worker
+    keeps cycling is invisible -- and that is the failure that strands the run,
+    because the worker is parked waiting for a ruling only the orchestrator can
+    relay.
+
+    Reported in the hourly beat rather than alarmed on: the coordinator legitimately
+    holds hour-long waits, so an age here is context for the reader, not a
+    threshold. The project directory carries retired sessions too, so this is
+    the freshest row in it -- a floor on the coordinator's silence, not proof
+    of which session wrote it.
+    """
+    return transcript_quiet_min("orca-projects-weave-atlas")
 
 
 def last_heartbeat_min():
@@ -210,8 +228,16 @@ def main():
 
             if time.time() - last_alive >= ALIVE_EVERY_SEC:
                 print(
-                    "%s .. ALIVE         run=%s review=%s parked=%sm quiet=%sm"
-                    % (stamp(), gate[0], gate[1], gate[2], quiet),
+                    "%s .. ALIVE         run=%s review=%s parked=%sm "
+                    "worker_quiet=%sm coordinator_quiet=%sm"
+                    % (
+                        stamp(),
+                        gate[0],
+                        gate[1],
+                        gate[2],
+                        quiet,
+                        coordinator_quiet_min(),
+                    ),
                     flush=True,
                 )
                 last_alive = time.time()
