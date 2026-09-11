@@ -6189,3 +6189,56 @@ git branch wa-hascolumn-order ec5900f06681c8a55db8ff9b80cff4de5a1e22f3
 
 Still worth running — not because the object is about to vanish, but because the
 ref that keeps it alive is scheduled for deletion by the fix.
+
+---
+
+## The head divergence has a precondition, and it is checkable in one query  <!-- F-091 -->
+
+**Category:** gate · **Status:** confirmed · **Cost:** — · **Narrows
+[F-087](#)/[F-088](#) from "always compare" to a flag you can raise**
+
+PR #17 is the counter-example that pins it. Every reference agrees:
+
+```
+PR #17 head                          e086effb
+runs.head_sha / submitted / pushed   e086effb / e086effb / e086effb
+git rev-parse m3dus444/wa-docblock-stranded   e086effb
+```
+
+Set against the failing case:
+
+| | `wa-docblock-stranded` (PR #17) | `wa-entity-projection` (PR #15) |
+|---|---|---|
+| run that opened the PR | this one | an **earlier**, cancelled one |
+| `pr_url` on the live run | set | **NULL** |
+| `last_pushed_sha` on the live run | `e086effb` | **NULL** |
+| reached `push`? | yes | no — parked at `review` |
+| heads agree? | yes | **no** |
+
+**The precondition, stated exactly.** Divergence needs *both*: an open PR opened
+by a **previous** run on the branch, and a **current** run that has not reached
+its `push` step. Neither alone does it. A run that opens its own PR keeps the
+two in step because `push` precedes `pr`; a parked run with no prior PR has
+nothing to be out of step with.
+
+**And the replacement run does not know the PR exists.** This is the part that
+makes it invisible rather than merely possible. When the push superseded the
+first run, the new run started with `pr_url` NULL — the PR association did not
+carry across. So the component best placed to notice — the live gate run — holds
+no reference to the PR whose green tick is about to be misread. It is not that
+the check is expensive; it is that the run has nothing to check against.
+
+**The flag, cheap enough to be unconditional:**
+
+> the branch has an open PR, and the live run's `last_pushed_sha` is NULL or
+> differs from the branch head
+
+That is one query against `runs` plus one `git rev-parse`, and it fires only in
+the state that actually goes wrong. [F-088](#) asked for a mechanical head
+comparison before reporting success; this says where to put it and how to keep
+it quiet the rest of the time.
+
+**Worth recording that the good case is the common one.** Fifteen PRs this run,
+one divergence. The seam is not routinely broken — it breaks under supersede,
+which is exactly the path [F-082](#)'s worker took when it pushed mid-CI. The
+two findings share a root event.

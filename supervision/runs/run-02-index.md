@@ -21,7 +21,7 @@ grep -c '^| F-0'   run-02-index.md
 ## Categories
 
 - **`contract`** (16) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (21) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (21) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
@@ -160,6 +160,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-089 | 6077 | working | confirmed | fix redone | The dropped commit was caught by its symptom, unprompted -- but filed as new work, not as a loss |
 
 | F-090 | 6128 | supervisor | corrected | wrong deadline | CORRECTION to F-088/F-089: the commit was reachable via a live branch, and Lelouch had read the cause |
+
+| F-091 | 6195 | gate | confirmed | 1 of 15 PRs | The head divergence needs a prior run's PR plus an unpushed live run; one query flags it |
 
 ## What the shape says
 
