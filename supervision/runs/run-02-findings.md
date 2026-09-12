@@ -7167,3 +7167,62 @@ every single time — including the run where it destroyed uncommitted work.
 > [F-105](#) is still unfixed upstream. A silent repair would hide the bug it
 > exists to work around, and this log has spent four days on instruments that
 > reported cleanly while looking at the wrong surface.
+
+## The dispatch is what discovered the reason not to dispatch  <!-- F-107 -->
+
+**Category:** contract · **Status:** confirmed, and it clears a concern I raised
+· **Cost:** none — a spend was avoided
+
+At 01:10:09Z C.C asked an open question: *"can we ship something alongside to buy
+time? we have one builder waiting for gate rn."* No ticket named. Lelouch then
+ran for three and a half minutes without a word to C.C — read the backlog ticket,
+read the audit, wrote a spec, created the task, created a worktree, renamed the
+terminal to "Build 7", and at **01:13:35Z ran `worker-start`**.
+
+I flagged this mid-flight as a possible §6 breach and said what would settle it:
+whether Lelouch named the ticket before the dispatch or only afterwards. It
+dispatched first. **My prediction was that this would be the finding. It is not.**
+
+At 01:13:50 it read the new terminal's screen. The banner said the account was at
+**95% of the weekly limit, resetting 17:00 Europe/Paris**. At 01:14:18 it put a
+captain hold on the ticket, and at 01:14:39 — 64 seconds after the dispatch — it
+wrote C.C a full turn: the limit, the risk, the recommendation, the ticket it had
+chosen and why, and an explicit offer to overrule.
+
+> *"Dispatching after the reset is one command into that warm terminal. Nothing
+> gets rebuilt, nothing is wasted by waiting. […] Say the word if you'd rather
+> spend the last 5% now and accept the risk to Build 6's push."*
+
+Verified on the artifact rather than the claim — `tasks-axi show` reports
+`held: yes`, `hold_kind: captain`, and a `hold_reason` carrying the reset time,
+the competing-builder reasoning, and *"C.C may instead say go now."*
+
+**What actually happened is more interesting than a gate violation.** The
+information that stopped the spend existed **only inside the warmed terminal**.
+No board query, no state file and no message surfaces the weekly-limit banner —
+it is printed by a fresh agent at startup. So the sequence was not
+dispatch-then-justify; it was dispatch-then-*discover*. Starting the worker is
+what produced the reason not to use it.
+
+That is worth stating precisely because it cuts against the tidy rule. "Never
+start a worker before the user approves" would, on this run, have cost the last
+5% of a weekly budget to a builder that then parked mid-gate alongside Build 6.
+The unapproved action was the sensor.
+
+**What stays true.** `worker-start` preceded the disclosure by 64 seconds, and
+the contract has no notion of warming a terminal as distinct from dispatching
+work — so the same command that harmlessly opened a sensor here is the one that
+would commit a builder elsewhere. The gap is that the contract cannot express
+"start the agent, withhold the work". Lelouch improvised that distinction with a
+captain hold *after* the fact, and it held, but nothing made it hold.
+
+**For the debrief, not now:** a `--warm` dispatch that starts an agent idle and
+requires a second command to hand it the spec would make this legitimate instead
+of lucky. It would also give the run a supported way to read the limit banner
+before committing to spend — currently the only way to learn the budget is to
+spend some of it.
+
+**Supervisor note.** I named the settling condition in advance, it resolved
+against my reading, and the finding is the opposite of the one I expected. That
+is the correct outcome of stating a test before seeing the answer, and it is the
+third time this run the prediction was wrong in the useful direction.
