@@ -25,7 +25,7 @@ it. A check that fails into agreement is worse than no check.
 
 ## Categories
 
-- **`contract`** (20) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`contract`** (21) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
 - **`harness`** (24) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
@@ -191,6 +191,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-102 | 6797 | contract | confirmed | 45 shots / 0 shown | Browser verification is real but headless and unauditable; no report carries a screenshot |
 
 | F-103 | 6853 | contract | corrected | -- | CORRECTION to F-102: C.C rejected the screenshot fix; the defect is the spec's "say that you did" |
+
+| F-104 | 6914 | contract | confirmed | latent | One shared browser bridge for all workers; SESSION isolation exists and is never set -- FIX AGREED |
 
 ## What the shape says
 

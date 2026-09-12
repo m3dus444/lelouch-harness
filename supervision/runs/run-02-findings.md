@@ -6910,3 +6910,62 @@ worth separating: the *evidence* was right and the *remedy* was unexamined. I
 went from "the proof is discarded" to "so persist the proof" without asking
 whether anyone wanted the proof. **A finding's recommendation deserves the same
 scepticism as its claim**, and mine had none applied to it.
+
+## Every worker shares one browser, and the isolation the tool offers is never set  <!-- F-104 -->
+
+**Category:** contract · **Status:** confirmed · **Cost:** latent; one shared
+bridge all run · **ACTION AGREED WITH C.C — goes into the builder spec**
+
+`chrome-devtools-axi` is not a command, it is a client. A long-lived
+`chrome-devtools-axi-bridge.js` (node, port 9224) owns the Chrome instance; each
+CLI call is a short-lived request against it. That is why page state survives
+between calls, why `HEADED` only takes effect at bridge startup, and why
+restarting the bridge moves the snapshot session id.
+
+**The tool ships isolation and nothing uses it:**
+
+```
+CHROME_DEVTOOLS_AXI_SESSION   Named session for concurrent isolation. Each session name
+                              gets its own bridge process, port, and on-disk state, so
+                              multiple sessions run at once without colliding.
+                              Defaults to "default" (port 9224).
+```
+
+Across **40 weave-atlas transcripts**, `CHROME_DEVTOOLS_AXI_SESSION` is set
+**15 times, all by one worker** — `wa-design-system` on 8 Sep, which invented
+`wa-file`, `wa-cmp` and `wa-final` for its own concurrent checks. It appears
+nowhere in `CLAUDE.md` and nowhere in the builder spec. **Every other worker in
+the run shares `default` on 9224.**
+
+**What that costs, and why it is invisible.** Two workers verifying at the same
+time drive the same tabs. `open`, `resize`, `selectpage` each mutate state the
+other is reading — and a page that changed underneath you looks exactly like a
+page that rendered wrong. `wa-graph-surface` and `wa-anchor-not-yet` both did
+browser work in overlapping windows on that shared bridge. Nothing detected
+anything, because there is nothing to detect: no error, no warning, just a
+snapshot that may or may not be of your own page.
+
+**It also makes a per-spec setting behave globally.** Lelouch offered to make
+headed the default for UI worker specs. On the current shape that flips the
+bridge **for everyone**, including a backend worker mid-verification, whose
+browser is restarted out from under it.
+
+**AGREED FIX — two variables in the builder spec, not one:**
+
+```
+CHROME_DEVTOOLS_AXI_SESSION=<ticket-name>   # every browser-using worker
+CHROME_DEVTOOLS_AXI_HEADED=1                # UI specs only
+```
+
+C.C's decision, recorded: **SESSION set per ticket; UI builders on their own
+headed bridges; backend builders headless; no interference.** `SESSION` is what
+makes `HEADED` a per-spec choice instead of a global toggle — without it the
+second variable is a machine-wide switch wearing a per-worker disguise.
+
+**Second-order observation worth carrying.** Five bridge processes are alive and
+only one is listening on a port; the other four are leaked from earlier sessions.
+Same accumulation shape as the six orphaned worktree directories — a resource
+whose cleanup is best-effort and whose leak is invisible to every tool that lists
+it. And `wa-design-system` reaching for session isolation unprompted is the
+second time in this run a worker found a mechanism the contract never mentions,
+after the sibling-worktree hunt in [F-094](#).
