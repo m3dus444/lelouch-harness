@@ -6849,3 +6849,64 @@ shows the page it changed is reviewable by a human who was asleep when it ran;
 the headless profile is even the right target: it never has C.C's extensions,
 cookies, or window size, so "works in the browser" means "works in *a* browser
 nobody uses".
+
+## CORRECTION to F-102 — the screenshots were the wrong fix; the prose is the defect  <!-- F-103 -->
+
+**Category:** contract · **Status:** corrected · **Cost:** none · **C.C rejected
+the recommendation and was right**
+
+[F-102](#) ended by asking for durable screenshot paths in `worker_done`. C.C:
+
+> *"I don't think the screenshots are useful at all even if they weren't lost.
+> The agent can check on the webpage directly that it works (looking at the
+> rendered html etc). I won't even look at the screenshots — for me it just adds
+> one more thing to take care of in the system."*
+
+That is correct and it retires the recommendation. The agent reading the DOM and
+the accessibility tree **is** the verification; a PNG is a lossier copy of what
+it already inspected, and an artifact nobody opens is upkeep, not evidence.
+[F-102](#)'s facts stand — headless, own profile, 45 shots, 0 delivered — but I
+proposed plumbing where the defect is one clause of English.
+
+**The real defect, stated properly.** The spec's closing instruction is *"Say in
+your report that you did."* That asks for an **assertion**, and assertions are
+unfalsifiable. Twenty-seven of thirty reports skipped it entirely and nothing
+noticed, because there is nothing to notice.
+
+**The counter-example arrived the same hour, unprompted.** `wa-06a-paging`, in
+its escalation:
+
+> *"Verified live in a browser: 'papers cited more than 10,000' opens as the
+> graph, and only after switching to Table is the pager reachable."*
+
+Named search, named observed behaviour, named the interaction that revealed it.
+A reader who was asleep can audit that sentence against the app in fifteen
+seconds. **No artifact, no storage, no lifecycle.** That is what the spec should
+be asking for.
+
+**Revised recommendation, replacing [F-102](#)'s:** change *"Say in your report
+that you did"* to *"say what you drove and what you saw"*. One clause, no
+tooling, no files to manage, and it converts an unfalsifiable claim into a
+checkable one.
+
+**Two mode facts worth recording while they are in hand**, from
+`chrome-devtools-axi --help`:
+
+```
+CHROME_DEVTOOLS_AXI_HEADED        1 = visible window (its own profile)
+CHROME_DEVTOOLS_AXI_AUTO_CONNECT  1 = drive the user's running Chrome (144+),
+                                      needs remote debugging enabled
+CHROME_DEVTOOLS_AXI_BROWSER_URL   connect to an existing instance
+```
+
+Headless needs no setup because Puppeteer launches its own browser over
+`--remote-debugging-pipe`, not a TCP port — which is why nothing ever had to be
+turned on. The visible-browser behaviour C.C remembered from the skill's demo is
+`HEADED=1`, a mode this run has never used.
+
+**The pattern in my own errors, fourth instance.** [F-090](#), [F-099](#),
+[F-100](#) were conclusions drawn past the evidence. This one is different and
+worth separating: the *evidence* was right and the *remedy* was unexamined. I
+went from "the proof is discarded" to "so persist the proof" without asking
+whether anyone wanted the proof. **A finding's recommendation deserves the same
+scepticism as its claim**, and mine had none applied to it.
