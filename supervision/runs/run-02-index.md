@@ -198,7 +198,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-106 | 7048 | harness | confirmed | 0 of 300 files lost — FIX AGREED | Orphan sweep is provably safe today, but the proof dies with `.git` — verify before removal, not after |
 
-| F-107 | 7132 | contract | confirmed | spend avoided | Dispatch preceded disclosure by 64s — but the warmed terminal is the only place the 95% limit banner exists; the unapproved action was the sensor |
+| F-107 | 7132 | contract | confirmed | spend avoided | Dispatch preceded disclosure by 64s — but the warmed terminal is the only place the 95% limit banner exists; the unapproved action was the sensor; C.C ruled hold, but `--until` is day-granular so nothing fires at the reset |
 
 ## What the shape says
 

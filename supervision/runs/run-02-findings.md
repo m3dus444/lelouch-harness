@@ -7226,3 +7226,32 @@ spend some of it.
 against my reading, and the finding is the opposite of the one I expected. That
 is the correct outcome of stating a test before seeing the answer, and it is the
 third time this run the prediction was wrong in the useful direction.
+
+> **Resolved 12 Sep 01:29Z, and the resolution exposes a smaller gap.** C.C
+> ruled: *"alright good call let's just hold until the reset."* Lelouch rewrote
+> the hold to carry the ruling **in C.C's own words**, plus the worktree path,
+> the base sha, the warm terminal id, the task id, the spec location, and a
+> recovery path (*"If the terminal has died by then, warm a new one and dispatch
+> with `--retry-of`"*). That is the counter-example to the `ec5900f0` loss arc
+> ([F-087](#)–[F-090](#)): a decision written where the board can be read, not
+> held in a session's head.
+>
+> **But nothing fires at the reset.** `tasks-axi hold` offers `--until
+> YYYY-MM-DD`, documented as *"date gate; inactive on and after that date"* —
+> **day granularity only**. The reset is 17:00 Europe/Paris *on the same day*, so
+> `--until 2026-09-12` reads as already-expired and `--until 2026-09-13` overshoots
+> by a full day. The hold cannot be expressed in the field built for it, which is
+> why `hold_until` is `-` and the time lives in prose. Verified against the
+> command's own help, not inferred.
+>
+> So the resumption is a **pull, not a push**: it happens if someone reads the
+> board after 15:00Z, or if Lelouch is alive and remembers. In a run that has
+> spent four days documenting background processes reaped without notice
+> (entries 12–15, [F-084](#)), "an agent will remember in thirteen hours" is the
+> weakest link in an otherwise well-staged hold. The staging is excellent and
+> the trigger does not exist.
+>
+> **For the debrief:** intra-day holds need either a timestamp granularity on
+> `--until`, or an explicit convention that a hold whose condition is a clock
+> time gets a scheduled wake rather than a prose note. Lelouch did everything the
+> tooling allowed; the tooling stops one field short.
