@@ -7145,3 +7145,25 @@ every single time — including the run where it destroyed uncommitted work.
 > above. The reason to check before removing is not that *these* folders are
 > risky; it is that a folder that aborted before its commit would look exactly
 > like these and leave no way to tell from the inside.
+
+> **Agreed 12 Sep.** C.C: *"ok ok so we go with the command cascade."* The script
+> is staged at `supervision/proposed/worktree-retire.sh` — **staged, not wired
+> in**. Nothing in the live contract or any skill references it yet, because the
+> run is the thing under test and a mid-run edit desynchronises the file on disk
+> from the contract the live session already loaded. It lands at the debrief with
+> the rest.
+>
+> Both guards were exercised rather than reasoned about. Against the live
+> `wa-06a-paging` worktree it correctly refuses — the branch is clean but not yet
+> an ancestor of `master`. In a scratch repo it passes on clean-and-merged and
+> refuses on a single untracked file. The merge test asks `merge-base
+> --is-ancestor` about the *commit*, not the branch name, so a branch renamed or
+> recreated on the remote still answers correctly. Removal requires `--yes`; the
+> default is a dry run.
+>
+> One deliberate choice worth recording: the repair announces itself
+> (`NOTE: orca left the directory behind`) instead of cleaning up quietly. On a
+> healthy removal it is a no-op, so every time it speaks it is evidence that
+> [F-105](#) is still unfixed upstream. A silent repair would hide the bug it
+> exists to work around, and this log has spent four days on instruments that
+> reported cleanly while looking at the wrong surface.

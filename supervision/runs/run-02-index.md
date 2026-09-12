@@ -196,7 +196,7 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-105 | 6973 | harness | confirmed | 592 MB / 4 days | Worktree removal de-registers before deleting; orphans are invisible to both registries |
 
-| F-106 | 7048 | harness | confirmed | 0 of 300 files lost | Orphan sweep is provably safe today, but the proof dies with `.git` — verify before removal, not after |
+| F-106 | 7048 | harness | confirmed | 0 of 300 files lost — FIX AGREED | Orphan sweep is provably safe today, but the proof dies with `.git` — verify before removal, not after |
 
 ## What the shape says
 
