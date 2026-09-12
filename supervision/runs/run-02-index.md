@@ -27,7 +27,7 @@ it. A check that fails into agreement is worse than no check.
 
 - **`contract`** (21) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (25) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (26) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (13) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -196,12 +196,19 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-105 | 6973 | harness | confirmed | 592 MB / 4 days | Worktree removal de-registers before deleting; orphans are invisible to both registries |
 
+| F-106 | 7048 | harness | confirmed | 0 of 300 files lost | Orphan sweep is provably safe today, but the proof dies with `.git` — verify before removal, not after |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`gate` (15)**, **`harness` (14)** and **`contract` (12)**.
-`gate` has overtaken `harness` since that sentence was first written. There is no
+are concentrated in **`harness` (20)**, **`gate` (18)** and **`contract` (17)**.
+These are recomputed from the rows above, not carried forward: the figures
+standing here until 12 Sep read 15/15/12, drifting further from the table
+with every finding banked, and I nearly "updated" them by hand a fourth
+time. A count kept by hand beside the data it counts is not a summary, it is
+a second source that silently disagrees. Recompute:
+`awk -F'|' '$4==" harness " && $5==" confirmed "' run-02-index.md | wc -l`. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout
 terminal leak is a harness fault; the builders' own mistakes were caught by

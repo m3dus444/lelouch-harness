@@ -7026,6 +7026,83 @@ one that forgot them.
 run's most repeated lesson and it has now appeared in a counter, an alarm, and a
 pair of registries.
 
+> **Amended 12 Sep, after measuring instead of inferring.** I wrote the above as
+> though the disk step never started. It started. Each orphan is missing
+> **327–336 of roughly 390** tracked files, and `.gitignore` is among the
+> casualties while `src/` survives. The recursive delete *ran and aborted
+> partway*. That also explains why `node_modules` reads as untracked in every
+> orphan: with `.gitignore` deleted, nothing ignores it any more. The defect is
+> not a step that was skipped — it is a step that fails silently, with no
+> completion check and no error surfaced to either registry. `orca worktree rm`
+> has no flag governing this: the surface is `--worktree`, `--force`,
+> `--run-hooks`, `--json`, and the command's own description is *"Remove a
+> worktree from Orca and git"* — disk is not a named party. C.C asked whether
+> such a flag existed; it does not. What the abandoned bytes are actually worth
+> is measured in [F-106](#).
+
 **Sweeping is safe** — no git linkage, no branch refs, and every owning ticket
 merged (PRs #8, #11, #12, #14, #19). The value is not the 592 MB; it is that
 nothing would have told anyone.
+
+## Orphan sweeping is provably safe, and the proof expires when the worktree detaches  <!-- F-106 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** none yet — this is the
+fix for [F-105](#) · **Prompted by C.C**
+
+C.C's read: *"if what's inside is already on git after the merge then its useless
+no? we can still retrieve work if needed. so maybe we should just rm the worktree
+folder after orca's command."* Correct, and now measured rather than assumed.
+
+**The test.** For every file in the six orphans outside `node_modules`, hash the
+on-disk bytes and ask the main repo whether that blob exists at all:
+
+```
+git hash-object <file>  →  git cat-file -e <sha>
+```
+
+This is the right question. "Does it differ from `master`?" is the wrong one —
+almost every file differs, because `master` moved on after those branches merged.
+Drift is not loss. Blob existence is.
+
+| directory | files checked | bytes **not** anywhere in git |
+|---|---|---|
+| `wa-anchor-not-yet` | 61 | **0** |
+| `wa-graph-surface` | 62 | 1 |
+| `wa-landing-route` | 53 | 1 |
+| `wa-traversal-institution` | 65 | 4 |
+| `wa-app-shell` | 59 | 7 |
+
+All thirteen exceptions are generated state: `tsconfig.tsbuildinfo`, and the
+runtime sqlite files with their `-wal`/`-shm` siblings. Opened rather than
+assumed — `wa-app-shell`'s ledger holds **1 call row** and its cache **24
+entities**; `wa-traversal-institution`'s ledger holds **0**. No worker's writing
+survives only on disk. The 591 MB is recoverable content plus build cache.
+
+**But the proof has a shelf life, and that is the finding.** It works only
+because the main repo still holds the objects and those branches were merged. By
+the time a directory *is* an orphan, `.git` is severed — `git status` no longer
+runs there, and the question "was anything uncommitted?" has become unanswerable
+from inside the folder. Today's answer is safe; a future orphan created by an
+abort *before* a commit would look identical and would not be.
+
+So the wrapper must verify while the worktree is still attached, not after:
+
+```sh
+git -C "$WT" status --porcelain          # must be empty
+git branch --merged master | grep -q "$BR"
+orca worktree rm --worktree "path:$WT" --force
+[ -d "$WT" ] && rm -rf "$WT"             # only reached if both checks passed
+```
+
+`--force` earns its place twice: it gets git past a locked tree, and a live
+handle in `node_modules` on Windows is the most likely cause of the abort
+[F-105](#) documents. The `[ -d ]` guard is what makes this a *repair* rather
+than a duplicate delete — on a healthy removal it is a no-op.
+
+**The general shape, for the fourth time today.** The registries are correct and
+reality disagrees ([F-105](#)); the drift check agreed with itself at 99/100
+([F-100](#)); `fanwatch` went mute below its own floor (entry 22). Here the same
+trap nearly caught the *fix*: a blind `rm -rf` appended to the removal would
+inherit exactly the silence it is meant to repair, and would look like it worked
+every single time — including the run where it destroyed uncommitted work.
+**A cleanup step needs a precondition it can fail.**
