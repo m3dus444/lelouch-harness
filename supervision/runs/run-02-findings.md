@@ -7106,3 +7106,42 @@ trap nearly caught the *fix*: a blind `rm -rf` appended to the removal would
 inherit exactly the silence it is meant to repair, and would look like it worked
 every single time — including the run where it destroyed uncommitted work.
 **A cleanup step needs a precondition it can fail.**
+
+> **Extended 12 Sep — the abort has a boundary, and it is alphabetical.** C.C
+> asked whether the survivors were the gitignored files and the casualties the
+> committed ones. They are not, and the real answer is more mechanical. Top level
+> of `wa-app-shell`, in sort order:
+>
+> ```
+> .gitattributes  tracked  DELETED     node_modules       ignored  PRESENT
+> .github         tracked  DELETED     package.json       tracked  PRESENT
+> .gitignore      tracked  DELETED     package-lock.json  tracked  PRESENT
+> .oxlintrc.json  tracked  DELETED     README.md          tracked  PRESENT
+> app             tracked  DELETED     scripts            tracked  PRESENT
+> design          tracked  DELETED     src                tracked  PRESENT
+> docs            tracked  DELETED     tsconfig.json      tracked  PRESENT
+>                                      vitest.config.ts   tracked  PRESENT
+> ```
+>
+> **Everything sorting before `node_modules` is gone; `node_modules` and
+> everything after it is untouched.** Tracked status is irrelevant — both sides
+> of the boundary are almost entirely tracked. The delete walks entries in sort
+> order, reaches a 3,700-file tree containing a live `esbuild.exe`, and dies
+> there. Verified identical in all five non-empty orphans. `wa-ci-workflow` is
+> the control: it never ran an install, had nothing to choke on, and emptied
+> completely — which is why it is a husk rather than a partial tree.
+>
+> **Two consequences.** The leftovers are not a backup of anything: no `app/`,
+> no `docs/`, no `design/`, no `.gitignore`. The tree cannot be built or run, and
+> keeping it preserves an arbitrary alphabetical slice, not a snapshot. And the
+> removal is *doubly* incomplete — the owning branches
+> (`m3dus444/wa-*`) still exist locally **and on the `no-mistakes` remote**,
+> despite the command documenting that it "attempts to delete the checked-out
+> local branch". So the full state is recoverable from its own branch tip, and
+> every surviving blob is additionally reachable from `master` (52 of 52 in
+> `wa-app-shell`, zero unreachable) — there is no GC horizon to race.
+>
+> This strengthens rather than weakens the precondition in the sweep script
+> above. The reason to check before removing is not that *these* folders are
+> risky; it is that a folder that aborted before its commit would look exactly
+> like these and leave no way to tell from the inside.
