@@ -27,7 +27,7 @@ it. A check that fails into agreement is worse than no check.
 
 - **`contract`** (21) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
 - **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (24) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`harness`** (25) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (13) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -193,6 +193,8 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-103 | 6853 | contract | corrected | -- | CORRECTION to F-102: C.C rejected the screenshot fix; the defect is the spec's "say that you did" |
 
 | F-104 | 6914 | contract | confirmed | latent | One shared browser bridge for all workers; SESSION isolation exists and is never set -- FIX AGREED |
+
+| F-105 | 6973 | harness | confirmed | 592 MB / 4 days | Worktree removal de-registers before deleting; orphans are invisible to both registries |
 
 ## What the shape says
 

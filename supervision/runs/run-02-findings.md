@@ -6969,3 +6969,63 @@ whose cleanup is best-effort and whose leak is invisible to every tool that list
 it. And `wa-design-system` reaching for session isolation unprompted is the
 second time in this run a worker found a mechanism the contract never mentions,
 after the sibling-worktree hunt in [F-094](#).
+
+## Worktree removal de-registers before it deletes, and nothing lists the difference  <!-- F-105 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** 592 MB in six
+directories, unnoticed for four days · **Surfaced by Lelouch, verified here**
+
+Lelouch reported six orphaned directories after `wa-anchor-not-yet`'s removal hit
+`runtime_unavailable` mid-operation — *"the connection drops after the
+bookkeeping and before the disk work"*. Verified independently:
+
+```
+on disk (7)                    git worktree list (2)      orca worktree list (3)
+wa-06a-paging            <-    wa-06a-paging         <-   wa-06a-paging
+wa-anchor-not-yet                    --                          --
+wa-app-shell                         --                          --
+wa-ci-workflow                       --                          --
+wa-graph-surface                     --                          --
+wa-landing-route                     --                          --
+wa-traversal-institution             --                          --
+```
+
+| directory | size | `.git` |
+|---|---|---|
+| `wa-anchor-not-yet` | 121 MB | severed |
+| `wa-graph-surface` | 121 MB | severed |
+| `wa-traversal-institution` | 117 MB | severed |
+| `wa-app-shell` | 116 MB | severed |
+| `wa-landing-route` | 116 MB | severed |
+| `wa-ci-workflow` | **1 MB, 0 entries** | severed |
+| | **592 MB** | |
+
+**The ordering is the defect.** Removal de-registers from Orca, de-registers from
+git, then deletes from disk. A drop between step two and step three commits the
+bookkeeping and abandons the bytes. Every orphan shows `.git` severed, which
+confirms git's half completed — these are not worktrees holding recoverable
+commits, just file trees, overwhelmingly `node_modules`.
+
+**And the delete is partial, not all-or-nothing.** `wa-ci-workflow` is **empty**:
+1 MB, zero entries. The sweep got through its contents and died before removing
+the directory itself. So an orphan can be a full tree or a husk, and a cleanup
+script cannot assume which.
+
+**Why four days passed.** Both listing tools read the **registry**, not the disk,
+and after de-registration the registry is *correct*. There is no inconsistency
+for either tool to report — `git worktree list` and `orca worktree list` are both
+telling the truth. Detecting this requires diffing the workspaces directory
+against the registry, and **no component owns that comparison**. C.C could not
+find the directories precisely because the interface that would show them is the
+one that forgot them.
+
+**Third instance today of the same shape.** The drift check returned a matching
+99/100 and read as healthy ([F-100](#)); `fanwatch` went mute below its own floor
+(entry 22); here two registries agree with each other and disagree with reality.
+**An instrument looking at the wrong surface reports cleanly.** That is the
+run's most repeated lesson and it has now appeared in a counter, an alarm, and a
+pair of registries.
+
+**Sweeping is safe** — no git linkage, no branch refs, and every owning ticket
+merged (PRs #8, #11, #12, #14, #19). The value is not the 592 MB; it is that
+nothing would have told anyone.
