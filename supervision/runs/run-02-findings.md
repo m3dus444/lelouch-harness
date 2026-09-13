@@ -7255,3 +7255,172 @@ third time this run the prediction was wrong in the useful direction.
 > `--until`, or an explicit convention that a hold whose condition is a clock
 > time gets a scheduled wake rather than a prose note. Lelouch did everything the
 > tooling allowed; the tooling stops one field short.
+
+## A worker recovering its own gate killed another's CI monitor, and the death notice was already false  <!-- F-108 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** one run left unclosable,
+and a board that still disagrees with GitHub
+
+At 15:45 the `wa-cache-projection-doorway` worker found its own gate would not
+start, ran `no-mistakes doctor`, and then `no-mistakes daemon start`. The daemon
+is **global** — one `~/.no-mistakes/state.sqlite`, one process for every
+worktree. Seconds later `wa-06a-paging`'s run `01M29FZHN2WVEP7VN4WX0W5EPF` moved
+to `ci_monitor_interrupted`, its `ci` step marked `skipped`, carrying:
+
+```
+ci   skipped   start 02:14:52Z   done 15:45:17Z   last_act 10:01:51Z
+     last: all CI checks passed - still monitoring until merged or closed
+     err:  ci monitor interrupted by daemon restart; PR remains open
+```
+
+**The second half of that error was false when it was written.** PR #24 merged at
+**15:27:35Z** — seventeen minutes and forty-two seconds earlier. The gate did not
+check; it reported `pr_state` from an observation made at **10:56:23Z**, four
+hours and forty-nine minutes stale. Hours later the row still read `open` for a
+PR long since merged.
+
+So the shape is not "a restart killed a healthy monitor". It is:
+
+1. A shared resource one worker is entitled to restart, and another worker's
+   live work silently depends on.
+2. A status line that asserts a remote condition from a stale cache, at the exact
+   moment it is admitting it has stopped looking.
+
+The second is the more dangerous, and it is [F-087](#)'s family: a gate
+advertising a state it has not verified. F-087 was a PR advertising green CI for
+a head its branch had moved past. This is a run advertising an open PR it had
+stopped watching five hours earlier. Both read as fact, and both are the last
+thing anyone would re-check, because the sentence sounds like a measurement.
+
+**What it cost.** Nothing was lost — the merge happened, the work is on master.
+But the run cannot close itself: it is waiting on a merge it will never observe,
+so its worktree and terminal stay parked until someone retires them by hand, and
+the board's `pr_state` disagrees with GitHub indefinitely. That is [F-105](#)'s
+orphan problem arriving by a different road.
+
+**Two fixes, and the cheap one is not the obvious one.** Isolating the daemon per
+worktree is the structural answer and the expensive one. The cheap one is to stop
+the interruption notice claiming anything it has not just checked: write
+`PR state last observed 10:56:23Z (4h49m ago)` rather than `PR remains open`. An
+honest staleness stamp would have made this finding unnecessary, because the
+first reader would have seen it.
+
+## F-060's unrecoverable cause is recoverable, from a table F-060 never read  <!-- F-109 -->
+
+**Category:** harness · **Status:** confirmed — corrects [F-060](#) · **Cost:**
+one review pass re-spent, two commits reapplied by hand
+
+[F-060](#) established that every gate failure records the same error — the
+`dopecert.cer` warning, which is stderr noise on every Node invocation here and
+has never caused anything. Its closing claim was that the real cause "was never
+recorded and is now unrecoverable from state."
+
+**It is recoverable.** The signature now covers **15 runs across 6 days and 10
+branches** (`select id,branch from runs where error like '%claude exited%'`), up
+from the six F-060 counted. And `agent_invocations` — which F-060 did not use —
+records what the `runs` table throws away. The failed `test` invocation on
+`01M2B4QHS0Z9`, beside the successful `review` invocations from the same run:
+
+| field | failed `test` | successful `review` |
+|---|---|---|
+| `model` | *empty* | `claude-opus-5` |
+| `model_provider` | `None` | `anthropic` |
+| `session_key` | *empty* | `d44069c6b293d374` |
+| input / output / cache-read | 0 / 0 / 0 | 84 / 137 / 2,657,445 |
+| `duration_ms` | 620,965 | 401,349 |
+| `exit_status` | `error` (`failure_category: exit`) | `ok` |
+
+Ten minutes and twenty-one seconds of wall clock, no model bound, no session key,
+not one token in any direction.
+
+**What it was.** The worker's own PR body names it: *"the previous run failed at
+the test step when its agent was killed under system memory pressure, losing its
+two fix commits (nothing was ever pushed, so nothing is stranded)."* That fits
+the row — a killed process loses its token accounting on the way out, so zero
+tokens is what a `SIGKILL` looks like from here, and this environment has a
+documented reaper (instrument-log entry 15, [F-084](#)).
+
+**Recorded as a correction to myself, because I got there first and wrongly.** I
+read the same row as the CLI never establishing a session, and reframed the whole
+class as a startup-layer bug. Memory pressure fits the evidence at least as well
+and had a witness. The measurement that would have settled it — free RAM at
+16:28 — did not exist, because `fanwatch.py` was not armed. It was armed
+immediately afterwards, and every subsequent reading sat at 4.1–4.9 GB free.
+
+**The cost is in the recovery, not the crash.** The failed invocation spent
+nothing. But the retry **starts a new run rather than resuming the failed one**,
+so `review` runs again from round one: one clean pass, 2,109,276 cache-read
+tokens, 328s, 0 findings — the tree already carried the fixes. And the two fix
+commits the kill destroyed were **reapplied by hand** from the findings rather
+than regenerated. So an F-060 failure costs roughly one review pass plus whatever
+uncommitted work the agent was holding.
+
+An earlier estimate in this session put that at 13M tokens by assuming the retry
+would repeat all three rounds. It does not: rounds two and three existed only
+because there were findings to fix, and a clean tree passes first time.
+
+## Two builders raced for the same PR number, and git history keeps the loser's mistake  <!-- F-110 -->
+
+**Category:** gate · **Status:** confirmed — [F-059](#) realised · **Cost:** one
+permanent wrong cross-reference
+
+[F-059](#) recorded that the gate writes a PR number into a commit message before
+the PR exists. It had never visibly cost anything, and this is why: run builders
+one at a time and the guess is nearly always right.
+
+Run two at once and it is not a guess, it is a race.
+
+| time | event |
+|---|---|
+| 19:02 | `wa-tracer-followups` commits `7b95f89 fix(http): … (#25)` |
+| 19:06 | `wa-cache-projection-doorway`'s gate opens **PR #25** |
+| 19:26 | tracer pushes — the reference becomes immutable |
+| 19:28 | tracer's gate opens **PR #26** |
+
+So `7b95f89`'s message points at a PR containing entirely unrelated work, and
+will forever unless the branch is rewritten before merge.
+
+**The part worth keeping is why it happened tonight and not before.** The
+doorway's `test` step was killed ([F-109](#)) and its run restarted, delaying its
+PR by roughly forty minutes. Without that delay the doorway takes #25 long before
+the tracer commits, the tracer predicts #26, and everything looks correct. **The
+collision rate is a function of gate timing — not of anything a worker does.**
+One defect made another visible, which is the only reason F-059 stopped being
+theoretical.
+
+**Fix:** write the PR reference after the PR exists, or not at all. A commit
+message that names its own PR is a convenience; a commit message that names
+someone else's is a lie with a link.
+
+## The supported way to read a finding truncates it, so agents read the database and then fight the shell  <!-- F-111 -->
+
+**Category:** harness · **Status:** confirmed · **Cost:** one correction
+round-trip per accurately-quoted finding
+
+Two workers tonight, independently, read `~/.no-mistakes/state.sqlite` directly
+instead of using `no-mistakes axi`. The first time I noted it as odd. The second
+time the escalation said why, in its own subject line:
+
+> *FINDING VERBATIM (pulled in full from state.sqlite, **not the truncated TOON
+> view**)*
+
+So it is not habit. The sanctioned read path is **lossy for finding text**, and a
+worker that must quote a finding accurately to its coordinator cannot get it from
+the supported interface. What follows is three defects compounding:
+
+1. `no-mistakes axi` truncates the finding, so the worker goes to sqlite.
+2. There is no structured relay, so the text must go back out through
+   `orca orchestration send --body "…"`.
+3. Shell quoting mangles it — findings are full of backticks — so the worker sent
+   a **correction** thirty seconds later: *"CORRECTION: verbatim text of the
+   parked gate finding (backticks were mangled)"*, this time via a temp file and
+   `$(cat …)`.
+
+The other worker paid the same tax differently, burning two turns on malformed
+sqlite queries (`no such column: step`; `'str' object has no attribute 'get'`)
+because the schema is undocumented tribal knowledge each worker rediscovers.
+
+**This is the cheapest of tonight's findings to fix and the most often hit.**
+Either stop truncating findings in the view agents are told to use, or give
+`orca orchestration send` a `--body-file`. Either one alone removes the
+round-trip.

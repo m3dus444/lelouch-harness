@@ -200,15 +200,23 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 
 | F-107 | 7132 | contract | confirmed | spend avoided | Dispatch preceded disclosure by 64s — but the warmed terminal is the only place the 95% limit banner exists; the unapproved action was the sensor; C.C ruled hold, but `--until` is day-granular so nothing fires at the reset |
 
+| F-108 | 7259 | harness | confirmed | 1 run unclosable | The no-mistakes daemon is global: one worker's recovery restart killed another's CI monitor — and the notice said "PR remains open" 17m after the merge, from a 4h49m-stale read |
+
+| F-109 | 7308 | harness | corrected | 1 review re-spent | CORRECTION to F-060: the cause IS recoverable, from `agent_invocations` — 10m21s, no model, no session, 0 tokens; a memory kill, and the cost is the retry, not the crash |
+
+| F-110 | 7362 | gate | confirmed | 1 permanent wrong ref | F-059 realised: two parallel builders raced for PR #25; the loser's commit message points at the winner's PR forever. Collision rate is gate timing, not worker behaviour |
+
+| F-111 | 7395 | harness | confirmed | 1 round-trip per quote | The supported finding view truncates, so workers read state.sqlite and then fight shell quoting to relay it — lossy view, no structured relay, mangled backticks |
+
 ## What the shape says
 
 Counting **confirmed** rows only -- the reproducible rule, since the earlier
 numbers here matched neither the totals nor the confirmed counts -- the defects
-are concentrated in **`harness` (20)**, **`gate` (18)** and **`contract` (17)**.
+are concentrated in **`harness` (22)**, **`gate` (19)** and **`contract` (18)**.
 These are recomputed from the rows above, not carried forward: the figures
-standing here until 12 Sep read 15/15/12, drifting further from the table
-with every finding banked, and I nearly "updated" them by hand a fourth
-time. A count kept by hand beside the data it counts is not a summary, it is
+standing here until 12 Sep read 15/15/12, then 20/18/17 — and that last set was
+already one short on `contract` before F-108 was written, drifting again in
+exactly the way this paragraph warns about. A count kept by hand beside the data it counts is not a summary, it is
 a second source that silently disagrees. Recompute:
 `awk -F'|' '$4==" harness " && $5==" confirmed "' run-02-index.md | wc -l`. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
