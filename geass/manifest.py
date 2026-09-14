@@ -208,4 +208,5 @@ def platform_notes(system: str) -> str:
 # `skills/vanilla` and `skills/patched`.
 OWN = {
     "britania-board": "project state as one table: tickets, workers, gate stages, queue",
+    "britania-vitals": "machine and session vitals, a dispatch gate, and the unattended watcher",
 }
