@@ -179,11 +179,28 @@ def gate_rows() -> dict[str, dict]:
 
     out: dict[str, dict] = {}
     try:
-        runs = con.execute(
-            "select id, branch, status, pr_url, pr_state, pr_state_observed_at,"
-            "       awaiting_agent_since, error"
-            "  from runs order by created_at desc"
-        ).fetchall()
+        # Scope to THIS repo. The gate's database is machine-wide: `runs` covers
+        # every project that has ever been gated here, joined to a checkout only
+        # through `repos.working_path`. Without this filter a board for one
+        # project cheerfully reports another project's tickets, which is both
+        # wrong and completely plausible-looking.
+        here = os.path.normcase(os.path.abspath(os.getcwd())).replace("\\", "/").rstrip("/")
+        repo_ids = [
+            r[0] for r in con.execute("select id, working_path from repos")
+            if r[1] and os.path.normcase(os.path.abspath(str(r[1]))).replace("\\", "/").rstrip("/") == here
+        ]
+        if repo_ids:
+            marks = ",".join("?" * len(repo_ids))
+            runs = con.execute(
+                "select id, branch, status, pr_url, pr_state, pr_state_observed_at,"
+                "       awaiting_agent_since, error"
+                f"  from runs where repo_id in ({marks}) order by created_at desc",
+                repo_ids,
+            ).fetchall()
+        else:
+            # No gate has ever run here. Reporting the machine's other projects
+            # would be worse than reporting nothing.
+            return {}
         for rid, branch, status, pr_url, pr_state, observed, awaiting, error in runs:
             key = (branch or "").rsplit("/", 1)[-1]
             if key in out:

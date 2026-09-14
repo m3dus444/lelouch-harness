@@ -35,6 +35,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 IS_WIN = sys.platform.startswith("win")
 
@@ -370,15 +371,34 @@ def wake(handle: str, text: str, dry: bool) -> bool:
                "--text", text, "--enter"], timeout=30) is not None
 
 
+def user_is_away(project: str) -> bool:
+    """Read britania-afk's marker rather than trusting a flag.
+
+    `--present` was a flag someone had to remember to pass, and the one time it
+    is wrong is the time it matters. The AFK marker is the same signal, already
+    written deliberately by the person who left.
+    """
+    marker = Path(project) / ".lelouch" / "afk.json"
+    if not marker.exists():
+        return False
+    try:
+        json.loads(marker.read_text(encoding="utf-8"))
+        return True
+    except (OSError, json.JSONDecodeError):
+        return False
+
+
 def tick(args, handle: str | None, fired: set[str]) -> set[str]:
     """One check, and a wake if something breached. Returns what is breaching now."""
     v = collect(args.path, args.provider)
     current = {b.split()[0] for b in v["blocks"]}
+    # Explicit --present still wins; otherwise the marker decides.
+    present = args.present or not user_is_away(args.path)
 
     for kind in sorted(current - fired):
         detail = next(b for b in v["blocks"] if b.startswith(kind))
         print(f"{datetime.now():%H:%M:%S}  BREACH  {detail}", flush=True)
-        if args.present:
+        if present:
             # C.C is at the keyboard: warn, never act for them.
             print("        (user present -- warning only, taking no action)", flush=True)
         else:
@@ -439,7 +459,8 @@ def main() -> int:
     ap.add_argument("--json", action="store_true", help="machine-readable")
     ap.add_argument("--interval", type=int, default=300, help="seconds between checks in --watch")
     ap.add_argument("--terminal", help="coordinator terminal handle for --watch")
-    ap.add_argument("--present", action="store_true", help="user is at the keyboard: warn, never act")
+    ap.add_argument("--present", action="store_true",
+                    help="force warn-only; otherwise britania-afk's marker decides")
     ap.add_argument("--dry-run", action="store_true", help="print what --watch would send")
     ap.add_argument("--path", default=os.getcwd(), help="volume to measure disk on")
     ap.add_argument("--provider", default="claude")

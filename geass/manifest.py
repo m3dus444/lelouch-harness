@@ -174,6 +174,7 @@ PAYLOAD = [
 # Paths geass adds to the target's .gitignore, with the reason as a comment.
 GITIGNORE_ENTRIES = [
     (".lavish/", "Lavish review artifacts: transient per-session review surfaces"),
+    (".lelouch/", "Orchestrator session state: the AFK marker and its event log"),
 ]
 
 # Text file suffixes that get placeholder substitution.
@@ -212,4 +213,5 @@ OWN = {
     "britania-restore": "rebuild a session's state after a crash, power cut or /clear (user-invoked)",
     "britania-resume": "restart stopped work without redoing it; fast-forward before nudging (user-invoked)",
     "grill-with-lavish": "the intake interview as a Lavish artifact; calls domain-modeling every round",
+    "britania-afk": "work unattended and report once; also tells the watcher to act (user-invoked)",
 }
