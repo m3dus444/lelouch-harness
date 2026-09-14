@@ -91,21 +91,60 @@ RECOMMENDED_SKILLS = {
 
 # Executables the harness shells out to. The -axi CLIs are NOT here: they are
 # fetched on demand by npx, so npx itself is the only requirement for them.
+#
+# `no-mistakes` is the exception, and it is listed because assuming otherwise
+# cost a run. Its SKILL.md is not guidance, it is a driver: it names
+# `no-mistakes axi` 31 times and carries no fallback clause. `npx skills add`
+# fetches that driver and nothing else, so the gate ends up looking installed
+# and being unrunnable -- which is the single worst state for a check to miss.
 REQUIRED_TOOLS = {
     "git": "geass reads the target repo to fill the contract in; workers branch",
     "npx": "the -axi skills fetch their CLIs on demand",
     "orca": "the runtime workers actually run in",
+    "no-mistakes": "the ship gate itself; its skill is only a driver for this binary",
 }
 
 RECOMMENDED_TOOLS = {
     "gh": "the pull-request flow at the end of the ship gate",
 }
 
+# Tools that are not `npx`-reachable and need a named installer. Keyed by the
+# executable name, so a missing tool can print the same shape of hint a missing
+# skill does instead of leaving the reader to search for it.
+TOOL_INSTALL_HINTS = {
+    "no-mistakes": {
+        "Windows": (
+            "irm https://raw.githubusercontent.com/kunchenguid/no-mistakes"
+            "/main/docs/install.ps1 | iex"
+        ),
+        "_": (
+            "curl -fsSL https://raw.githubusercontent.com/kunchenguid/no-mistakes"
+            "/main/docs/install.sh | sh"
+        ),
+    },
+}
+
+
+def tool_install_hint(tool: str, system: str) -> str | None:
+    """How to obtain a missing executable, for the OS geass is running on."""
+    by_platform = TOOL_INSTALL_HINTS.get(tool)
+    if by_platform is None:
+        return None
+    return by_platform.get(system, by_platform["_"])
+
 
 def install_hint(source: str) -> str:
-    """How to obtain a missing skill."""
+    """How to obtain a missing skill.
+
+    `kunchenguid/no-mistakes` is deliberately not the npx form. The skill there
+    is installed BY the binary's own `no-mistakes init`, so pointing at
+    `npx skills add` hands back the driver without its engine -- the exact
+    half-install this manifest exists to prevent.
+    """
     if source == "stablyai/orca":
         return "ships with Orca - enable it in Orca's Agent skills panel"
+    if source == "kunchenguid/no-mistakes":
+        return "installed by `no-mistakes init` - install the binary first"
     return f"npx skills@latest add {source} -g -y"
 
 
