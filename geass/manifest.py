@@ -211,4 +211,5 @@ OWN = {
     "britania-vitals": "machine and session vitals, a dispatch gate, and the unattended watcher",
     "britania-restore": "rebuild a session's state after a crash, power cut or /clear (user-invoked)",
     "britania-resume": "restart stopped work without redoing it; fast-forward before nudging (user-invoked)",
+    "grill-with-lavish": "the intake interview as a Lavish artifact; calls domain-modeling every round",
 }
