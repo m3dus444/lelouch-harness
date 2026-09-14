@@ -27,9 +27,10 @@ OVERLAID = {
     ),
     # Upstream ships these user-invoked only, which is right for a human typing
     # a slash command and wrong here: the contract assigns them to Lelouch, and
-    # a gated skill is one the orchestrator cannot reach. Unlike grill-with-docs
-    # -- a wrapper that decomposes into two skills the model CAN invoke -- these
-    # three have no reachable equivalent, so the gate simply blocks the pipeline.
+    # a gated skill is one the orchestrator cannot reach -- a gate that is
+    # enforced, not advisory, as run 2 confirmed by watching a dispatch to one
+    # of them simply never run. These three have no reachable equivalent, so
+    # the gate blocks the pipeline outright.
     "to-spec": ("model-invocation enabled so Lelouch can run its own pipeline"),
     "wayfinder": (
         "model-invocation enabled; Lelouch is in live conversation with the "
@@ -59,6 +60,13 @@ RENAMED = {
 
 # Skills deliberately NOT vendored, and why.
 EXCLUDED = {
+    # Both are user-invoked wrappers (disable-model-invocation), so Lelouch can
+    # never run them -- run 2 watched a dispatch to grill-with-docs simply never
+    # execute, after which the glossary was written by hand and domain-modeling
+    # was not invoked once in six days. grill-with-lavish replaces both and calls
+    # domain-modeling itself, so the skill that owns the glossary writes it.
+    "grill-me": "superseded by grill-with-lavish; was unreachable by the orchestrator",
+    "grill-with-docs": "superseded by grill-with-lavish, which invokes domain-modeling itself",
     "ask-matt": "a router over the other skills; the contract's routing table replaces it",
     "setup-matt-pocock-skills": "only knows GitHub/GitLab/.scratch; geass writes the tracker config itself",
     "triage": "no triage-label workflow in this harness",
@@ -155,6 +163,11 @@ PAYLOAD = [
     ("docs/agents/issue-tracker.md", "docs/agents/issue-tracker.md"),
     ("docs/agents/domain.md", "docs/agents/domain.md"),
     ("docs/agents/dispatch-templates.md", "docs/agents/dispatch-templates.md"),
+    # Harness behaviour nobody can derive from the docs, learned by paying for
+    # it. It ships because the alternative is what run 2 did: eleven such facts
+    # accumulated in one agent's private per-project memory, so every fresh cast
+    # started blind and relearned them at full price.
+    ("docs/agents/harness-gotchas.md", "docs/agents/harness-gotchas.md"),
     ("hooks/session-start.py", ".claude/hooks/session-start.py"),
 ]
 
