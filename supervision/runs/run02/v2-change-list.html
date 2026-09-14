@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lelouch v2 — change list</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :where(.grid, .flex) > * { min-width: 0; }
+  :where(p, h1, h2, h3, h4, li, dd, td, th, .badge) { overflow-wrap: anywhere; }
+  :where(img, svg, video, canvas) { max-width: 100%; height: auto; }
+  body { background: var(--color-base-200); color: var(--color-base-content); }
+  code.inl { background: var(--color-base-300); padding: .1rem .35rem; border-radius: .25rem; font-size: .85em; }
+  pre.blk { background: var(--color-base-300); padding: .9rem; border-radius: .5rem; overflow-x: auto; font-size: .8rem; line-height: 1.5; }
+  .fig { background: var(--color-base-100); border: 1px solid color-mix(in oklch, var(--color-base-content) 12%, transparent); border-radius: .75rem; padding: 1.25rem; }
+  .lead { font-size: 1.05rem; line-height: 1.7; }
+  .q { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; opacity: .55; }
+  svg text { font-family: ui-sans-serif, system-ui, sans-serif; }
+  .fid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; white-space: nowrap; opacity: .8; }
+  tr.cut { opacity: .32; }
+  tr.cut .why { text-decoration: line-through; }
+  .tbl td, .tbl th { vertical-align: top; }
+  .why { line-height: 1.45; }
+  .cnt { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="max-w-6xl mx-auto px-4 py-10 md:px-8">
+
+<header class="mb-12">
+  <div class="flex flex-wrap gap-2 mb-3">
+    <span class="badge badge-primary badge-soft">Change list</span>
+    <span class="badge badge-ghost">run 02 → v2</span>
+    <span class="badge badge-ghost">91 confirmed findings</span>
+  </div>
+  <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">What goes into v2</h1>
+  <p class="lead max-w-3xl opacity-80">
+    Every <strong>confirmed</strong> finding from run 02, sorted into what we can actually do about it.
+    Uncheck anything you want cut, then queue each section. Only what survives gets written into the
+    payload — which is the point: I should not be shipping contract edits off my own reading.
+  </p>
+</header>
+
+<!-- ===================== THE SHAPE ===================== -->
+<section class="mb-16">
+  <p class="q mb-1">Before the list</p>
+  <h2 class="text-2xl font-bold mb-3">Why "fix all the findings" is not a plan</h2>
+  <p class="lead opacity-80 max-w-3xl mb-6">
+    Most of these are not ours. <code class="inl">geass cast</code> ships a contract, some docs, a hook
+    and skills. It cannot patch the ship gate, Orca, or Claude Code. So the 91 split by
+    <em>who can act</em>, not by severity.
+  </p>
+
+  <div class="fig mb-6">
+  <svg viewBox="0 0 860 250" class="w-full" role="img" aria-label="91 confirmed findings split by who can act on them">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="oklch(0.72 0.13 85)" stop-opacity="0.95" />
+        <stop offset="100%" stop-color="oklch(0.72 0.13 85)" stop-opacity="0.55" />
+      </linearGradient>
+    </defs>
+    <text x="0" y="16" font-size="13" fill="currentColor" opacity="0.55">91 confirmed findings</text>
+
+    <!-- bar -->
+    <g transform="translate(0,32)">
+      <rect x="0"   y="0" width="228" height="44" rx="6" fill="url(#g1)" />
+      <rect x="232" y="0" width="150" height="44" rx="6" fill="oklch(0.62 0.10 200)" opacity="0.85" />
+      <rect x="386" y="0" width="176" height="44" rx="6" fill="oklch(0.58 0.09 25)"  opacity="0.75" />
+      <rect x="566" y="0" width="106" height="44" rx="6" fill="currentColor" opacity="0.22" />
+      <rect x="676" y="0" width="110" height="44" rx="6" fill="oklch(0.65 0.12 150)" opacity="0.55" />
+      <rect x="790" y="0" width="70"  height="44" rx="6" fill="currentColor" opacity="0.12" />
+
+      <text x="10"  y="28" font-size="14" font-weight="700" fill="#1a1a1a">26 contract</text>
+      <text x="242" y="28" font-size="14" font-weight="700" fill="#f5f5f5">17 skill</text>
+      <text x="396" y="28" font-size="14" font-weight="700" fill="#f5f5f5">20 upstream</text>
+      <text x="576" y="28" font-size="13" font-weight="700" fill="currentColor">12 keep</text>
+      <text x="686" y="28" font-size="13" font-weight="700" fill="#1a1a1a">14 accept</text>
+      <text x="800" y="28" font-size="13" font-weight="700" fill="currentColor">2 fixed</text>
+    </g>
+
+    <g transform="translate(0,104)" font-size="12.5" fill="currentColor">
+      <text x="0" y="14" opacity="0.85"><tspan font-weight="700">contract</tspan> — the payload. Ours, cheap, testable next run.</text>
+      <text x="0" y="36" opacity="0.85"><tspan font-weight="700">skill</tspan> — the six britania skills and their scripts. Ours, real build work.</text>
+      <text x="0" y="58" opacity="0.85"><tspan font-weight="700">upstream</tspan> — no-mistakes, Orca, Claude Code. File it; do not wait for it.</text>
+      <text x="0" y="80" opacity="0.85"><tspan font-weight="700">keep</tspan> — confirmed working. Nothing to build; these are v2's regression guards.</text>
+      <text x="0" y="102" opacity="0.85"><tspan font-weight="700">accept</tspan> — real, but the fix costs more than the defect.</text>
+      <text x="0" y="124" opacity="0.85"><tspan font-weight="700">fixed</tspan> — landed in no-mistakes v1.72.0, which we now run.</text>
+    </g>
+  </svg>
+  </div>
+
+  <div class="alert alert-warning alert-soft">
+    <div>
+      <div class="font-bold mb-1">One number worth arguing with</div>
+      <div class="text-sm opacity-90">
+        26 contract edits is a lot to land at once, and the contract is the thing under test. If v2's
+        run goes badly we will not know which edit did it. I am not proposing we stage it — you said
+        v2 ships both and work loss is acceptable — but the risk is real and it is the reason the
+        <span class="font-semibold">keep</span> column exists: those 12 are how we detect that v2 broke
+        something v1 had right.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 1. CONTRACT ===================== -->
+<section class="mb-16">
+  <p class="q mb-1">Bucket one</p>
+  <h2 class="text-2xl font-bold mb-2">Contract edits <span class="opacity-50 font-normal cnt">26</span></h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    These land in <code class="inl">geass/harness/CLAUDE.md</code> and the payload docs. Cheap to write,
+    immediately testable, and the only bucket where run 03 will measure whether we were right.
+  </p>
+
+  <form data-lavish-question="contract" onsubmit="event.preventDefault(); queueCuts(event.currentTarget,'contract','Contract edits');">
+  <div class="overflow-x-auto fig mb-4">
+  <table class="table table-sm tbl">
+    <thead><tr><th class="w-10">in</th><th>from</th><th>the edit</th></tr></thead>
+    <tbody>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="MVP ordering gate" onchange="mark(this)"></td><td class="fid">F-055<br>F-112</td><td class="why"><b>An MVP milestone that orders the backlog.</b> §6 has an approval gate, a design gate and a Scout gate and no notion of a product milestone. Every dispatch gets scored on whether it advances the milestone, and Lelouch says so unprompted when one does not.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Bounded reporting rule" onchange="mark(this)"></td><td class="fid">F-112</td><td class="why"><b>Bound the reporting.</b> Report state changes and blockers. Never restate a decision just made. Never describe a produced artifact — name it. State lives in <code class="inl">britania-board</code>; the terminal carries exceptions and asks.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Model and effort tiering by role" onchange="mark(this)"></td><td class="fid">F-117</td><td class="why"><b>Choose <code class="inl">--model</code> and <code class="inl">--effort</code> per task.</b> Scouts keep thinking; builders drop. Tier by model first — it moves the rate on 2.1M cache-read tokens, effort moves 137.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Long-wait floor, no polling" onchange="mark(this)"></td><td class="fid">F-016<br>F-027<br>F-118</td><td class="why"><b>Floor the wait interval; never poll a gate you do not own.</b> 12× measured on short cycles. The worker owns its gate and reports it.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Standing authorisation in §6" onchange="mark(this)"></td><td class="fid">F-030<br>F-085<br>F-107</td><td class="why"><b>§6 needs standing authorisation with a scope and an expiry.</b> Blanket overnight authority was used correctly by two agents who both invented the same unwritten rule — write it down instead.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Captain hold needs falsifier and expiry" onchange="mark(this)"></td><td class="fid">F-086<br>F-107</td><td class="why"><b>A hold states what would lift it and when it expires.</b> One hold ran ~31 h with its own refutation sitting in the same file, and <code class="inl">--until</code> is day-granular so nothing fires at a mid-day reset.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Never truncate a delivery read" onchange="mark(this)"></td><td class="fid">F-067<br>F-077</td><td class="why"><b>Never pipe a delivery read through <code class="inl">head</code>.</b> It ate a <code class="inl">worker_done</code> and the ack made it unrecoverable — and it only fires after a backlog, i.e. during recovery, when it costs most.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Write files with the write tool, not heredocs" onchange="mark(this)"></td><td class="fid">F-029<br>F-041</td><td class="why"><b>Heredoc quoting failure is environmental, not agent error.</b> Long or backtick-bearing content goes through the write tool to a file, then <code class="inl">cat</code>. Same rule for the <code class="inl">/tmp</code> vs <code class="inl">/c/</code> path trap.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Path and interpreter traps" onchange="mark(this)"></td><td class="fid">F-034<br>F-065<br>F-071</td><td class="why"><b>Name the traps in the payload.</b> Bash writes <code class="inl">/tmp</code> where Python cannot read it, Node resolves modules against it too, and <code class="inl">python3</code> is a Store-alias decoy that fails in French.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Dispatch retry rule" onchange="mark(this)"></td><td class="fid">F-031<br>F-070<br>F-080</td><td class="why"><b>The first dispatch of a fresh ticket always stalls; retry with <code class="inl">--worktree</code> and <code class="inl">--terminal</code>.</b> 5 of 5, total, reliable, nothing dropped. Stop treating it as an incident.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Named heartbeats" onchange="mark(this)"></td><td class="fid">F-048</td><td class="why"><b>A heartbeat says who it is from.</b> The anonymous one costs 2–3 commands to attribute, every time.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Verify before reporting done" onchange="mark(this)"></td><td class="fid">F-035<br>F-087<br>F-088<br>F-096</td><td class="why"><b><code class="inl">worker_done</code> requires a pushed head, not a green step.</b> One commit never reached master while the report said succeeded. Asking "is your work pushed?" caught the next one before it cost anything.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Gate SHAs are not your SHAs" onchange="mark(this)"></td><td class="fid">F-043</td><td class="why"><b>A SHA in <code class="inl">axi status</code> belongs to the gate repo.</b> Do not <code class="inl">git show</code> it and do not open the gate's database; <code class="inl">sync --recover</code> brings commits across.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Escalate blockers, do not ask" onchange="mark(this)"></td><td class="fid">F-063<br>F-101</td><td class="why"><b><code class="inl">ask</code> times out in minutes; the coordinator's wait runs on the hour.</b> Escalate blockers instead, or the finding expires into the worker's own judgement.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Glossary must be committed" onchange="mark(this)"></td><td class="fid">F-038<br>F-092<br>F-093<br>F-094</td><td class="why"><b>Decisions go in a committed file or they do not exist.</b> <code class="inl">CONTEXT.md</code> was gitignored so no worker ever read it; an ADR was called binding while uncommitted; <code class="inl">docs/adr/**</code> had a reader and no writer.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Browser session isolation" onchange="mark(this)"></td><td class="fid">F-102<br>F-104</td><td class="why"><b>Per-worker <code class="inl">CHROME_DEVTOOLS_AXI_SESSION</code>, and headed verification.</b> Already fixed in practice this run — write it down so it survives the cast.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Attribute skill decisions to the skill" onchange="mark(this)"></td><td class="fid">F-079</td><td class="why"><b>Say which skill made a call.</b> "Did you decide that on yourself?" — skill-driven decisions currently read as the agent's own.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Resolve the npx contradiction" onchange="mark(this)"></td><td class="fid">F-078</td><td class="why"><b>The contract says call tools directly; the <code class="inl">lavish</code> skill says <code class="inl">npx -y</code>.</b> ~9 min lost to the conflict. Pick one and say which wins.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Wait ownership and recovery" onchange="mark(this)"></td><td class="fid">F-017<br>F-082</td><td class="why"><b>The §7 wait is a singleton and outlives the session that armed it.</b> <code class="inl">/clear</code> orphans its holder and only a force-kill frees it. Define who re-arms and how.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="No backgrounded heartbeat loops" onchange="mark(this)"></td><td class="fid">F-084<br>F-097</td><td class="why"><b>A backgrounded loop dies silently.</b> One died after a single beat and nothing noticed for 65 of 70 minutes. Use the blocking wait, not a loop.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Woken worker resumes its work" onchange="mark(this)"></td><td class="fid">F-011<br>F-015</td><td class="why"><b>On wake, state your ticket and resume it.</b> A woken worker that does nothing is indistinguishable from a dead one.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Architecture before parallel dispatch" onchange="mark(this)"></td><td class="fid">F-037</td><td class="why"><b>Shared-file conflicts are a sequencing decision, not a gate problem.</b> One README collision cost over an hour; the gate was not why.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Permissions the workflow needs" onchange="mark(this)"></td><td class="fid">F-052<br>F-122</td><td class="why"><b>Cast the permissions, or run skip-permissions.</b> The force-push a gate-rebase recovery requires is refused by the classifier — no gate release will ever fix that. PR #28 on lelouch-harness is the surgical version.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Report links must be verified" onchange="mark(this)"></td><td class="fid">F-014</td><td class="why"><b>The losing path reports success.</b> A report link that did not survive still reads as delivered — verify the artifact exists before claiming it.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Scout terminal lifecycle" onchange="mark(this)"></td><td class="fid">F-039<br>F-105</td><td class="why"><b>Close what you open.</b> Leaked scout terminals are a standing tax on the concurrency budget and accumulate across days, not across a run.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Harness gotchas doc in the payload" onchange="mark(this)"></td><td class="fid">F-119</td><td class="why"><b>Ship the eleven memories as <code class="inl">docs/agents/harness-gotchas.md</code>.</b> Cross-check against v1.72.0 first, drop the superseded, then delete the private memory directory.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm">Queue contract decisions</button>
+  </form>
+</section>
+
+<!-- ===================== 2. SKILLS ===================== -->
+<section class="mb-16">
+  <p class="q mb-1">Bucket two</p>
+  <h2 class="text-2xl font-bold mb-2">Skills and scripts <span class="opacity-50 font-normal cnt">17</span></h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    The six <code class="inl">britania</code> skills, and the findings each one closes. This is the real
+    build work in v2 — and the reason to build them is not convenience: several of these findings have
+    no contract-side fix at all.
+  </p>
+
+  <form data-lavish-question="skills" onsubmit="event.preventDefault(); queueCuts(event.currentTarget,'skills','Skills and scripts');">
+  <div class="overflow-x-auto fig mb-4">
+  <table class="table table-sm tbl">
+    <thead><tr><th class="w-10">in</th><th>skill</th><th>closes</th><th>what it has to do</th></tr></thead>
+    <tbody>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-afk" onchange="mark(this)"></td><td><b>britania-afk</b><br><span class="badge badge-ghost badge-xs">user only</span></td><td class="fid">F-113</td><td class="why">Go silent, log deltas to a file, render the digest on <code class="inl">back</code>. Pre-MVP: merge PRs following what he would have recommended — <b>expires at MVP, written into the skill.</b> Needs §6's gate to move and the permissions to land.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-resume" onchange="mark(this)"></td><td><b>britania-resume</b><br><span class="badge badge-ghost badge-xs">user only</span></td><td class="fid">F-003<br>F-054<br>F-107<br>F-113</td><td class="why">Resume in-flight work after a quota cap without losing what is done. <b>The trigger is the finding, not the resuming</b> — nothing fired at the weekly reset; a human remembered.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-restore" onchange="mark(this)"></td><td><b>britania-restore</b><br><span class="badge badge-ghost badge-xs">user only</span></td><td class="fid">F-008<br>F-053<br>F-081<br>F-113</td><td class="why">Cold start from files. <b>Must derive state, not replay a record of it.</b> Load <code class="inl">orca agent-context</code> in one call rather than N <code class="inl">--help</code> probes. Blocks auto-clear until proven.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-board" onchange="mark(this)"></td><td><b>britania-board</b><br><span class="badge badge-soft badge-xs">model</span></td><td class="fid">F-111<br>F-114</td><td class="why">Ticket, worker, stage, queue — ASCII table, on demand. Reads <code class="inl">state.sqlite</code> directly because the supported view truncates, and <b>documents the schema inside itself</b> so nobody rediscovers it.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-vitals" onchange="mark(this)"></td><td><b>britania-vitals</b><br><span class="badge badge-soft badge-xs">model</span></td><td class="fid">F-032<br>F-045<br>F-115</td><td class="why">Gate every dispatch on the environment. Battery, RAM, disk, session usage. <b>Wake on threshold rather than poll.</b> <code class="inl">quota-axi</code> and <code class="inl">fanwatch.py</code> already do most of it — this repoints them at Lelouch.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="grill-with-lavish" onchange="mark(this)"></td><td><b>grill-with-lavish</b><br><span class="badge badge-soft badge-xs">model</span></td><td class="fid">F-116</td><td class="why">Grill rounds as Lavish artifacts. <b>Calls <code class="inl">domain-modeling</code> itself.</b> Replaces <code class="inl">grill-with-docs</code> and <code class="inl">grill-me</code>, both removed from the payload.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Wake script via orca terminal send" onchange="mark(this)"></td><td><b>wake script</b><br><span class="badge badge-ghost badge-xs">script</span></td><td class="fid">F-115<br>F-118</td><td class="why">Cron + <code class="inl">orca terminal send</code>, gated on <code class="inl">orca terminal wait --tui-idle</code>. Warns when C.C is present; acts automatically only when AFK. This is what makes auto-clear possible at all.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Worktree retirement script" onchange="mark(this)"></td><td><b>worktree-retire</b><br><span class="badge badge-ghost badge-xs">script</span></td><td class="fid">F-105<br>F-106<br>F-108</td><td class="why">Already staged in <code class="inl">supervision/proposed/</code>. <b>Verify before removal, not after</b> — the proof of safety dies with <code class="inl">.git</code>. And it now has to handle a daemon that pins the worktree it was started from.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Graphify trial" onchange="mark(this)"></td><td><b>Graphify</b><br><span class="badge badge-warning badge-soft badge-xs">unproven</span></td><td class="fid">F-120</td><td class="why"><b>One measurement decides it: regeneration cost per rebase.</b> The gate rebases every branch before review, so each merge invalidates every other worker's graph. Seconds → adopt. Full scan → too expensive at this cadence.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm">Queue skill decisions</button>
+  </form>
+</section>
+
+<!-- ===================== 3. UPSTREAM ===================== -->
+<section class="mb-16">
+  <p class="q mb-1">Bucket three</p>
+  <h2 class="text-2xl font-bold mb-2">Upstream — file it, don't wait for it <span class="opacity-50 font-normal cnt">20</span></h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    Nothing here is castable. The decision is only whether to write the issue.
+    <b>Note the constraint we just discovered:</b> <code class="inl">no-mistakes update</code> cannot reach
+    past v1.72.0, because the fix for the stale update channel is only distributed through the stale
+    channel. So even an accepted upstream fix may not reach us.
+  </p>
+
+  <form data-lavish-question="upstream" onsubmit="event.preventDefault(); queueCuts(event.currentTarget,'upstream','Upstream issues');">
+  <div class="overflow-x-auto fig mb-4">
+  <table class="table table-sm tbl">
+    <thead><tr><th class="w-10">file</th><th>where</th><th>from</th><th>what</th></tr></thead>
+    <tbody>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Finding view truncates" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-111</td><td class="why"><b>Cheapest of the lot and most often hit.</b> Stop truncating findings in the view agents are told to use, or give <code class="inl">orca orchestration send</code> a <code class="inl">--body-file</code>. Either one alone removes the round-trip.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Daemon is global and pins its worktree" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-108</td><td class="why">One daemon for every worktree: a restart kills another worker's CI monitor, <b>and it holds the worktree it was started from undeletable for its lifetime</b> — proven this evening. Also: an interruption notice should stamp staleness, not assert <code class="inl">PR remains open</code> from a 4h49m-old read.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Update channel is stale and self-blocking" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">teardown</td><td class="why"><code class="inl">channels.json</code> names v1.72.0 with its asset updated after v1.75.0 shipped, and the repair (#1024) is in v1.73.0. <b>No client at or below v1.72.0 can update past it by updating.</b></td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="PR number written before the PR exists" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-059<br>F-110</td><td class="why">Two parallel builders raced for #25; the loser's commit message points at the winner's PR permanently. <b>Collision rate is a function of gate timing, not worker behaviour.</b></td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Every failure reports the same wrong error" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-060</td><td class="why">15 runs across 6 days and 10 branches all report the <code class="inl">dopecert.cer</code> warning, which has never caused anything. The real cause is only in <code class="inl">agent_invocations</code>.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Review does not converge" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-058<br>F-076</td><td class="why">Five rounds, no repeated finding id, and gate cost shows a 50× spread that the diff size does not predict.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Traverse bypass ledger is empty" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-066</td><td class="why">Three of thirteen PRs shipped without a completed traverse and the bypass ledger has zero rows — the record of exceptions does not record them.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Remediation advice is a trap" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-042</td><td class="why">The command the gate suggests on failure makes things worse from the state it suggests it in.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="awaiting_agent invisible to the agent" onchange="mark(this)"></td><td>Orca</td><td class="fid">F-047</td><td class="why">The state that blocks a worker is not visible to the worker it blocks. Twice a day.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Expired ask leaks a pending thread" onchange="mark(this)"></td><td>Orca</td><td class="fid">F-101</td><td class="why">Three threads over two days; only a schema migration collects them.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Worktree removal de-registers before deleting" onchange="mark(this)"></td><td>Orca</td><td class="fid">F-105</td><td class="why">592 MB orphaned over four days, invisible to both registries. The removal order is backwards.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Background task kill reason is fabricated" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">entry 23</td><td class="why">Three kills, each reported as low memory, with <b>4.22 GB free of 15.62 GB</b> measured seconds later. The string is a label, not a measurement. Trigger still unknown.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Context exhaustion deadlocks dispatch" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">F-053</td><td class="why">Dispatch is stuck until a human types <code class="inl">/clear</code> — two hours, and no agent can break it from inside.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Classifier blocks the only recovery path" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">F-052</td><td class="why">Every gate-rebased branch is unpublishable without a human, because the force-push it requires is auto-blocked. The refusal is correct; the dead end is not.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm">Queue upstream decisions</button>
+  </form>
+</section>
+
+<!-- ===================== 4. KEEP / ACCEPT / FIXED ===================== -->
+<section class="mb-16">
+  <p class="q mb-1">Bucket four</p>
+  <h2 class="text-2xl font-bold mb-2">Nothing to build</h2>
+
+  <div class="grid gap-5 md:grid-cols-3">
+    <div class="fig">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge badge-success badge-soft">keep</span><span class="cnt opacity-60 text-sm">12</span>
+      </div>
+      <p class="text-sm opacity-85 mb-3">Confirmed working. <b>These are v2's regression guards</b> — a run with none of them scores better and is worse.</p>
+      <ul class="text-sm opacity-80 space-y-1.5">
+        <li><span class="fid">F-049</span> the correction loop runs upward, and it is load-bearing — 4 caught</li>
+        <li><span class="fid">F-085 · F-095</span> three agents independently escalate behaviour changes rather than act</li>
+        <li><span class="fid">F-096</span> asking "is your work pushed?" pre-empted a real loss</li>
+        <li><span class="fid">F-033</span> banked commits survive an agent death</li>
+        <li><span class="fid">F-098</span> a committed ADR caught an implementation drifting from it</li>
+        <li><span class="fid">F-018</span> the captain hold that got it right</li>
+        <li><span class="fid">F-089</span> a dropped commit was caught by its symptom, unprompted</li>
+        <li><span class="fid">F-001 · F-010 · F-021 · F-024 · F-094</span> re-cast, restart and first-traverse behaviour</li>
+      </ul>
+    </div>
+
+    <div class="fig">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge badge-ghost">accept</span><span class="cnt opacity-60 text-sm">14</span>
+      </div>
+      <p class="text-sm opacity-85 mb-3">Real, but the fix costs more than the defect — or it is a measurement rather than a defect.</p>
+      <ul class="text-sm opacity-80 space-y-1.5">
+        <li><span class="fid">F-074 · F-076</span> gate traverse is 47.5 min and its cost is not predictable from the diff. <b>Mostly real work</b> — do not go looking for a bug in it.</li>
+        <li><span class="fid">F-023</span> token accounting, where the supervisor was 23% of the spend</li>
+        <li><span class="fid">F-026</span> my monitor missing a 3 h stop — fixed in the instrument log, not the contract</li>
+        <li><span class="fid">F-072</span> the sleep block is uniform on duration</li>
+        <li><span class="fid">F-007</span> documentation debt this run exposed</li>
+        <li><span class="fid">F-121</span> Ponytail, rejected on the ratio</li>
+        <li><span class="fid">F-122</span> the <code class="inl">--help</code> probe, which is correct behaviour</li>
+      </ul>
+    </div>
+
+    <div class="fig">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge badge-info badge-soft">fixed</span><span class="cnt opacity-60 text-sm">2</span>
+      </div>
+      <p class="text-sm opacity-85 mb-3">Landed upstream <b>and live in the version we now run</b> (v1.72.0). Do not carry these into v2's report.</p>
+      <ul class="text-sm opacity-80 space-y-1.5">
+        <li><span class="fid">F-056</span> the review step's 30-minute timeout discarding a completed traverse → <code class="inl">#962</code>, each review agent gets a fresh budget</li>
+        <li><span class="fid">F-075</span> <code class="inl">rerun</code> validating the previous head → <code class="inl">#972</code>, refuses reruns differing from the clean caller HEAD</li>
+      </ul>
+      <div class="alert alert-soft mt-3 text-xs">
+        <span><b>F-109 is not here.</b> Its fix (<code class="inl">#1059</code>) is in v1.75.1, which the updater cannot reach. A killed invocation still records 0/0/0 for us.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== OPEN ===================== -->
+<section class="mb-16">
+  <p class="q mb-1">Still open</p>
+  <h2 class="text-2xl font-bold mb-3">Four things I cannot answer, and how each gets settled</h2>
+  <div class="grid gap-4 md:grid-cols-2">
+    <div class="fig">
+      <h3 class="font-bold mb-2">Can a blocking wait observe a gate you don't own?</h3>
+      <p class="text-sm opacity-85"><code class="inl">axi run</code> blocks but <b>triggers</b> a run; <code class="inl">attach</code> opens a TUI that would hang an agent. There may be no non-polling observer API at all. <b>Test:</b> throwaway branch, trivial diff, start a gate, try to observe from a second terminal. The risk to avoid is a duplicate run.</p>
+    </div>
+    <div class="fig">
+      <h3 class="font-bold mb-2">What enforces "user-only, never model-invoked"?</h3>
+      <p class="text-sm opacity-85"><code class="inl">user-invocable</code> is a real frontmatter field. Whether the converse is <em>enforced</em> or only discouraged by wording is unverified — and three skills depend on it for safety.</p>
+    </div>
+    <div class="fig">
+      <h3 class="font-bold mb-2">Graphify's regeneration cost</h3>
+      <p class="text-sm opacity-85">One measurement. Seconds → adopt as designed. Full project scan → the gate's rebase cadence makes it expensive.</p>
+    </div>
+    <div class="fig">
+      <h3 class="font-bold mb-2">Does <code class="inl">observe.py</code> miss <code class="inl">domain-modeling</code>?</h3>
+      <p class="text-sm opacity-85">It never listed it, and the glossary check reads unreachable. Either the detector is blind or no glossary was written. Settle it before trusting that scorecard row again.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ORDER ===================== -->
+<section class="mb-10">
+  <p class="q mb-1">Last question</p>
+  <h2 class="text-2xl font-bold mb-3">Which app does v2 run on?</h2>
+  <p class="lead opacity-80 max-w-3xl mb-5">
+    You've settled that v2 ships contract and skills together. This is the one thing still genuinely open,
+    and it changes what run 03 can measure.
+  </p>
+  <form data-lavish-question="subject" onsubmit="event.preventDefault(); const c=new FormData(event.currentTarget).get('subject'); if(c) window.lavish.queuePrompt('v2 runs on: '+c, {tag:'choice', text:'Subject: '+c, element:event.currentTarget, data:{question:'subject', answer:c}});">
+    <div class="grid gap-4 md:grid-cols-2 mb-4">
+      <label class="fig cursor-pointer flex gap-3">
+        <input type="radio" name="subject" value="weave-atlas (continue)" class="radio radio-sm mt-1">
+        <span>
+          <b class="block mb-1">weave-atlas, continued</b>
+          <span class="text-sm opacity-80">Has an MVP and 31 queued tickets — real backlog pressure to test MVP-first ordering against. But the interesting part (grill → design → first dispatch) is already behind us and v2 changes several of those stages, so they go untested.</span>
+        </span>
+      </label>
+      <label class="fig cursor-pointer flex gap-3">
+        <input type="radio" name="subject" value="a fresh app" class="radio radio-sm mt-1">
+        <span>
+          <b class="block mb-1">A fresh app</b>
+          <span class="text-sm opacity-80">Exercises the whole contract from zero, including <code class="inl">grill-with-lavish</code> and the MVP gate, which are the two biggest v2 changes. Costs the setup, and has no backlog pressure until one accumulates.</span>
+        </span>
+      </label>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Queue this answer</button>
+  </form>
+</section>
+
+<script>
+  function mark(cb){ cb.closest('tr').classList.toggle('cut', !cb.checked); }
+  function queueCuts(form, key, label){
+    const boxes = [...form.querySelectorAll('input[type=checkbox]')];
+    const cut  = boxes.filter(b => !b.checked).map(b => b.dataset.item);
+    const kept = boxes.filter(b =>  b.checked).map(b => b.dataset.item);
+    const msg = cut.length
+      ? label + ' — CUT these ' + cut.length + ': ' + cut.join('; ') + '. Keep the remaining ' + kept.length + '.'
+      : label + ' — keep all ' + kept.length + ', nothing cut.';
+    window.lavish.queuePrompt(msg, {
+      tag: 'triage', text: label + ': ' + kept.length + ' kept, ' + cut.length + ' cut',
+      element: form, queueKey: key, data: { bucket: key, kept: kept, cut: cut }
+    });
+  }
+</script>
+
+</div>
+</body>
+</html>
