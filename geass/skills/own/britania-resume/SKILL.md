@@ -48,6 +48,44 @@ from here:
 It also skips the fast-forward on any tree with uncommitted files and says so,
 rather than moving a branch under work in progress.
 
+## The usual case: a builder cut off mid-edit
+
+A usage cap does not wait for a clean stopping point. It interrupts a builder
+**between keystrokes** — half-written files, maybe a commit or two of its own
+that the gate has not taken yet. That is the ordinary shape of this, not an edge
+case, and **a dirty tree is the work, not damage.**
+
+Four states get told apart, and conflating them is how work gets redone:
+
+| | |
+|---|---|
+| **work in progress** | edits never committed anywhere — the most fragile, and invisible to every registry but git |
+| **commits of its own** | banked, but the gate has not taken them |
+| **commits from the gate** | fix rounds made while it was stopped |
+| **its own last note** | the progress comment it wrote on its Orca card |
+
+The worker gets all four back, because **it has no memory of the session
+either**:
+
+> You were interrupted, not cancelled. Resume from where you were. Ticket:
+> wa-feature. Your own last note: *"Wired the parser; tests for the error path
+> still to write."* You have 2 uncommitted file(s) — this is your work in
+> progress, not damage: `feature.py`, `NOTES.md`. **Read them before editing;
+> they are further along than your memory of them.** Commits you already made,
+> do NOT rebuild them: `3ae88eb wip(feature): first half`. The ship gate added
+> these while you were stopped; commit or stash first, then
+> `git merge --ff-only …`: `ed2c1a9 …`. Then continue, and report `worker_done`
+> when finished.
+
+That line about reading the files first is the one that matters. A resumed agent
+trusts its own memory over the disk, and after an interruption the disk is
+ahead — so it will happily rewrite work it already did.
+
+**This is why §W asks workers to keep their card comment current.** It is the
+only record of intent that survives the agent, and it is what makes the
+difference between "resume this ticket" and "resume what you were actually
+doing".
+
 ## Not the same job as `britania-restore`
 
 | | |

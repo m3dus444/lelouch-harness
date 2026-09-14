@@ -140,6 +140,7 @@ def checkouts(project: str) -> list[dict]:
         if isinstance(w, dict)
     }
 
+    card_by_path = cards(project)
     out: list[dict] = []
     listing = sh(["git", "-C", project, "worktree", "list", "--porcelain"]) or ""
     path = branch = None
@@ -152,30 +153,63 @@ def checkouts(project: str) -> list[dict]:
             if not same_project(path, project) and Path(path).exists():
                 t = next((x for x in terms if same_project(x["worktreePath"], path)), {})
                 w = workers.get(t.get("handle")) if t else None
+                card = card_by_path.get(os.path.normcase(path.replace("\\", "/").rstrip("/")), {})
                 out.append({
                     "path": path,
                     "branch": branch or "",
                     "state": (w or {}).get("workerState") or "no worker",
                     "handle": t.get("handle"),
                     "terminal": "live" if t else "gone",
+                    "comment": (card.get("comment") or "").strip(),
+                    "ticket": (branch or "").rsplit("/", 1)[-1],
+                    "card_status": card.get("workspaceStatus"),
                 })
             path = branch = None
     return out
 
 
 def position(path: str, branch: str, gate: dict) -> dict:
-    """Where the checkout sits relative to the gate's own remote."""
+    """Everything needed to tell a worker where it left off.
+
+    A builder interrupted by a usage cap is the ordinary case, not an edge one,
+    and it stops **mid-edit**: uncommitted files, possibly some banked commits
+    the gate has not taken yet. So a dirty tree is not a fault to refuse over --
+    it is the work, and it is what has to be described back to the worker.
+
+    Four distinct things, and they are easy to conflate:
+
+      dirty      edits in progress, never committed anywhere
+      mine       commits it made that the gate does not have yet
+      behind     commits the GATE made that this checkout does not have
+      comment    the worker's own last progress note, from its Orca card
+    """
     head = (sh(["git", "-C", path, "rev-parse", "HEAD"]) or "").strip()
     sh(["git", "-C", path, "fetch", "--quiet", "no-mistakes"], timeout=90)
-    ahead = sh(["git", "-C", path, "log", "--oneline", f"HEAD..no-mistakes/{branch}"]) or ""
-    behind = [ln for ln in ahead.splitlines() if ln.strip()]
-    dirty = [ln for ln in (sh(["git", "-C", path, "status", "--porcelain"]) or "").splitlines() if ln.strip()]
+
+    behind = [ln for ln in (sh(["git", "-C", path, "log", "--oneline",
+                                f"HEAD..no-mistakes/{branch}"]) or "").splitlines() if ln.strip()]
+    mine = [ln for ln in (sh(["git", "-C", path, "log", "--oneline",
+                              f"no-mistakes/{branch}..HEAD"]) or "").splitlines() if ln.strip()]
+    dirty = [ln.strip() for ln in (sh(["git", "-C", path, "status", "--porcelain"]) or "").splitlines() if ln.strip()]
     return {
         "head": head[:12],
         "gate_head": (gate.get("head") or "")[:12],
         "behind": behind,
-        "dirty": len(dirty),
+        "mine": mine,
+        "dirty": dirty,
+        "files": [ln.split(None, 1)[-1] for ln in dirty][:8],
     }
+
+
+def cards(project: str) -> dict[str, dict]:
+    """Per-worktree Orca card, keyed by path. Carries `comment` -- the progress
+    note §W asks every worker to keep, which is the one record of what it
+    thought it was doing when it stopped."""
+    out: dict[str, dict] = {}
+    for w in orca(["worktree", "list", "--json"]).get("worktrees") or []:
+        if isinstance(w, dict) and w.get("path"):
+            out[os.path.normcase(str(w["path"]).replace("\\", "/").rstrip("/"))] = w
+    return out
 
 
 def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
@@ -195,36 +229,71 @@ def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
     """
     done: list[str] = []
 
-    if pos["dirty"]:
-        done.append(f"SKIPPED the fast-forward: {pos['dirty']} uncommitted file(s) in the tree. "
-                    f"Bank them, then re-run.")
-    elif pos["behind"]:
-        if dry:
+    if pos["behind"]:
+        if pos["dirty"]:
+            # Not a refusal to help -- ff-only would decline anyway with edits in
+            # the tree, and moving the branch under work in progress is exactly
+            # what must not happen. The worker is told instead, and does it.
+            done.append(f"did NOT fast-forward: {len(pos['dirty'])} file(s) still being edited. "
+                        f"The worker commits or stashes first, then merges.")
+        elif dry:
             done.append(f"would fast-forward {len(pos['behind'])} commit(s) from the gate's remote")
         else:
             out = sh(["git", "-C", w["path"], "merge", "--ff-only", f"no-mistakes/{w['branch']}"])
-            if out is None:
-                done.append("fast-forward REFUSED -- the branch has diverged, so this needs a human")
-            else:
-                done.append(f"fast-forwarded {len(pos['behind'])} commit(s); "
-                            f"the checkout now has its own finished work")
+            done.append(
+                f"fast-forwarded {len(pos['behind'])} commit(s); the checkout now has its own finished work"
+                if out is not None else
+                "fast-forward REFUSED -- the branch has diverged, so this needs a human"
+            )
 
     if w.get("handle") and (w.get("state") or "") not in DEAD_WORKER:
-        commits = ", ".join(c.split(" ", 1)[0] for c in pos["behind"][:6]) or "none"
-        body = (
-            f"Resuming after a stop. Your checkout has been fast-forwarded to the gate's head; "
-            f"commits already done and NOT to be rebuilt: {commits}. "
-            f"Continue from there and report worker_done when finished."
-        )
+        body = build_brief(w, pos)
         if dry:
-            done.append(f"would send --type status to dispatch:{w['handle'][:18]}")
+            done.append(f"would send its position to dispatch:{w['handle'][:18]}")
         else:
             sent = sh(["orca", "orchestration", "send", "--to", f"dispatch:{w['handle']}",
-                       "--type", "status", "--subject", "resume", "--body", body, "--json"])
-            done.append("sent the worker its position by --type status"
+                       "--type", "status", "--subject", "resume where you left off",
+                       "--body", body, "--json"])
+            done.append("told the worker where it left off (--type status)"
                         if sent else "could not reach the worker; it may need a fresh dispatch")
+    elif pos["dirty"] or pos["mine"]:
+        done.append("no live worker to tell -- its unfinished work is described below "
+                    "so a fresh dispatch can be given it rather than starting from zero")
 
     return done
+
+
+def build_brief(w: dict, pos: dict) -> str:
+    """The message a resumed builder actually needs.
+
+    Not "carry on" -- a worker that was interrupted mid-edit has no memory of the
+    session either. It needs its own note back, the files it had open, the
+    commits it must not rebuild, and what arrived while it was stopped.
+    """
+    parts = ["You were interrupted, not cancelled. Resume from where you were."]
+    if w.get("ticket"):
+        parts.append(f"Ticket: {w['ticket']}.")
+    if w.get("comment"):
+        parts.append(f"Your own last note: \"{w['comment']}\".")
+    if pos["dirty"]:
+        parts.append(
+            f"You have {len(pos['dirty'])} uncommitted file(s) -- this is your work in "
+            f"progress, not damage: {', '.join(pos['files'])}. Read them before editing; "
+            f"they are further along than your memory of them."
+        )
+    if pos["mine"]:
+        parts.append("Commits you already made, do NOT rebuild them: "
+                     + "; ".join(pos["mine"][:6]) + ".")
+    if pos["behind"]:
+        parts.append(
+            ("The ship gate added these while you were stopped, now merged into your checkout: "
+             if not pos["dirty"] else
+             "The ship gate added these while you were stopped; commit or stash first, then "
+             "`git merge --ff-only no-mistakes/" + w.get("branch", "") + "`: ")
+            + "; ".join(pos["behind"][:6]) + "."
+        )
+    parts.append("Then continue, and report worker_done when finished.")
+    return " ".join(parts)
 
 
 def verdict(w: dict, g: dict, pos: dict) -> list[str]:
@@ -238,8 +307,12 @@ def verdict(w: dict, g: dict, pos: dict) -> list[str]:
         for c in pos["behind"][:6]:
             lines.append(f"    {c}")
 
+    if w.get("comment"):
+        lines.append(f"Its own last note: \"{w['comment'][:100]}\"")
     if pos["dirty"]:
-        lines.append(f"{pos['dirty']} uncommitted file(s) -- bank them before anything else.")
+        lines.append(f"Work in progress, {len(pos['dirty'])} file(s): {', '.join(pos['files'])}")
+    if pos["mine"]:
+        lines.append(f"{len(pos['mine'])} commit(s) of its own the gate has not taken yet")
 
     if g:
         if g["status"] in DEAD_RUN:
