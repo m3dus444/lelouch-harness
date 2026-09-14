@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -373,6 +374,17 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
     print("\nDependencies")
     unmet = report_dependencies(project)
 
+    # Reported, never created. See `automation()` for why the line is drawn here.
+    present = automation_present()
+    if present is False:
+        print("\nWatcher")
+        print(f"  {AUTOMATION_NAME} automation: not created")
+        print("  It spends tokens on a schedule, so casting does not create it for you.")
+        print("  When you want it:  geass automation")
+    elif present:
+        print("\nWatcher")
+        print(f"  {AUTOMATION_NAME} automation: present")
+
     print("\nDone. Next:")
     step = 1
     if unmet:
@@ -466,6 +478,88 @@ def diff(skill: str) -> int:
     return 0
 
 
+AUTOMATION_NAME = "britania-vitals"
+
+
+def automation_present() -> bool | None:
+    """True/False if Orca answered, None if it could not be asked."""
+    out = _orca(["automations", "list", "--json"])
+    if out is None:
+        return None
+    try:
+        rows = json.loads(out).get("result", {}).get("automations") or []
+    except (json.JSONDecodeError, AttributeError):
+        return None
+    return any(a.get("name") == AUTOMATION_NAME for a in rows if isinstance(a, dict))
+
+
+def _orca(args: list[str]) -> str | None:
+    exe = shutil.which("orca")
+    if exe is None:
+        return None
+    try:
+        proc = subprocess.run([exe, *args], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return proc.stdout if proc.returncode == 0 else None
+
+
+def automation_command(project: Path) -> str:
+    skill = SKILLS_DEST / AUTOMATION_NAME / "vitals.py"
+    # --precheck semantics, from Orca's own help: "exit code 0 continues,
+    # anything else records a skipped run". So the precheck must answer "is
+    # there a breach", NOT "is it safe to dispatch" -- those are inverses, and
+    # using --gate here would wake an agent every quiet hour while staying
+    # silent through an actual breach.
+    return (
+        f'orca automations create --name {AUTOMATION_NAME} --trigger hourly '
+        f'--precheck "python {skill.as_posix()} --breach" '
+        f'--provider claude --workspace path:{project.as_posix()} '
+        f'--prompt "britania-vitals reports a threshold breach. Read the skill, '
+        f'park any dispatch, and tell C.C what is short."'
+    )
+
+
+def automation(project: Path, force: bool) -> int:
+    """Create the vitals watcher, idempotently.
+
+    Deliberately NOT part of `cast`, and the distinction is the point. Casting
+    writes files and initialises a gate -- inert things that cost nothing until
+    someone uses them. **An automation spends tokens on a schedule, without
+    being asked again.** A tool that installs a contract has no business
+    quietly creating a recurring bill, so this is opt-in and cast only reports
+    that it is absent.
+
+    It is also global to the Orca runtime rather than per-project, so casting
+    into a second project must not produce a second watcher -- hence the
+    existence check before create.
+    """
+    present = automation_present()
+    if present is None:
+        print("! cannot reach Orca - is the runtime running?", file=sys.stderr)
+        print()
+        print("  Create it by hand once Orca is up:")
+        print()
+        print(f"    {automation_command(project)}")
+        return 1
+    if present and not force:
+        print(f"  {AUTOMATION_NAME} already exists. Re-run with --force to replace it.")
+        return 0
+    if present:
+        _orca(["automations", "remove", "--name", AUTOMATION_NAME])
+        print(f"  removed the existing {AUTOMATION_NAME}")
+
+    cmd = automation_command(project)
+    if _orca(shlex.split(cmd)[1:]) is None:
+        print("! create failed. Run it by hand and read the error:", file=sys.stderr)
+        print()
+        print(f"    {cmd}")
+        return 1
+    print(f"  created {AUTOMATION_NAME}")
+    print("  precheck runs on its own; only a breach spends anything.")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="geass",
@@ -491,6 +585,10 @@ def main() -> int:
     p_diff = sub.add_parser("diff", help="show a fork against its vanilla copy")
     p_diff.add_argument("skill")
 
+    p_auto = sub.add_parser("automation", help="create the vitals watcher (opt-in; it spends tokens)")
+    p_auto.add_argument("path", nargs="?", default=".")
+    p_auto.add_argument("--force", action="store_true", help="replace an existing one")
+
     args = parser.parse_args()
     if args.command == "cast":
         return cast(Path(args.path), args.force, args.agent)
@@ -500,6 +598,8 @@ def main() -> int:
         return doctor(Path(args.path))
     if args.command == "diff":
         return diff(args.skill)
+    if args.command == "automation":
+        return automation(Path(args.path).resolve(), args.force)
     parser.print_help()
     return 0
 

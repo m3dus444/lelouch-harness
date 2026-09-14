@@ -75,17 +75,40 @@ python <skill>/vitals.py --watch --dry-run      # print what it would send
 
 ### Where it should actually live: an Orca automation
 
+You do not create this by hand, and casting does not create it for you:
+
 ```
-orca automations create --name britania-vitals --trigger cron \
-  --precheck "python <skill>/vitals.py --gate" \
-  --prompt  "britania-vitals reports a threshold breach. Run the skill, park
-             any dispatch, and tell C.C what is short." \
-  --provider claude --workspace <selector>
+geass automation            # create it, once
+geass automation --force    # replace it after the skill changes
 ```
 
-`--precheck` is the part that makes this cheap: the gate runs on its own
-schedule and costs nothing, and **only a breach involves an agent at all.**
-Quiet hours are free.
+It is opt-in because **an automation spends tokens on a schedule.** Casting
+writes files and initialises a gate — inert things that cost nothing until
+someone uses them. A recurring bill is not in that category, so `cast` only
+reports that the watcher is absent and names the command.
+
+It is also **global to the Orca runtime**, not per-project, so casting into a
+second project must not produce a second watcher. `geass automation` checks
+before it creates.
+
+What it builds:
+
+```
+orca automations create --name britania-vitals --trigger hourly \
+  --precheck "python <skill>/vitals.py --breach" \
+  --provider claude --workspace <selector> --prompt "..."
+```
+
+`--precheck` is what makes this cheap: the check runs on its own schedule and
+costs nothing, and **only a breach involves an agent at all.** Quiet hours are
+free.
+
+> **`--breach`, not `--gate`.** Orca documents the precheck as *"exit code 0
+> continues, anything else records a skipped run"* — so the precheck must answer
+> **"is there a breach"**, which is the inverse of **"is it safe to dispatch"**.
+> Wiring `--gate` here would wake an agent every quiet hour and stay silent
+> through an actual breach. Two flags, named for the question each answers,
+> because one number cannot be right for both callers.
 
 ### Why NOT the session-start hook
 

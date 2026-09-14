@@ -325,7 +325,10 @@ def watch(args) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Machine and session vitals.")
-    ap.add_argument("--gate", action="store_true", help="exit non-zero if it is not safe to dispatch")
+    ap.add_argument("--gate", action="store_true",
+                    help="for the orchestrator: exit 0 = clear to dispatch, 1 = hold")
+    ap.add_argument("--breach", action="store_true",
+                    help="for an automation precheck: exit 0 = there IS a breach, 1 = nothing to do")
     ap.add_argument("--watch", action="store_true", help="auto mode: wake the session on a breach")
     ap.add_argument("--json", action="store_true", help="machine-readable")
     ap.add_argument("--interval", type=int, default=300, help="seconds between checks in --watch")
@@ -344,6 +347,19 @@ def main() -> int:
 
     v = collect(args.path, args.provider)
     print(json.dumps(v, indent=2) if args.json else render(v))
+
+    # Two exit codes that are deliberate inverses, because two callers ask
+    # opposite questions and the same number would be wrong for one of them:
+    #
+    #   --gate    "may I dispatch?"      0 = yes, clear   1 = no, hold
+    #   --breach  "is there a problem?"  0 = yes, breach  1 = no, all fine
+    #
+    # --breach exists for `orca automations --precheck`, which documents
+    # "exit code 0 continues, anything else records a skipped run". Wiring
+    # --gate there inverts the whole thing: it would wake an agent every quiet
+    # hour and stay silent during an actual breach.
+    if args.breach:
+        return 0 if v["blocks"] else 1
     return 1 if (args.gate and v["blocks"]) else 0
 
 
