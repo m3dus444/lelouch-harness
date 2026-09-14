@@ -209,4 +209,5 @@ def platform_notes(system: str) -> str:
 OWN = {
     "britania-board": "project state as one table: tickets, workers, gate stages, queue",
     "britania-vitals": "machine and session vitals, a dispatch gate, and the unattended watcher",
+    "britania-restore": "rebuild a session's state after a crash, power cut or /clear (user-invoked)",
 }
