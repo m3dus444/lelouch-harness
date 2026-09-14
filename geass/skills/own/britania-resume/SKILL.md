@@ -9,12 +9,44 @@ metadata:
 
 # britania-resume
 
-**The user runs this.** You never invoke it yourself.
+**The user runs this. It acts — it does not just describe.**
 
 ```
-python <skill>/resume.py
-python <skill>/resume.py --all    # include settled workers too
+python <skill>/resume.py              # resume the work
+python <skill>/resume.py --dry-run    # show what it would do, touch nothing
+python <skill>/resume.py --all        # include settled workers too
 ```
+
+## What it actually does
+
+Running it **fast-forwards each stalled checkout onto the work the gate already
+finished**, and **tells each live worker where it now stands** so it carries on
+instead of rebuilding. You do not run the commands afterwards; it ran them.
+
+```
+  wa-paging   worker running   local c0fa1bd   gate 7bfd6af
+    -> fast-forwarded 1 commit(s); the checkout now has its own finished work
+    -> sent the worker its position by --type status
+       Work it already has -- name these when you resume it:
+           7bfd6af fix(paging): keep the cursor stable across a refill
+```
+
+**`merge --ff-only` is the safety, not a risk.** It advances a branch only when
+the move is a pure fast-forward and refuses otherwise — it cannot overwrite a
+commit, drop uncommitted work, or rewrite history. That refusal is the same
+check a human would make by hand, which is why this runs unattended.
+
+Three things it deliberately will not do, because none of them is safe to decide
+from here:
+
+| | |
+|---|---|
+| a fresh dispatch | costs tokens and needs a spec — that is a decision |
+| a force-push | one-way, and the classifier refuses it anyway |
+| closing a ticket | the work is not verified from here |
+
+It also skips the fast-forward on any tree with uncommitted files and says so,
+rather than moving a branch under work in progress.
 
 ## Not the same job as `britania-restore`
 

@@ -178,19 +178,65 @@ def position(path: str, branch: str, gate: dict) -> dict:
     }
 
 
+def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
+    """Do the safe half of resuming, and report what it did.
+
+    **`merge --ff-only` is the guard, not a risk.** It advances a branch only
+    when the move is a pure fast-forward and refuses otherwise -- it cannot
+    overwrite a commit, cannot drop uncommitted work, and cannot rewrite
+    history. That refusal is exactly the check a human would perform by hand,
+    which is why this is safe to run unattended and pointless to only describe.
+
+    What is NOT done here, and why:
+
+      a fresh dispatch    costs tokens and needs a spec; that is a decision
+      a force-push        one-way, and the classifier refuses it anyway
+      closing a ticket    the work is not verified from here
+    """
+    done: list[str] = []
+
+    if pos["dirty"]:
+        done.append(f"SKIPPED the fast-forward: {pos['dirty']} uncommitted file(s) in the tree. "
+                    f"Bank them, then re-run.")
+    elif pos["behind"]:
+        if dry:
+            done.append(f"would fast-forward {len(pos['behind'])} commit(s) from the gate's remote")
+        else:
+            out = sh(["git", "-C", w["path"], "merge", "--ff-only", f"no-mistakes/{w['branch']}"])
+            if out is None:
+                done.append("fast-forward REFUSED -- the branch has diverged, so this needs a human")
+            else:
+                done.append(f"fast-forwarded {len(pos['behind'])} commit(s); "
+                            f"the checkout now has its own finished work")
+
+    if w.get("handle") and (w.get("state") or "") not in DEAD_WORKER:
+        commits = ", ".join(c.split(" ", 1)[0] for c in pos["behind"][:6]) or "none"
+        body = (
+            f"Resuming after a stop. Your checkout has been fast-forwarded to the gate's head; "
+            f"commits already done and NOT to be rebuilt: {commits}. "
+            f"Continue from there and report worker_done when finished."
+        )
+        if dry:
+            done.append(f"would send --type status to dispatch:{w['handle'][:18]}")
+        else:
+            sent = sh(["orca", "orchestration", "send", "--to", f"dispatch:{w['handle']}",
+                       "--type", "status", "--subject", "resume", "--body", body, "--json"])
+            done.append("sent the worker its position by --type status"
+                        if sent else "could not reach the worker; it may need a fresh dispatch")
+
+    return done
+
+
 def verdict(w: dict, g: dict, pos: dict) -> list[str]:
     """What to do with this worker, most destructive mistake first."""
     lines: list[str] = []
 
+    # The fast-forward itself is `act`'s job; this only names the commits, which
+    # is what has to be handed to the worker so it does not rebuild them.
     if pos["behind"]:
-        lines.append(
-            f"FAST-FORWARD FIRST -- {len(pos['behind'])} commit(s) exist on the gate's "
-            f"remote that this checkout does not have."
-        )
+        lines.append("Work it already has -- name these when you resume it:")
         for c in pos["behind"][:6]:
             lines.append(f"    {c}")
-        lines.append(f"    git -C \"{w['path']}\" merge --ff-only no-mistakes/{w['branch']}")
-        lines.append("    Name these commits when you resume it, or it will rebuild them.")
 
     if pos["dirty"]:
         lines.append(f"{pos['dirty']} uncommitted file(s) -- bank them before anything else.")
@@ -227,6 +273,8 @@ def main() -> int:
     ap.add_argument("--path", default=os.getcwd())
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--all", action="store_true", help="include settled workers")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="show what it would do without touching anything")
     args = ap.parse_args()
     project = str(Path(args.path).resolve())
 
@@ -246,13 +294,17 @@ def main() -> int:
     for w in workers:
         g = next((v for k, v in gate.items() if w["branch"] and k.endswith(w["branch"])), {})
         pos = position(w["path"], w["branch"], g) if w["branch"] else {"head": "?", "gate_head": "", "behind": [], "dirty": 0}
-        report.append({"worker": w, "gate": g, "position": pos, "verdict": verdict(w, g, pos)})
+        report.append({
+            "worker": w, "gate": g, "position": pos,
+            "did": act(w, g, pos, args.dry_run),
+            "verdict": verdict(w, g, pos),
+        })
 
     if args.json:
         print(json.dumps(report, indent=2, default=str))
         return 0
 
-    print(f"RESUME -- {Path(project).name}")
+    print(f"RESUME -- {Path(project).name}" + ("   (dry run, nothing touched)" if args.dry_run else ""))
     print()
     if not report:
         print("  No worker needs resuming.")
@@ -265,11 +317,14 @@ def main() -> int:
         print(f"  {w['branch'] or '(no branch)'}   worker {w['state']}"
               f" (terminal {w['terminal']})   local {pos['head']}"
               + (f"   gate {pos['gate_head']}" if pos["gate_head"] else ""))
+        for line in r["did"]:
+            print(f"    -> {line}")
         for line in r["verdict"]:
-            print(f"      {line}")
+            print(f"       {line}")
         print()
 
-    print("  Then re-arm the wait, before saying anything:")
+    print("  Re-arm the wait yourself -- it must be backgrounded, which a script cannot do")
+    print("  on your behalf without detaching it from the session that needs to hear it:")
     print("    orca orchestration check --wait --types worker_done,escalation,question")
     return 0
 
