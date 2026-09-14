@@ -23,7 +23,6 @@ from __future__ import annotations
 import argparse
 import json
 import platform
-import shlex
 import shutil
 import subprocess
 import sys
@@ -374,16 +373,16 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
     print("\nDependencies")
     unmet = report_dependencies(project)
 
-    # Reported, never created. See `automation()` for why the line is drawn here.
-    present = automation_present()
+    # Reported, never registered. See `watcher()` for why the line is drawn here.
+    present = watcher_present()
     if present is False:
         print("\nWatcher")
-        print(f"  {AUTOMATION_NAME} automation: not created")
-        print("  It spends tokens on a schedule, so casting does not create it for you.")
-        print("  When you want it:  geass automation")
+        print(f"  {WATCHER_NAME}: not registered with the OS scheduler")
+        print("  It runs on its own schedule, so casting does not register it for you.")
+        print("  When you want it:  geass watcher")
     elif present:
         print("\nWatcher")
-        print(f"  {AUTOMATION_NAME} automation: present")
+        print(f"  {WATCHER_NAME}: registered")
 
     print("\nDone. Next:")
     step = 1
@@ -478,85 +477,98 @@ def diff(skill: str) -> int:
     return 0
 
 
-AUTOMATION_NAME = "britania-vitals"
+WATCHER_NAME = "britania-vitals"
+WATCHER_EVERY_MIN = 15
 
 
-def automation_present() -> bool | None:
-    """True/False if Orca answered, None if it could not be asked."""
-    out = _orca(["automations", "list", "--json"])
-    if out is None:
-        return None
-    try:
-        rows = json.loads(out).get("result", {}).get("automations") or []
-    except (json.JSONDecodeError, AttributeError):
-        return None
-    return any(a.get("name") == AUTOMATION_NAME for a in rows if isinstance(a, dict))
-
-
-def _orca(args: list[str]) -> str | None:
-    exe = shutil.which("orca")
+def _run(args: list[str]) -> tuple[bool, str]:
+    exe = shutil.which(args[0])
     if exe is None:
-        return None
+        return False, f"{args[0]} not on PATH"
     try:
-        proc = subprocess.run([exe, *args], capture_output=True, text=True, timeout=60)
-    except (OSError, subprocess.TimeoutExpired):
+        proc = subprocess.run([exe, *args[1:]], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, str(exc)
+    out = (proc.stdout or proc.stderr or "").strip()
+    return proc.returncode == 0, out
+
+
+def watcher_command(project: Path) -> str:
+    """The thing a scheduler should run, every {WATCHER_EVERY_MIN} minutes."""
+    script = project / SKILLS_DEST / WATCHER_NAME / "vitals.py"
+    return f'python "{script}" --once --path "{project}"'
+
+
+def watcher_present() -> bool | None:
+    """True/False if the scheduler answered, None if it could not be asked."""
+    if platform.system() != "Windows":
         return None
-    return proc.stdout if proc.returncode == 0 else None
+    ok, _ = _run(["schtasks", "/Query", "/TN", WATCHER_NAME])
+    return ok
 
 
-def automation_command(project: Path) -> str:
-    skill = SKILLS_DEST / AUTOMATION_NAME / "vitals.py"
-    # --precheck semantics, from Orca's own help: "exit code 0 continues,
-    # anything else records a skipped run". So the precheck must answer "is
-    # there a breach", NOT "is it safe to dispatch" -- those are inverses, and
-    # using --gate here would wake an agent every quiet hour while staying
-    # silent through an actual breach.
-    return (
-        f'orca automations create --name {AUTOMATION_NAME} --trigger hourly '
-        f'--precheck "python {skill.as_posix()} --breach" '
-        f'--provider claude --workspace path:{project.as_posix()} '
-        f'--prompt "britania-vitals reports a threshold breach. Read the skill, '
-        f'park any dispatch, and tell C.C what is short."'
-    )
+def watcher(project: Path, force: bool, remove: bool) -> int:
+    """Register the vitals watcher with the OS scheduler.
 
+    **Not an Orca automation, and the reason is worth recording.** Orca
+    automations are agent-backed: `--prompt` and `--provider` are required, and
+    the only plain-command slot is `--precheck`. So every firing that passes its
+    precheck starts a *new* agent session -- which costs tokens, and worse,
+    arrives with no context. The job here is to tell the *running* orchestrator
+    to park its work, and a fresh agent cannot do that.
 
-def automation(project: Path, force: bool) -> int:
-    """Create the vitals watcher, idempotently.
+    The OS scheduler runs a plain script instead. It costs nothing, and the only
+    tokens involved are one turn in the session that already holds the state.
 
-    Deliberately NOT part of `cast`, and the distinction is the point. Casting
-    writes files and initialises a gate -- inert things that cost nothing until
-    someone uses them. **An automation spends tokens on a schedule, without
-    being asked again.** A tool that installs a contract has no business
-    quietly creating a recurring bill, so this is opt-in and cast only reports
-    that it is absent.
+    **`--once` on a schedule, not a resident `--watch`.** A long-lived watcher is
+    a process that can die without saying so, and a monitor that has gone quiet
+    looks exactly like a healthy one -- which this machine has demonstrated
+    repeatedly. A scheduled one-shot has nothing to keep alive.
 
-    It is also global to the Orca runtime rather than per-project, so casting
-    into a second project must not produce a second watcher -- hence the
-    existence check before create.
+    Deliberately not part of `cast`: casting writes files, which are inert until
+    someone uses them. Registering something that runs on its own schedule is a
+    change to the machine, and that is the user's call to make explicitly.
     """
-    present = automation_present()
-    if present is None:
-        print("! cannot reach Orca - is the runtime running?", file=sys.stderr)
+    cmd = watcher_command(project)
+
+    if platform.system() != "Windows":
+        verb = "Remove" if remove else "Add"
+        print(f"  {verb} this line with `crontab -e`:")
         print()
-        print("  Create it by hand once Orca is up:")
-        print()
-        print(f"    {automation_command(project)}")
-        return 1
+        print(f"    */{WATCHER_EVERY_MIN} * * * * {cmd}")
+        return 0
+
+    present = watcher_present()
+    if remove:
+        if not present:
+            print(f"  {WATCHER_NAME}: not registered, nothing to remove")
+            return 0
+        ok, out = _run(["schtasks", "/Delete", "/TN", WATCHER_NAME, "/F"])
+        print(f"  removed {WATCHER_NAME}" if ok else f"! remove failed: {out}")
+        return 0 if ok else 1
+
     if present and not force:
-        print(f"  {AUTOMATION_NAME} already exists. Re-run with --force to replace it.")
+        print(f"  {WATCHER_NAME} already registered. Re-run with --force to replace it.")
         return 0
     if present:
-        _orca(["automations", "remove", "--name", AUTOMATION_NAME])
-        print(f"  removed the existing {AUTOMATION_NAME}")
+        _run(["schtasks", "/Delete", "/TN", WATCHER_NAME, "/F"])
 
-    cmd = automation_command(project)
-    if _orca(shlex.split(cmd)[1:]) is None:
-        print("! create failed. Run it by hand and read the error:", file=sys.stderr)
+    ok, out = _run([
+        "schtasks", "/Create", "/TN", WATCHER_NAME, "/TR", cmd,
+        "/SC", "MINUTE", "/MO", str(WATCHER_EVERY_MIN), "/F",
+    ])
+    if not ok:
+        print(f"! could not register the watcher: {out}", file=sys.stderr)
         print()
-        print(f"    {cmd}")
+        print("  Register it by hand:")
+        print()
+        print(f'    schtasks /Create /TN {WATCHER_NAME} /TR "{cmd}" '
+              f"/SC MINUTE /MO {WATCHER_EVERY_MIN} /F")
         return 1
-    print(f"  created {AUTOMATION_NAME}")
-    print("  precheck runs on its own; only a breach spends anything.")
+
+    print(f"  registered {WATCHER_NAME}, every {WATCHER_EVERY_MIN} minutes")
+    print("  It runs a script, not an agent. Quiet checks cost nothing.")
+    print(f"  Remove it with:  geass watcher --remove")
     return 0
 
 
@@ -585,9 +597,10 @@ def main() -> int:
     p_diff = sub.add_parser("diff", help="show a fork against its vanilla copy")
     p_diff.add_argument("skill")
 
-    p_auto = sub.add_parser("automation", help="create the vitals watcher (opt-in; it spends tokens)")
-    p_auto.add_argument("path", nargs="?", default=".")
-    p_auto.add_argument("--force", action="store_true", help="replace an existing one")
+    p_watch = sub.add_parser("watcher", help="register the vitals watcher with the OS scheduler")
+    p_watch.add_argument("path", nargs="?", default=".")
+    p_watch.add_argument("--force", action="store_true", help="replace an existing registration")
+    p_watch.add_argument("--remove", action="store_true", help="unregister it")
 
     args = parser.parse_args()
     if args.command == "cast":
@@ -598,8 +611,8 @@ def main() -> int:
         return doctor(Path(args.path))
     if args.command == "diff":
         return diff(args.skill)
-    if args.command == "automation":
-        return automation(Path(args.path).resolve(), args.force)
+    if args.command == "watcher":
+        return watcher(Path(args.path).resolve(), args.force, args.remove)
     parser.print_help()
     return 0
 

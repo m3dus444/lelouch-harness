@@ -73,42 +73,49 @@ python <skill>/vitals.py --watch --present      # user at the keyboard: warn onl
 python <skill>/vitals.py --watch --dry-run      # print what it would send
 ```
 
-### Where it should actually live: an Orca automation
-
-You do not create this by hand, and casting does not create it for you:
+### Where it actually lives: the OS scheduler
 
 ```
-geass automation            # create it, once
-geass automation --force    # replace it after the skill changes
+geass watcher            # register it, once
+geass watcher --force    # re-register after the skill changes
+geass watcher --remove   # unregister
 ```
 
-It is opt-in because **an automation spends tokens on a schedule.** Casting
-writes files and initialises a gate — inert things that cost nothing until
-someone uses them. A recurring bill is not in that category, so `cast` only
-reports that the watcher is absent and names the command.
+It runs **`vitals.py --once` every 15 minutes**: check, wake if something
+breached, exit.
 
-It is also **global to the Orca runtime**, not per-project, so casting into a
-second project must not produce a second watcher. `geass automation` checks
-before it creates.
+**It costs no tokens of its own.** It is a plain script. The only tokens it ever
+causes are one turn in the session that is already running — which is also the
+only session that knows what to park.
 
-What it builds:
+#### Why not an Orca automation
 
-```
-orca automations create --name britania-vitals --trigger hourly \
-  --precheck "python <skill>/vitals.py --breach" \
-  --provider claude --workspace <selector> --prompt "..."
-```
+The obvious choice, and wrong. `orca automations create` **requires `--prompt`
+and `--provider`**: every firing that passes its precheck starts a *new agent
+session*. That spends tokens, and worse, the agent arrives with no context — it
+is not the orchestrator and cannot park work it knows nothing about. The only
+plain-command slot there is `--precheck`, which is a gate, not an action.
 
-`--precheck` is what makes this cheap: the check runs on its own schedule and
-costs nothing, and **only a breach involves an agent at all.** Quiet hours are
-free.
+#### Why `--once` on a schedule, not a resident `--watch`
 
-> **`--breach`, not `--gate`.** Orca documents the precheck as *"exit code 0
-> continues, anything else records a skipped run"* — so the precheck must answer
-> **"is there a breach"**, which is the inverse of **"is it safe to dispatch"**.
-> Wiring `--gate` here would wake an agent every quiet hour and stay silent
-> through an actual breach. Two flags, named for the question each answers,
-> because one number cannot be right for both callers.
+A long-lived watcher is a process that can die without saying so, and **a
+monitor that has gone quiet looks exactly like a healthy one.** This machine has
+demonstrated that repeatedly. A scheduled one-shot has nothing to keep alive: if
+a run is missed the scheduler says so, and the next one still fires.
+
+`--watch` still exists for a foreground terminal you are actually looking at.
+
+#### Why casting does not register it
+
+Casting writes files — inert until someone uses them. Registering something that
+runs on its own schedule changes the machine, so it is the user's call to make
+explicitly. `cast` reports whether the watcher is registered and names the
+command; it never does it silently.
+
+> On the two exit codes: `--gate` answers *"may I dispatch"* (0 = clear) and
+> `--breach` answers *"is there a problem"* (0 = yes). They are inverses on
+> purpose, because one number cannot be right for both callers. `--breach`
+> exists for any scheduler that treats exit 0 as "proceed".
 
 ### Why NOT the session-start hook
 

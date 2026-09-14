@@ -293,7 +293,49 @@ def wake(handle: str, text: str, dry: bool) -> bool:
                "--text", text, "--enter"], timeout=30) is not None
 
 
+def tick(args, handle: str | None, fired: set[str]) -> set[str]:
+    """One check, and a wake if something breached. Returns what is breaching now."""
+    v = collect(args.path, args.provider)
+    current = {b.split()[0] for b in v["blocks"]}
+
+    for kind in sorted(current - fired):
+        detail = next(b for b in v["blocks"] if b.startswith(kind))
+        print(f"{datetime.now():%H:%M:%S}  BREACH  {detail}", flush=True)
+        if args.present:
+            # C.C is at the keyboard: warn, never act for them.
+            print("        (user present -- warning only, taking no action)", flush=True)
+        else:
+            wake(handle, f"britania-vitals: {detail}. Stop dispatching and park the run.", args.dry_run)
+
+    if v["quota_pct"] is not None and v["quota_pct"] < QUOTA_FLOOR and v["resets_at"]:
+        print(f"{datetime.now():%H:%M:%S}  quota resets in {v['resets_in']}", flush=True)
+    return current
+
+
+def once(args) -> int:
+    """Check once, wake if needed, exit. **This is the mode a scheduler runs.**
+
+    Preferred over `--watch` for anything unattended, and the reason is this
+    machine's own history: a long-lived watcher is a process that can die
+    without saying so, and a monitor that has gone quiet looks exactly like a
+    healthy one. A scheduled one-shot has nothing to keep alive -- if a run is
+    missed the scheduler says so, and the next one still fires.
+
+    State is not carried between runs, so a standing breach re-alarms on every
+    tick. That is deliberate: a level that is still bad is still worth saying,
+    and de-duplication belongs to whoever reads it.
+    """
+    handle = args.terminal or coordinator_handle()
+    if not handle and not args.dry_run:
+        print("no coordinator terminal found; nothing to wake", file=sys.stderr)
+        return 0
+    tick(args, handle, set())
+    return 0
+
+
 def watch(args) -> int:
+    """Stay resident and poll. Useful in a foreground terminal you are watching;
+    for anything unattended prefer `--once` on a scheduler (see above)."""
     handle = args.terminal or coordinator_handle()
     if not handle and not args.dry_run:
         print("no coordinator terminal found; pass --terminal <handle>", file=sys.stderr)
@@ -302,24 +344,9 @@ def watch(args) -> int:
     print(f"vitals watching every {args.interval}s  ->  {handle or '(dry run)'}", flush=True)
     fired: set[str] = set()
     while True:
-        v = collect(args.path, args.provider)
-        current = {b.split()[0] for b in v["blocks"]}
-
-        for kind in sorted(current - fired):
-            detail = next(b for b in v["blocks"] if b.startswith(kind))
-            print(f"{datetime.now():%H:%M:%S}  BREACH  {detail}", flush=True)
-            if args.present:
-                # C.C is at the keyboard: warn, never act for them.
-                print("        (user present -- warning only, taking no action)", flush=True)
-            else:
-                wake(handle, f"britania-vitals: {detail}. Stop dispatching and park the run.", args.dry_run)
         # Clearing a breach re-arms it, so a level that recovers and degrades
         # again alarms twice. A latch is right for an episode, wrong for a level.
-        fired = current
-
-        if v["quota_pct"] is not None and v["quota_pct"] < QUOTA_FLOOR and v["resets_at"]:
-            print(f"{datetime.now():%H:%M:%S}  quota resets in {v['resets_in']}", flush=True)
-
+        fired = tick(args, handle, fired)
         time.sleep(args.interval)
 
 
@@ -329,7 +356,9 @@ def main() -> int:
                     help="for the orchestrator: exit 0 = clear to dispatch, 1 = hold")
     ap.add_argument("--breach", action="store_true",
                     help="for an automation precheck: exit 0 = there IS a breach, 1 = nothing to do")
-    ap.add_argument("--watch", action="store_true", help="auto mode: wake the session on a breach")
+    ap.add_argument("--once", action="store_true",
+                    help="auto mode, scheduler-friendly: check once, wake on a breach, exit")
+    ap.add_argument("--watch", action="store_true", help="stay resident and poll (foreground use)")
     ap.add_argument("--json", action="store_true", help="machine-readable")
     ap.add_argument("--interval", type=int, default=300, help="seconds between checks in --watch")
     ap.add_argument("--terminal", help="coordinator terminal handle for --watch")
@@ -339,6 +368,8 @@ def main() -> int:
     ap.add_argument("--provider", default="claude")
     args = ap.parse_args()
 
+    if args.once:
+        return once(args)
     if args.watch:
         try:
             return watch(args)
