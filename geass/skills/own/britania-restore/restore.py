@@ -245,12 +245,76 @@ def contradictions(project: Path) -> list[str]:
 # ------------------------------------------------------------------ briefing
 
 
+def is_linked_worktree(path: Path) -> bool:
+    """Is this a dispatched worker's worktree rather than the project itself?
+
+    A linked worktree's `.git` is a FILE pointing at the shared git directory,
+    where the main checkout has a directory. That distinction is the role gate
+    in physical form, and it decides which briefing is the right one -- a worker
+    restored with the coordinator's briefing would go looking for Runs to bind
+    and a board to read, neither of which is its job.
+    """
+    dot = path / ".git"
+    return dot.is_file()
+
+
+def worker_briefing(path: Path) -> int:
+    """For a fresh session opened in a dead worker's worktree.
+
+    Deliberately narrow. This agent owns one ticket and one branch; it has no
+    Run to bind, no board to read, and no business reading the coordinator's
+    held decisions.
+    """
+    branch = (sh(["git", "-C", str(path), "rev-parse", "--abbrev-ref", "HEAD"]) or "?").strip()
+    ticket = branch.rsplit("/", 1)[-1]
+    dirty = [ln.strip() for ln in (sh(["git", "-C", str(path), "status", "--porcelain"]) or "").splitlines() if ln.strip()]
+    sh(["git", "-C", str(path), "fetch", "--quiet", "no-mistakes"], timeout=90)
+    behind = [ln for ln in (sh(["git", "-C", str(path), "log", "--oneline",
+                                f"HEAD..no-mistakes/{branch}"]) or "").splitlines() if ln.strip()]
+    mine = [ln for ln in (sh(["git", "-C", str(path), "log", "--oneline",
+                              f"no-mistakes/{branch}..HEAD"]) or "").splitlines() if ln.strip()]
+
+    print(f"RESTORE -- worker worktree, {ticket}")
+    print()
+    print("  You are a WORKER, not the orchestrator. Read §W of CLAUDE.md and stop there;")
+    print("  sections 0-10 are not yours and their prime directive would stop you working.")
+    print()
+    print(f"  branch     {branch}")
+    if dirty:
+        print(f"  in progress  {len(dirty)} uncommitted file(s) -- YOUR work, not damage:")
+        for f in [ln.split(None, 1)[-1] for ln in dirty][:10]:
+            print(f"               {f}")
+        print("               Read these before editing. They are further along than you are.")
+    else:
+        print("  in progress  nothing uncommitted")
+    if mine:
+        print(f"  banked       {len(mine)} commit(s) of your own the gate has not taken:")
+        for c in mine[:6]:
+            print(f"               {c}")
+    if behind:
+        print(f"  from the gate  {len(behind)} commit(s) you do not have yet:")
+        for c in behind[:6]:
+            print(f"               {c}")
+        print(f"               git merge --ff-only no-mistakes/{branch}")
+    print()
+    print("  Your ticket's definition of done is in the backlog and in your original spec.")
+    print(f"    tasks-axi show {ticket}")
+    print()
+    print("  Check the gate before starting anything: a run may still be live in the")
+    print("  daemon even though this session is new.")
+    print("    no-mistakes axi status")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Rebuild session state from durable sources.")
     ap.add_argument("--path", default=os.getcwd())
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
     project = Path(args.path).resolve()
+
+    if is_linked_worktree(project) and not args.json:
+        return worker_briefing(project)
 
     run_id, how, objective = find_run(project)
     bound = bound_run(project)

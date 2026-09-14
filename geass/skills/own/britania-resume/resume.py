@@ -246,7 +246,8 @@ def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
                 "fast-forward REFUSED -- the branch has diverged, so this needs a human"
             )
 
-    if w.get("handle") and (w.get("state") or "") not in DEAD_WORKER:
+    alive = w.get("terminal") == "live" and (w.get("state") or "") not in DEAD_WORKER
+    if alive and w.get("handle"):
         body = build_brief(w, pos)
         if dry:
             done.append(f"would send its position to dispatch:{w['handle'][:18]}")
@@ -254,45 +255,55 @@ def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
             sent = sh(["orca", "orchestration", "send", "--to", f"dispatch:{w['handle']}",
                        "--type", "status", "--subject", "resume where you left off",
                        "--body", body, "--json"])
-            done.append("told the worker where it left off (--type status)"
-                        if sent else "could not reach the worker; it may need a fresh dispatch")
-    elif pos["dirty"] or pos["mine"]:
-        done.append("no live worker to tell -- its unfinished work is described below "
-                    "so a fresh dispatch can be given it rather than starting from zero")
+            done.append("told the worker what changed while it was parked (--type status)"
+                        if sent else "could not reach the worker; treat it as gone")
+    elif pos["dirty"] or pos["mine"] or pos["behind"]:
+        done.append(
+            "TERMINAL GONE -- this is not a resume. Open a fresh session in that "
+            "worktree and let it run britania-restore; recovering a dead session is "
+            "that skill's job, from inside, and its unfinished work is listed below."
+        )
 
     return done
 
 
 def build_brief(w: dict, pos: dict) -> str:
-    """The message a resumed builder actually needs.
+    """What to send a worker that is **parked, not dead**.
 
-    Not "carry on" -- a worker that was interrupted mid-edit has no memory of the
-    session either. It needs its own note back, the files it had open, the
-    commits it must not rebuild, and what arrived while it was stopped.
+    A usage cap does not clear a session -- the process sits there with its
+    context intact. So it already knows its ticket, its own note, and the files
+    it was editing, and repeating those is the noise §0 exists to forbid.
+
+    Send only what it **cannot** know:
+
+      the gate's commits   made by a different agent, in the shadow repo
+      a moved tree         if we fast-forwarded, its memory of those files is behind
+
+    The ticket is named anyway, in one clause -- F-011 recorded a woken worker
+    that simply did nothing, and a nudge that lands without a subject is cheap
+    to make pointless.
     """
-    parts = ["You were interrupted, not cancelled. Resume from where you were."]
-    if w.get("ticket"):
-        parts.append(f"Ticket: {w['ticket']}.")
-    if w.get("comment"):
-        parts.append(f"Your own last note: \"{w['comment']}\".")
-    if pos["dirty"]:
-        parts.append(
-            f"You have {len(pos['dirty'])} uncommitted file(s) -- this is your work in "
-            f"progress, not damage: {', '.join(pos['files'])}. Read them before editing; "
-            f"they are further along than your memory of them."
-        )
-    if pos["mine"]:
-        parts.append("Commits you already made, do NOT rebuild them: "
-                     + "; ".join(pos["mine"][:6]) + ".")
+    parts = [f"Resuming {w.get('ticket') or 'your ticket'}. You were parked, not cancelled."]
+
     if pos["behind"]:
-        parts.append(
-            ("The ship gate added these while you were stopped, now merged into your checkout: "
-             if not pos["dirty"] else
-             "The ship gate added these while you were stopped; commit or stash first, then "
-             "`git merge --ff-only no-mistakes/" + w.get("branch", "") + "`: ")
-            + "; ".join(pos["behind"][:6]) + "."
-        )
-    parts.append("Then continue, and report worker_done when finished.")
+        if pos["dirty"]:
+            parts.append(
+                "The ship gate committed while you were parked, and your tree still has "
+                f"edits, so nothing was moved under you. Commit or stash, then "
+                f"`git merge --ff-only no-mistakes/{w.get('branch', '')}`: "
+                + "; ".join(pos["behind"][:6]) + "."
+            )
+        else:
+            parts.append(
+                "The ship gate committed while you were parked and your checkout has been "
+                "fast-forwarded onto it -- so the files on disk are AHEAD of what you "
+                "remember. Re-read anything you touch before editing it. Do not rebuild: "
+                + "; ".join(pos["behind"][:6]) + "."
+            )
+    else:
+        parts.append("Nothing changed underneath you; the tree is as you left it.")
+
+    parts.append("Continue from there and report worker_done when finished.")
     return " ".join(parts)
 
 

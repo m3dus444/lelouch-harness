@@ -48,74 +48,51 @@ from here:
 It also skips the fast-forward on any tree with uncommitted files and says so,
 rather than moving a branch under work in progress.
 
-## The usual case: a builder cut off mid-edit
+## A parked worker still has its context
 
-A usage cap does not wait for a clean stopping point. It interrupts a builder
-**between keystrokes** — half-written files, maybe a commit or two of its own
-that the gate has not taken yet. That is the ordinary shape of this, not an edge
-case, and **a dirty tree is the work, not damage.**
+A usage cap does not clear a session. The process sits there with its memory
+intact, so it already knows its ticket, its own note, and the files it was
+editing — **repeating those back is the noise §0 exists to forbid.**
 
-Four states get told apart, and conflating them is how work gets redone:
-
-| | |
-|---|---|
-| **work in progress** | edits never committed anywhere — the most fragile, and invisible to every registry but git |
-| **commits of its own** | banked, but the gate has not taken them |
-| **commits from the gate** | fix rounds made while it was stopped |
-| **its own last note** | the progress comment it wrote on its Orca card |
-
-The worker gets all four back, because **it has no memory of the session
-either**:
-
-> You were interrupted, not cancelled. Resume from where you were. Ticket:
-> wa-feature. Your own last note: *"Wired the parser; tests for the error path
-> still to write."* You have 2 uncommitted file(s) — this is your work in
-> progress, not damage: `feature.py`, `NOTES.md`. **Read them before editing;
-> they are further along than your memory of them.** Commits you already made,
-> do NOT rebuild them: `3ae88eb wip(feature): first half`. The ship gate added
-> these while you were stopped; commit or stash first, then
-> `git merge --ff-only …`: `ed2c1a9 …`. Then continue, and report `worker_done`
-> when finished.
-
-That line about reading the files first is the one that matters. A resumed agent
-trusts its own memory over the disk, and after an interruption the disk is
-ahead — so it will happily rewrite work it already did.
-
-**This is why §W asks workers to keep their card comment current.** It is the
-only record of intent that survives the agent, and it is what makes the
-difference between "resume this ticket" and "resume what you were actually
-doing".
-
-## Not the same job as `britania-restore`
+It is sent only what it cannot know:
 
 | | |
 |---|---|
-| **restore** | the session lost its memory — rebuild what it knew |
-| **resume** | the session is intact — the *work* stopped, and restarting it can destroy things |
+| **the gate's commits** | made by a *different* agent, in the shadow repo |
+| **a moved tree** | if we fast-forwarded, the disk is now ahead of its memory |
 
-If you can still remember the conversation, this is the one you want.
+> Resuming wa-feature. You were parked, not cancelled. The ship gate committed
+> while you were parked and your checkout has been fast-forwarded onto it — so
+> **the files on disk are AHEAD of what you remember. Re-read anything you touch
+> before editing it.** Do not rebuild: `19dfc6b …`. Continue from there and
+> report `worker_done` when finished.
 
-## The question it answers
+If nothing changed underneath it, it is told that too — that is also something
+it cannot verify without looking.
 
-**What would restarting each worker destroy?**
+The ticket is named in one clause anyway. [F-011](../../harness/docs/agents/harness-gotchas.md)
+recorded a woken worker that simply did nothing, and a nudge with no subject is
+cheap to make pointless.
 
-Usually something. The ship gate commits its fix rounds to a **shadow remote**,
-not to the worker's checkout — so a stalled worker routinely sits *behind its own
-finished work*. Restart it cold and it rebuilds commits that already exist,
-which is the expensive failure this exists to prevent.
+## A dead terminal is not a resume
+
+If the terminal is gone, this skill **does not message anything**. It says so and
+stops:
 
 ```
-_wa-paging   worker abandoned (terminal gone)   local c0fa1bd   gate 7bfd6af
-    FAST-FORWARD FIRST -- 1 commit(s) exist on the gate's remote that this
-    checkout does not have.
-        7bfd6af fix(paging): keep the cursor stable across a refill
-        git -C "..." merge --ff-only no-mistakes/_wa-paging
-        Name these commits when you resume it, or it will rebuild them.
-    1 uncommitted file(s) -- bank them before anything else.
+TERMINAL GONE -- this is not a resume. Open a fresh session in that worktree and
+let it run britania-restore; recovering a dead session is that skill's job, from
+inside, and its unfinished work is listed below.
 ```
 
-The order is deliberate: **fast-forward first**, because getting that wrong
-costs the most; then uncommitted work; then how to re-engage the worker.
+The boundary is worth holding. You cannot restore a session from outside it —
+restore runs **in** the session being rebuilt. So resume reports the state and
+hands over, rather than pretending a dead worker can be nudged.
+
+`britania-restore` detects that it is in a linked worktree (its `.git` is a file,
+not a directory) and gives the **worker's** briefing instead of the
+orchestrator's: read §W and stop there, here are your uncommitted files, your own
+banked commits, and what the gate added.
 
 ## Three verdicts, and how to tell them apart
 

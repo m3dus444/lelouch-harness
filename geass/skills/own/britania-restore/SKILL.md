@@ -9,6 +9,18 @@ metadata:
 
 # britania-restore
 
+**Two briefings, chosen automatically.** If `.git` is a *file* rather than a
+directory, this is a dispatched worker's worktree and you get the worker
+briefing: read §W and stop, here is your uncommitted work, your banked commits,
+and what the gate added while you were gone. Otherwise you get the
+orchestrator's, below.
+
+That split matters because a worker restored with the coordinator's briefing
+goes looking for a Run to bind and a board to read, neither of which is its job.
+It is also where `britania-resume` hands over: a worker whose terminal died is
+not a resume, and recovering it means a fresh session **in that worktree**
+running this skill — you cannot restore a session from outside it.
+
 **The user runs this. You never invoke it yourself** — a session that decides on
 its own to rebuild its context is one step away from a session that decides to
 clear it.
