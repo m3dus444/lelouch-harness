@@ -138,6 +138,14 @@ def resolve_skills() -> list[tuple[str, Path, str]]:
     for old, (new, _why) in manifest.RENAMED.items():
         out.append((new, SKILLS / "patched" / new, f"patched, renamed from {old}"))
 
+    # Skills this harness wrote. They have no vanilla counterpart to diff
+    # against, so they are neither vendored nor forked -- hence their own home.
+    own = SKILLS / "own"
+    if own.is_dir():
+        for src in sorted(own.iterdir()):
+            if src.is_dir():
+                out.append((src.name, src, "own"))
+
     return sorted(out)
 
 
@@ -365,6 +373,18 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
     print("\nDependencies")
     unmet = report_dependencies(project)
 
+    # Reported, never registered. See `watcher()` for why the line is drawn here.
+    present = watcher_present(project)
+    name = watcher_name(project)
+    if present is False:
+        print("\nWatcher")
+        print(f"  {name}: not registered with the OS scheduler")
+        print("  It runs on its own schedule, so casting does not register it for you.")
+        print("  When you want it:  geass watcher")
+    elif present:
+        print("\nWatcher")
+        print(f"  {name}: registered")
+
     print("\nDone. Next:")
     step = 1
     if unmet:
@@ -458,6 +478,112 @@ def diff(skill: str) -> int:
     return 0
 
 
+WATCHER_EVERY_MIN = 15
+
+
+def watcher_name(project: Path) -> str:
+    """One watcher per project, never one per machine.
+
+    The watcher wakes *a specific session*, so a second project needs a second
+    registration. A constant name would have silently replaced the first
+    project's watcher when the second was cast -- with no error, and no sign
+    until something breached and nobody was told.
+    """
+    return f"britania-vitals-{project.resolve().name}"
+
+
+def _run(args: list[str]) -> tuple[bool, str]:
+    exe = shutil.which(args[0])
+    if exe is None:
+        return False, f"{args[0]} not on PATH"
+    try:
+        proc = subprocess.run([exe, *args[1:]], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, str(exc)
+    out = (proc.stdout or proc.stderr or "").strip()
+    return proc.returncode == 0, out
+
+
+def watcher_command(project: Path) -> str:
+    """The thing a scheduler should run, every {WATCHER_EVERY_MIN} minutes."""
+    script = project / SKILLS_DEST / "britania-vitals" / "vitals.py"
+    return f'python "{script}" --once --path "{project}"'
+
+
+def watcher_present(project: Path) -> bool | None:
+    """True/False if the scheduler answered, None if it could not be asked."""
+    if platform.system() != "Windows":
+        return None
+    ok, _ = _run(["schtasks", "/Query", "/TN", watcher_name(project)])
+    return ok
+
+
+def watcher(project: Path, force: bool, remove: bool) -> int:
+    """Register the vitals watcher with the OS scheduler.
+
+    **Not an Orca automation, and the reason is worth recording.** Orca
+    automations are agent-backed: `--prompt` and `--provider` are required, and
+    the only plain-command slot is `--precheck`. So every firing that passes its
+    precheck starts a *new* agent session -- which costs tokens, and worse,
+    arrives with no context. The job here is to tell the *running* orchestrator
+    to park its work, and a fresh agent cannot do that.
+
+    The OS scheduler runs a plain script instead. It costs nothing, and the only
+    tokens involved are one turn in the session that already holds the state.
+
+    **`--once` on a schedule, not a resident `--watch`.** A long-lived watcher is
+    a process that can die without saying so, and a monitor that has gone quiet
+    looks exactly like a healthy one -- which this machine has demonstrated
+    repeatedly. A scheduled one-shot has nothing to keep alive.
+
+    Deliberately not part of `cast`: casting writes files, which are inert until
+    someone uses them. Registering something that runs on its own schedule is a
+    change to the machine, and that is the user's call to make explicitly.
+    """
+    cmd = watcher_command(project)
+    name = watcher_name(project)
+
+    if platform.system() != "Windows":
+        verb = "Remove" if remove else "Add"
+        print(f"  {verb} this line with `crontab -e`:")
+        print()
+        print(f"    */{WATCHER_EVERY_MIN} * * * * {cmd}")
+        return 0
+
+    present = watcher_present(project)
+    if remove:
+        if not present:
+            print(f"  {name}: not registered, nothing to remove")
+            return 0
+        ok, out = _run(["schtasks", "/Delete", "/TN", name, "/F"])
+        print(f"  removed {name}" if ok else f"! remove failed: {out}")
+        return 0 if ok else 1
+
+    if present and not force:
+        print(f"  {name} already registered. Re-run with --force to replace it.")
+        return 0
+    if present:
+        _run(["schtasks", "/Delete", "/TN", name, "/F"])
+
+    ok, out = _run([
+        "schtasks", "/Create", "/TN", name, "/TR", cmd,
+        "/SC", "MINUTE", "/MO", str(WATCHER_EVERY_MIN), "/F",
+    ])
+    if not ok:
+        print(f"! could not register the watcher: {out}", file=sys.stderr)
+        print()
+        print("  Register it by hand:")
+        print()
+        print(f'    schtasks /Create /TN {name} /TR "{cmd}" '
+              f"/SC MINUTE /MO {WATCHER_EVERY_MIN} /F")
+        return 1
+
+    print(f"  registered {name}, every {WATCHER_EVERY_MIN} minutes")
+    print("  It runs a script, not an agent. Quiet checks cost nothing.")
+    print(f"  Remove it with:  geass watcher --remove")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="geass",
@@ -483,6 +609,11 @@ def main() -> int:
     p_diff = sub.add_parser("diff", help="show a fork against its vanilla copy")
     p_diff.add_argument("skill")
 
+    p_watch = sub.add_parser("watcher", help="register the vitals watcher with the OS scheduler")
+    p_watch.add_argument("path", nargs="?", default=".")
+    p_watch.add_argument("--force", action="store_true", help="replace an existing registration")
+    p_watch.add_argument("--remove", action="store_true", help="unregister it")
+
     args = parser.parse_args()
     if args.command == "cast":
         return cast(Path(args.path), args.force, args.agent)
@@ -492,6 +623,8 @@ def main() -> int:
         return doctor(Path(args.path))
     if args.command == "diff":
         return diff(args.skill)
+    if args.command == "watcher":
+        return watcher(Path(args.path).resolve(), args.force, args.remove)
     parser.print_help()
     return 0
 

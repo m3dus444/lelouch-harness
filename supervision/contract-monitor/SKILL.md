@@ -52,12 +52,40 @@ exists to suppress.
 **Post-run** — `observe.py <project-path>` prints every skill invoked, the
 per-session action counts, and the scorecard. Add `-v` for the full action list.
 
+Pass it a **path**, not just a name, when you want the repository checks: the
+transcript lookup works from a bare name, the filesystem one cannot, and it will
+say so rather than answer about the wrong directory.
+
+## The instruments, and which to arm
+
+Two are armed by default; the rest are pulled out for a specific question.
+Arming everything produces a channel nobody reads, which is its own failure.
+
+| | | arm it |
+|---|---|---|
+| `watch.py` | one line per action, live | **always**, `--from-now` on a restart |
+| `observe.py` | the scorecard | at the debrief, and whenever a claim needs checking |
+| `fanwatch.py` | free RAM and disk during a fan-out | when more than two workers run at once |
+| `gatewatch.py` | the ship gate's state machine | when a gate is behaving oddly |
+| `parkwatch.py` | one parked session overnight | when a gate is parked and nobody is awake |
+| `liveness.py` | who is alive, from transcript rows | one-shot, to settle a silence |
+| `rounds.py` | per-round finding ids | only to test review convergence |
+| `worktree-retire.sh` | remove a worktree without orphaning it | at teardown |
+
+`worktree-retire.sh` asks its safety questions **while `.git` is still attached**,
+because once a directory is orphaned nothing inside it can answer them. It also
+knows the case found on 14 Sep: an **empty** directory that still refuses to
+delete is the global `no-mistakes` daemon pinning the worktree it was started in,
+not corruption — restart the daemon and retry.
+
 ## The scorecard
+
+Transcript checks — what an agent *did*:
 
 | Check | What it proves |
 |---|---|
 | grilled before dispatching | intake ran before work started |
-| wrote the glossary (`domain-modeling`) | workers get shared vocabulary |
+| invoked `domain-modeling` | the skill that owns the glossary actually ran |
 | invoked `to-spec` | the spec stage is real |
 | invoked `to-tickets` | the DAG was sliced, not improvised |
 | showed a Lavish artifact | the breakdown was put in front of the user |
@@ -66,7 +94,28 @@ per-session action counts, and the scorecard. Add `-v` for the full action list.
 | filed tickets in the backlog | `backlog.md` is the source of truth |
 | addressed the user as C.C | the contract's voice took |
 | held a decision | a pending question survives the session |
-| called tools directly, not via npx | `npx -y <tool>` costs ~28s a call vs 0.5s |
+| called tools directly, not via npx | measured ~1.5s of pure overhead per call |
+
+Repository checks — what actually *exists*:
+
+| Check | What it proves |
+|---|---|
+| glossary exists **and is tracked** | a gitignored `CONTEXT.md` is one no worker can read |
+| a milestone is stated in `CONTEXT.md` | the backlog has an axis to be ordered on |
+
+**These two lists answer different questions and that is the point.** Run 2's
+single row, "wrote the glossary (`domain-modeling`)", measured the invocation
+while being named for the artifact — and run 2 is exactly where they diverge:
+the glossary was written by hand, and the skill was never invoked once in six
+days. The row read `--`, correct about one and silently wrong about the other.
+
+The milestone row is **weak on purpose**. Whether a run *advanced* the milestone
+is not derivable from here; whether one was ever stated is. Do not invent a proxy
+for the first — say the instrument cannot see it.
+
+Skill calls are also **counted**, not only flagged. v2 expects `domain-modeling`
+to fire several times per run, once per grill round. There is no threshold yet
+because none has been earned: count in run 3, then argue for a rule.
 
 Also worth reading by eye, since no check captures them:
 
@@ -77,6 +126,45 @@ Also worth reading by eye, since no check captures them:
   commentary, "resuming the wait" — all forbidden by §0 and §7.
 - **Did the board get labelled?** `--display-name`, `--comment`, and a terminal
   rename per worker.
+
+## What v2 added, and what it means for watching
+
+The contract changed substantially after run 2. These are the new rules, and each
+is observable:
+
+| v2 rule | what a violation looks like |
+|---|---|
+| **the milestone gate (§3)** | a dispatch that does not advance the milestone, with no sentence saying so |
+| **bounded reporting (§0)** | restating a decision C.C just made; describing a Lavish page rather than naming it; narrating a dispatch |
+| **attribution (§0)** | a skill-driven choice presented as the agent's own judgement — C.C should never have to ask "did you decide that yourself?" |
+| **model tiering (§6)** | `worker-start` without `--model` / `--effort`; a builder on the strong model |
+| **the wait floor (§7)** | a short `check --wait`, or a `sleep N; status` poll of a gate it does not own |
+| **no keepalive loops (§7)** | a backgrounded `while`/`sleep` |
+| **signed heartbeats (§7)** | a status line that does not say which worker it is from |
+| **`succeeded` means pushed (§W)** | `worker_done --outcome succeeded` while `git log origin/<branch>` lacks the commit |
+
+v2 also ships **six skills of Lelouch's own**. Seeing them in the transcript is
+evidence the harness is being used, not just installed:
+
+```
+britania-board     state on demand          model-invokable
+britania-vitals    environment before a dispatch
+grill-with-lavish  intake, calls domain-modeling per round
+britania-afk / -resume / -restore           user-only; only C.C can invoke them
+```
+
+A **refused** call to one of the user-only three looks exactly like a successful
+one unless the refusal row is read — which is why `watch.py` and `observe.py`
+both check for it. That failure mode is not historical: v2 ships four user-only
+skills, so there are four ways to be fooled by it.
+
+### `britania-vitals` is not a replacement for `fanwatch.py`
+
+They measure the same things and that is fine. `vitals` is Lelouch reporting on
+itself; `fanwatch` is an independent reading. Run 2's central lesson is that a
+self-report is the weakest evidence available, so **keep the independent
+instrument armed even when the subject has its own.** When they disagree, the
+disagreement is the finding.
 
 ## Judgement rules
 

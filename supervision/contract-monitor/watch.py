@@ -52,9 +52,12 @@ def interesting(row: dict) -> list[str]:
     content = (row.get("message") or {}).get("content")
 
     # A refusal arrives one row after the call, on a user-role row. Without this
-    # a blocked skill streams as if it ran: `grill-with-docs` is
-    # disable-model-invocation, and reporting it as an invocation sent the
-    # supervisor to tell C.C the intake had started when it had just died.
+    # a blocked skill streams as if it ran -- and in run 2 that sent the
+    # supervisor to report that intake had started when it had just died.
+    #
+    # The skill that caused it (`grill-with-docs`) is gone from the v2 payload,
+    # but the mechanism is not: every user-only skill still refuses this way,
+    # and v2 ships four of them (britania-afk, -resume, -restore, and brief).
     if row.get("type") == "user" and isinstance(content, list):
         out = []
         for x in content:

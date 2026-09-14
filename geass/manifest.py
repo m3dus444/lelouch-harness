@@ -27,9 +27,10 @@ OVERLAID = {
     ),
     # Upstream ships these user-invoked only, which is right for a human typing
     # a slash command and wrong here: the contract assigns them to Lelouch, and
-    # a gated skill is one the orchestrator cannot reach. Unlike grill-with-docs
-    # -- a wrapper that decomposes into two skills the model CAN invoke -- these
-    # three have no reachable equivalent, so the gate simply blocks the pipeline.
+    # a gated skill is one the orchestrator cannot reach -- a gate that is
+    # enforced, not advisory, as run 2 confirmed by watching a dispatch to one
+    # of them simply never run. These three have no reachable equivalent, so
+    # the gate blocks the pipeline outright.
     "to-spec": ("model-invocation enabled so Lelouch can run its own pipeline"),
     "wayfinder": (
         "model-invocation enabled; Lelouch is in live conversation with the "
@@ -59,6 +60,13 @@ RENAMED = {
 
 # Skills deliberately NOT vendored, and why.
 EXCLUDED = {
+    # Both are user-invoked wrappers (disable-model-invocation), so Lelouch can
+    # never run them -- run 2 watched a dispatch to grill-with-docs simply never
+    # execute, after which the glossary was written by hand and domain-modeling
+    # was not invoked once in six days. grill-with-lavish replaces both and calls
+    # domain-modeling itself, so the skill that owns the glossary writes it.
+    "grill-me": "superseded by grill-with-lavish; was unreachable by the orchestrator",
+    "grill-with-docs": "superseded by grill-with-lavish, which invokes domain-modeling itself",
     "ask-matt": "a router over the other skills; the contract's routing table replaces it",
     "setup-matt-pocock-skills": "only knows GitHub/GitLab/.scratch; geass writes the tracker config itself",
     "triage": "no triage-label workflow in this harness",
@@ -155,12 +163,18 @@ PAYLOAD = [
     ("docs/agents/issue-tracker.md", "docs/agents/issue-tracker.md"),
     ("docs/agents/domain.md", "docs/agents/domain.md"),
     ("docs/agents/dispatch-templates.md", "docs/agents/dispatch-templates.md"),
+    # Harness behaviour nobody can derive from the docs, learned by paying for
+    # it. It ships because the alternative is what run 2 did: eleven such facts
+    # accumulated in one agent's private per-project memory, so every fresh cast
+    # started blind and relearned them at full price.
+    ("docs/agents/harness-gotchas.md", "docs/agents/harness-gotchas.md"),
     ("hooks/session-start.py", ".claude/hooks/session-start.py"),
 ]
 
 # Paths geass adds to the target's .gitignore, with the reason as a comment.
 GITIGNORE_ENTRIES = [
     (".lavish/", "Lavish review artifacts: transient per-session review surfaces"),
+    (".lelouch/", "Orchestrator session state: the AFK marker and its event log"),
 ]
 
 # Text file suffixes that get placeholder substitution.
@@ -188,3 +202,16 @@ def platform_notes(system: str) -> str:
         "Linux. POSIX shell throughout, so the vendored skills' shell assumptions\n"
         "hold as written."
     )
+
+
+# Skills this harness wrote, as (name, what it does). Not upstream forks -- there
+# is no vanilla copy to diff against, which is exactly why they live apart from
+# `skills/vanilla` and `skills/patched`.
+OWN = {
+    "britania-board": "project state as one table: tickets, workers, gate stages, queue",
+    "britania-vitals": "machine and session vitals, a dispatch gate, and the unattended watcher",
+    "britania-restore": "rebuild a session's state after a crash, power cut or /clear (user-invoked)",
+    "britania-resume": "restart stopped work without redoing it; fast-forward before nudging (user-invoked)",
+    "grill-with-lavish": "the intake interview as a Lavish artifact; calls domain-modeling every round",
+    "britania-afk": "work unattended and report once; also tells the watcher to act (user-invoked)",
+}
