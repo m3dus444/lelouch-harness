@@ -48,17 +48,50 @@ skill; `worktree-retire` stays as a **script plus a one-line rule**.
 5. **Does `observe.py` miss `domain-modeling`** — detector question, decides
    whether that scorecard row can be trusted.
 
-## Free win found while answering a question, not yet applied
+## The dopecert warning — diagnosed and fixed, 14 Sep
 
-`NODE_EXTRA_CA_CERTS` is set in **User** scope to
-`C:\Users\JulienHélie\Documents\Coding\HUM\dopecert.cer`, **and that file does
-not exist.** That is the origin of the `dopecert.cer … load failed` warning on
-every single Node invocation in this environment — and it is the same string
-[F-060](findings.md) found masking the real cause of every gate failure.
+`NODE_EXTRA_CA_CERTS` was set in **User** scope to
+`C:\Users\JulienHélie\Documents\Coding\HUM\dopecert.cer`, **a file that did not
+exist.** That was the origin of the `dopecert.cer … load failed` warning on every
+Node invocation here — the same string [F-060](findings.md) found masking the
+real cause of every gate failure.
 
-Unset the variable (or repoint it at a real certificate) and the noise stops
-everywhere at once. Not done: it is a machine-level change and C.C called the
-cert a hold fix, so it is theirs to make.
+**The cert is real.** `CN=dope.security_root_ca 1` — a TLS-inspecting proxy root,
+present in **both** `CurrentUser\Root` and `LocalMachine\Root`, valid to 2039.
+It vanished from disk because it had been stored inside
+`Documents\Coding\HUM`, which is a **git repo**.
+
+**It was noise, not breakage — but only for now.** Measured at the time of the
+fix, every chain terminated at a *public* root:
+
+```
+registry.npmjs.org  authorized: true  root: GTS Root R4
+graphify.net        authorized: true  root: SSL.com TLS ECC Root CA 2022
+api.github.com      authorized: true  root: USERTrust ECC Certification Authority
+```
+
+So dope.security was not intercepting on this network. The moment it does — a
+different network, a VPN, the agent re-enabled — Node fails on an unverifiable
+chain, and a variable pointing at a missing file protects nothing.
+
+**Applied**, at C.C's choice of the three options offered:
+
+```
+NODE_EXTRA_CA_CERTS   removed        (User scope)
+NODE_OPTIONS          --use-system-ca (User scope)
+```
+
+Node 24.19.0 reads the Windows store directly, where the cert already lives and
+is already trusted. Nothing new is trusted; there is no longer a file to lose;
+a future corporate cert is picked up automatically. Verified: `npx -y lavish-axi
+--version` now prints only `0.1.63`, with no warning lines.
+
+**Two residuals, stated rather than assumed.** The flag is documented to read the
+OS store and the cert is in it, but that cannot be *proven* until something
+actually gets intercepted — no current connection is. And this is a User-scope
+change: **every already-running process keeps the old environment**, so Orca
+terminals, the Lavish server and any live session will keep printing the warning
+until restarted. Do not read that as the fix having failed.
 
 ## Next actions, in order
 
