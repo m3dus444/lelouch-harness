@@ -30,17 +30,38 @@ memories split **5 rules / 6 reference** rather than going into one doc;
 shell for it; the npx precedence rule goes in the **contract**, not the lavish
 skill; `worktree-retire` stays as a **script plus a one-line rule**.
 
+## Subject: **a fresh app** — decided 14 Sep
+
+C.C's words: *"we gonna run on a fresh app to check every part of the system."*
+Triage is complete; the Lavish session was ended deliberately after this answer.
+
+**Why it is the right call, and what it costs.** A fresh app exercises the whole
+contract from zero — `grill-with-lavish`, `domain-modeling`, the design gate, the
+first dispatch. Those are the stages v2 changes *most* and the stages
+weave-atlas would have left untested, because they are already behind it. It also
+puts the **MVP ordering gate** under a real test: on weave-atlas the MVP already
+exists, so "ship the MVP as early as it is honest to" could not be observed. On a
+fresh app it is the first thing the run has to get right.
+
+The cost is the 31 queued tickets of real backlog pressure, which do not come
+along. Accepted.
+
+**weave-atlas is parked, not abandoned** — Lelouch on hold, MVP working, 29 PRs
+merged, backlog intact. It stays available as a measurement subject (see
+Graphify below), and as somewhere to resume product work later.
+
 ## Open
 
-1. **Which app does v2 run on** — weave-atlas continued, or a fresh app. The
-   radio at the bottom of the artifact. Nothing else blocks on it, but it
-   changes what run 03 can measure.
+1. **What the fresh app actually is.** Now the blocker: nothing can be cast until
+   there is a project to cast into. C.C's call — it is the subject of the grill,
+   and the grill is the first thing v2 runs.
 2. **Graphify**, after the scout. Storage lands well — `graphify-out/` sits in
    the working tree and is meant to be committed, so each worktree gets its own
    graph. Three things land badly: rebase is undocumented entirely, deletions
    leave stale nodes without `--force`, and the docs contradict the repo on
    license, stars and language count — so the 71.5× token claim is unverified.
-   Two local measurements settle it; both are in the artifact row.
+   Two local measurements settle it; both are in the artifact row. **Measure on
+   weave-atlas** — it is a real repo with real history and it is now free.
 3. **`no-mistakes axi run` re-attach** — can a blocking wait observe a gate you
    do not own? Test on a throwaway branch; the risk is starting a duplicate run.
 
