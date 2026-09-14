@@ -51,9 +51,32 @@ def rows(path: Path) -> list[dict]:
     return out
 
 
+def failed_calls(rs: list[dict]) -> set[str]:
+    """tool_use ids whose result came back an error.
+
+    A call is not an invocation. `grill-with-docs` is `disable-model-invocation`,
+    so Lelouch calling it produces a tool_use block and then a refusal -- and
+    scoring the block alone credited a skill that never ran, on a run whose whole
+    problem was that it could not run it.
+    """
+    bad = set()
+    for r in rs:
+        content = (r.get("message") or {}).get("content")
+        if not isinstance(content, list):
+            continue
+        for x in content:
+            if not isinstance(x, dict) or x.get("type") != "tool_result":
+                continue
+            if x.get("is_error") or "<tool_use_error>" in str(x.get("content", "")):
+                if x.get("tool_use_id"):
+                    bad.add(x["tool_use_id"])
+    return bad
+
+
 def events(rs: list[dict]) -> list[tuple[str, str]]:
     """(kind, detail) for the things worth watching."""
     out = []
+    bad = failed_calls(rs)
     for r in rs:
         if r.get("type") not in ("user", "assistant"):
             continue
@@ -76,7 +99,9 @@ def events(rs: list[dict]) -> list[tuple[str, str]]:
                 name = x.get("name", "?")
                 inp = x.get("input", {}) or {}
                 if name == "Skill":
-                    out.append(("SKILL", inp.get("skill", "?")))
+                    ok = x.get("id") not in bad
+                    out.append(("SKILL" if ok else "skill-refused",
+                                inp.get("skill", "?")))
                 elif name == "Bash":
                     cmd = " ".join(str(inp.get("command", "")).split())
                     # The contract says call installed tools directly; npx
@@ -105,11 +130,16 @@ def _skill(ev, *names) -> bool:
     return any(k == "SKILL" and d in names for k, d in ev)
 
 
-def _before(ev, marker, skills=None, kind=None) -> bool:
-    """Did `skills` (or an event of `kind`) happen before the first `marker`?"""
+def _before(ev, marker, skills=None, kind=None):
+    """Did `skills` (or an event of `kind`) happen before the first `marker`?
+
+    None when the marker has not occurred: an ordering question is unanswerable
+    until the thing it orders against exists. Reporting that as a failure is the
+    "too early is not failed" mistake, printed straight onto the scorecard.
+    """
     first = next((i for i, (k, _) in enumerate(ev) if k == marker), None)
     if first is None:
-        return False  # never reached the marker: nothing to have preceded it
+        return None
     head = ev[:first]
     if kind:
         return any(k == kind for k, _ in head)
@@ -119,10 +149,14 @@ def _before(ev, marker, skills=None, kind=None) -> bool:
 # One row per thing we shipped, so a run scores the fixes rather than vibes.
 SCORECARD = [
     # intake
+    # Only the underlying skills count. `grill-me` and `grill-with-docs` are
+    # user-only wrappers that do nothing but call these -- so when a human runs
+    # one, the real calls show up here anyway, and crediting the wrapper only
+    # ever hid the fact that it had been refused.
     ("grilled before dispatching",
-     lambda e: _before(e, "DISPATCH", {"grilling", "grill-with-docs", "grill-me"})),
+     lambda e: _before(e, "DISPATCH", {"grilling"})),
     ("wrote the glossary (domain-modeling)",
-     lambda e: _skill(e, "domain-modeling", "grill-with-docs")),
+     lambda e: _skill(e, "domain-modeling")),
     # #13 - the pipeline skills are reachable now
     ("invoked to-spec",   lambda e: _skill(e, "to-spec")),
     ("invoked to-tickets (not improvised)", lambda e: _skill(e, "to-tickets")),
@@ -162,9 +196,15 @@ def report(project: Path, verbose: bool) -> int:
                 print(f"      {k:<12} {v}")
 
     print("\n  skills invoked:", ", ".join(dict.fromkeys(d for k, d in all_events if k == "SKILL")) or "none")
+    refused = dict.fromkeys(d for k, d in all_events if k == "skill-refused")
+    if refused:
+        print("  skills REFUSED:", ", ".join(refused), "(called, but never ran)")
     print("\n  scorecard")
     for label, check in SCORECARD:
-        print(f"    {'PASS' if check(all_events) else '  --'}  {label}")
+        v = check(all_events)
+        mark = " n/a" if v is None else ("PASS" if v else "  --")
+        print(f"    {mark}  {label}")
+    print("\n  n/a = not reachable yet, not a failure")
     return 0
 
 

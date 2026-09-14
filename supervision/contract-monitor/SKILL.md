@@ -111,6 +111,64 @@ the transcript for an approval exchange instead of inferring from the artifact.
 like a defect mid-run is a stage that has not happened. Name the specific event
 that would confirm or clear it, then wait for that event.
 
+## Do not change the contract mid-run
+
+**Observe. Do not fix.** Unless the user clearly asks for a change now, every
+contract, skill and template edit waits for the debrief. Collect findings during
+the run; land them after.
+
+Three reasons, and the first one is fatal on its own:
+
+**It destroys the experiment.** The contract is the thing under test. Edit it
+while the run is live and there is no longer one version being evaluated — later
+behaviour is measured against a different document than earlier behaviour, and no
+conclusion from the run survives.
+
+**One event is not a rule.** Mid-run you have a single instance, no idea whether
+it recurs, and no counter-example. That is the weakest possible evidence, arriving
+at the moment it feels most urgent. The debrief is where a finding meets the other
+findings and most of them turn out to be anecdotes.
+
+**The obvious cause is often wrong.** Half of what looks like a contract defect is
+the user's own steer, a skill's internal instructions, or a stage that has not
+happened. Those causes are visible at the debrief, when the whole run can be read
+at once, and invisible in the middle of it.
+
+Even a correct fix is wrong timing: re-casting mid-run desynchronises the file on
+disk from the contract the live session already loaded, so the fix does not apply
+to the run it came from and quietly corrupts the next reading of it.
+
+What to do instead: write the finding down, say what would confirm or refute it,
+and keep watching for the second instance. If something is genuinely urgent —
+the run cannot continue without it — say so and let the user decide, rather than
+editing and announcing it.
+
+## Where findings go
+
+**One folder per run, and nothing shared between runs.**
+
+```
+supervision/runs/run02/findings.md   append-only; ids never reused
+supervision/runs/run02/index.md      one row per finding, plus the scorecard
+supervision/runs/run03/…             the next run starts empty, at F-001
+supervision/runs/logs/               gitignored; watcher output, not evidence
+```
+
+Finding ids restart at **F-001** in every run. They are unique *within* a run, so
+a bare `F-060` always means "this run's F-060" — cross-run references carry the
+run: `run02/F-060`.
+
+This was flat until run 02 ended, with `run-02-findings.md` and
+`run-02-index.md` side by side in `runs/`. That does not survive a second run:
+the next set lands in the same directory, every `grep` spans both, and the drift
+check silently counts two runs as one. **Make the folder before the first
+finding, not after the last.**
+
+Cross-reference depth from inside a run folder: `../../instrument-log.md`,
+`../../../geass/harness/CLAUDE.md`. Check a link resolves before writing it —
+three of run 02's contract links pointed at a `CLAUDE.md` that has never existed
+at that path.
+
 ## Reporting
 
 Lead with what the user can act on. Separate **facts** (from the transcript)
