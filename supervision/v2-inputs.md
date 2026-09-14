@@ -30,7 +30,7 @@ with a generic one (`restore` alone is far too common a name). Spelling is
 | `britania-afk` | **user only** | Two modes. `afk`: Lelouch goes silent, writes deltas to a file instead of the terminal, and — **pre-MVP only** — merges PRs himself following what he would otherwise have recommended. `back`: renders the accumulated digest. Goal is a readable terminal, not 200 lines to catch up on. |
 | `britania-resume` | **user only** | After a quota cap. Resume in-flight work — Lelouch's and the workers' — without losing what is already done. |
 | `britania-restore` | **user only** | Cold start: new session, fresh context, no continuity. After a power cut, a crash, or a deliberate `/clear` taken for token reasons. Rebuilds state from files. |
-| `grill-with-lavish` | model-invokable | Grill rounds rendered as lavish artifacts instead of terminal Q&A. Name kept as-is, not prefixed. |
+| `grill-with-lavish` | model-invokable | Grill rounds rendered as lavish artifacts instead of terminal Q&A. Name kept as-is, not prefixed. **Must invoke `domain-modeling` itself.** Replaces `grill-with-docs` and `grill-me`, both of which come out of the payload. |
 | `britania-board` | model-invokable | Project state on demand: every ongoing ticket, its worker/scout, its stage (building / review / waiting on the gate), and the queue behind it. **Ticket names alone are too ambiguous to be useful.** ASCII table. |
 | `britania-vitals` | model-invokable | Machine and session state: battery %, session usage, RAM, disk. Skill + script, in the shape of the `*-axi` skills. |
 
@@ -43,6 +43,24 @@ The pre-MVP self-merge is **not** a skill change on its own. §6's approval gate
 is what stops Lelouch merging; permissions are the second lock. Both have to
 move. It removes C.C's only checkpoint on work they did not watch, so it must
 **expire at MVP** — written into the skill, not remembered.
+
+### `grill-with-lavish`, and the two skills it replaces
+
+Run 02's scorecard caught `grill-with-docs` **called but never run**. The cause
+is that it is **not model-invokable** — so Lelouch read the skill and ran
+`grilling` and `domain-modeling` separately, reaching the same behaviour the
+long way. That is not a defect to fix; it is a packaging decision to reverse.
+
+C.C does not intend to invoke a grill skill by hand, so **`grill-with-docs` and
+`grill-me` are both removed from the v2 payload.** `grill-with-lavish` takes the
+whole job, and it must **invoke `domain-modeling` itself** rather than relying on
+Lelouch to remember the second half.
+
+Open, and it belongs to the instrument rather than the contract:
+`observe.py` never listed `domain-modeling` among the skills invoked, and its
+glossary check reads unreachable. Either the detector misses it or no glossary
+was written. [F-038](runs/run-02-findings.md) — no worker ever read one — is
+weak support for the second. Settle it before trusting that scorecard row again.
 
 ### `britania-board`, and a finding it closes
 

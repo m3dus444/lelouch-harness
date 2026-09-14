@@ -312,10 +312,23 @@ honestly, by measuring exactly what the contract asks for.
 For run 03: a scorecard row that asks *did the run advance the milestone*, and
 a contract that has a milestone to advance.
 
-## Flagged, not filed
+## Resolved after the scorecard ran
 
-`grill-with-docs` was **called and never ran**. One instance, cause unknown --
-it may be a skill-resolution failure, a refusal, or an artefact of how
-`observe.py` detects invocation. Not written as F-112 because a single
-unexplained instance is what [F-004](run-02-findings.md) exists to warn against.
-Verify before v2 casts a contract that names it.
+`grill-with-docs` was **called and never ran**, and the reason is mundane:
+**the skill is not model-invokable.** Lelouch could not run it, so he read the
+skill and ran `grilling` and `domain-modeling` separately instead -- the
+behaviour the skill packages, obtained the long way. Not a defect, and not
+F-112.
+
+The v2 consequence is a deletion, not a fix: C.C does not intend to invoke a
+grill skill by hand, so **`grill-with-docs` and `grill-me` both come out of the
+payload**, and `grill-with-lavish` absorbs the job -- it must invoke
+`domain-modeling` itself rather than leaving it to be remembered. Recorded in
+[v2-inputs.md](../v2-inputs.md) §1.
+
+**One discrepancy left open.** `observe.py` does not list `domain-modeling`
+among the skills invoked, and the `wrote the glossary (domain-modeling)` check
+reads unreachable. Either the detector misses the invocation or the glossary was
+never written -- and [F-038](run-02-findings.md) says no worker ever read one,
+which is weak support for the second. Not resolved here; it is a detector
+question and it belongs to the instrument, not to the run.
