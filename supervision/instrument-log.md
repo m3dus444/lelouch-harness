@@ -811,3 +811,59 @@ never proves anything**, and the only defence is to go and look at it.
 same latch and it is correct there for the same reason `watch.py`'s is — quiet
 is an episode. Anything measuring a level rather than a state needs this shape
 instead.
+
+## 23  Three kills, one stated reason, and the reason is measurably wrong
+
+Entry 15 counted five kills and three explanations, none of which held. Here is
+a fourth, and this one is separable from the others because the harness *told me
+why* and the claim is checkable.
+
+The silent run logger was killed three times in one evening. Every notice read:
+
+```
+Background command "Restart the silent run logger" was stopped
+because the system is running low on memory
+```
+
+**Free physical memory, measured at the third restart, seconds after the notice:**
+
+```
+4.22 GB free of 15.62 GB
+```
+
+C.C had already said it independently, before I measured: *"memory wasn't low at
+all when your logger got closed, nothing is running on the PC, brave was running
+but with very low memory usage. restart the logger, if it closes, it's not
+memory."* They were right and I had been taking the notice at face value.
+
+**The contrast that makes this a finding rather than a grievance.** Memory
+pressure on this machine is real and documented — [F-050](runs/run-02-findings.md)
+records 0.42–1.19 GB free across a window where six Claude processes fell to
+four, with Brave holding 5494 MB. That was a genuine ceiling. Tonight's 4.22 GB
+is not, and the reaper said the same sentence both times.
+
+So the string is **not a measurement**. It is a fixed label attached to a kill
+event, and it reads exactly like a diagnosis. That is the same defect as
+[F-108](runs/run-02-findings.md)'s *"PR remains open"* — a status line asserting
+a remote condition it had not checked, at the moment it stopped looking — and
+[entry 18](#)'s asserted-not-read age. Third instance of one shape, now found in
+three separate systems: the ship gate, my own watch, and the agent harness.
+
+**What it costs here.** An unattended observation window cannot be trusted to
+exist. The logger is the instrument that covers exactly the periods I am not
+watching, so a logger that dies silently converts "nothing happened" into
+"nothing was recorded" without changing the output. Entry 22's thesis again from
+a third side: **silence from an instrument never proves anything.**
+
+**What I could not establish.** I have no trigger. Three kills, no established
+correlation with context compaction, with the running builder, or with anything
+else measured. I looked, I do not have it, and the honest state is that the
+cause is unknown rather than that the cause is not memory. Only the *stated*
+reason is disproved.
+
+**Operating rule, effective now:** never quote the harness's kill reason in a
+finding. `fanwatch.py` is the only source here that actually measures free
+memory; if a kill is to be attributed to RAM, the attribution comes from
+fanwatch's reading at that timestamp, or it is not made. Where no reading
+exists, the entry says the cause is unknown — which is what entry 15's three
+wrong explanations cost and what this one is meant to stop repeating.

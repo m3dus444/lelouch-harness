@@ -25,9 +25,9 @@ it. A check that fails into agreement is worse than no check.
 
 ## Categories
 
-- **`contract`** (21) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
-- **`gate`** (22) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
-- **`harness`** (26) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
+- **`contract`** (22) -- The agent contract -- CLAUDE.md, its sections, and the behaviour it produces
+- **`gate`** (23) -- The ship gate -- `no-mistakes`: its steps, costs, custody and failures
+- **`harness`** (29) -- The runtime -- Orca dispatch, Claude Code limits, shell and path traps
 - **`resources`** (6) -- What the run runs out of -- RAM, tokens, context
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (13) -- Confirmed working -- kept because a run with none of these scores better and is worse
@@ -225,3 +225,97 @@ terminal leak is a harness fault; the builders' own mistakes were caught by
 their gates before they reached a PR. What failed was the machinery around
 them, and the sequencing decisions nobody was asked to make.
 
+
+---
+
+# Final scorecard -- run 02
+
+Produced 2026-09-14 with `observe.py weave-atlas`, post-run: Lelouch on hold, no
+builders out, nothing in flight. Run it again the same way and it should
+reproduce; the volume figures will not, because transcripts keep growing.
+
+## What the instrument reads
+
+13 weave-atlas sessions on disk, **2,879 events / 638 actions**. The run is
+carried by three sessions -- `75166262` (922/190), `c2d90830` (810/170) and
+`0615d09e` (331/64) -- which is the re-cast boundary showing up in the data:
+each long session is one Lelouch lifetime between clears.
+
+```
+skills invoked   grilling, prototype, to-tickets, research, lavish,
+                 chrome-devtools-axi
+skills REFUSED   grill-with-docs  (called, but never ran)
+```
+
+## Contract compliance
+
+```
+PASS   grilled before dispatching
+PASS   invoked to-tickets (not improvised)
+PASS   showed a Lavish artifact
+PASS   Lavish shown BEFORE first dispatch
+PASS   dispatched a worker
+PASS   filed tickets in the backlog
+PASS   addressed the user as C.C
+PASS   held a decision rather than losing it
+ --    wrote the glossary (domain-modeling)      not reachable
+ --    invoked to-spec                           not reachable
+ --    called tools directly, not via npx        not reachable
+```
+
+**8 PASS, 0 FAIL, 3 unreachable.** No check regressed across the run.
+
+## Two things the script cannot see, and I watched happen
+
+- **Workers ran the skills their specs named: 4 of 4**, in the order named. The
+  spec-to-behaviour link held for every builder dispatched on the final day.
+- **Escalations answered: 3 of 3, all under two minutes.** Measured against
+  [F-101](run-02-findings.md), where `ask` findings expired into the worker's own
+  judgement because nothing answered them in time. This is the one place the run
+  visibly improved on its own earlier behaviour.
+
+## Run totals
+
+```
+findings            111        index rows 111   (drift check clean)
+confirmed            80        corrected   20   superseded 4
+                              unproven      2   guide      4   moved 1
+concentration        harness 22 | gate 19 | contract 18   (confirmed only)
+PRs                  29, all merged, none closed unmerged
+backlog              31 queued, 23 ready, 0 in flight, 10 done retained
+```
+
+**Re-verified against no-mistakes v1.75.1** (we ran v1.64.0 throughout; eleven
+releases landed during the run). Of eleven candidates: **F-056** and **F-075**
+are superseded upstream -- `fix(pipeline): give each review agent a fresh
+timeout` (#962) and `fix(daemon): refuse reruns that differ from the clean
+caller HEAD` (#972) name the same mechanisms. **F-109** is half-superseded:
+#1059 makes a killed invocation record *unknown* rather than a fabricated 0, so
+the artifact it was diagnosed from is gone, but **F-060**'s wrong error
+attribution is untouched. The other eight stand, including F-087 and F-110,
+which I initially and wrongly matched to upstream fixes. Detail in
+[v2-inputs.md](../v2-inputs.md).
+
+## What this scorecard does not measure, and the omission is the finding
+
+**The MVP arrived during this run** -- four anchors, each with its filters,
+verified by C.C in a live smoke test. **There is no row above for it**, because
+the instrument scores contract compliance and nothing else. A run could pass all
+eight checks and ship nothing.
+
+That gap is not cosmetic. It is the same gap named in the `mvp-first-ordering`
+memory and in [F-111](run-02-findings.md)'s neighbourhood: the contract has an
+approval gate, a design gate and a Scout gate, and **no notion of a product
+milestone that orders the backlog.** The scorecard inherited that blindness
+honestly, by measuring exactly what the contract asks for.
+
+For run 03: a scorecard row that asks *did the run advance the milestone*, and
+a contract that has a milestone to advance.
+
+## Flagged, not filed
+
+`grill-with-docs` was **called and never ran**. One instance, cause unknown --
+it may be a skill-resolution failure, a refusal, or an artefact of how
+`observe.py` detects invocation. Not written as F-112 because a single
+unexplained instance is what [F-004](run-02-findings.md) exists to warn against.
+Verify before v2 casts a contract that names it.
