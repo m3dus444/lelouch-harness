@@ -382,7 +382,7 @@ So the pipeline (intent, rebase, review, test, document, lint, push, PR, CI)
 did not run. A worker improvised the parts it could name and shipped. Nothing
 in the exchange is visible as a gate failure — the ticket will close clean.
 
-This is [quiet obedience](../../CLAUDE.md) in its sharpest form yet: the
+This is [quiet obedience](../../../geass/harness/CLAUDE.md) in its sharpest form yet: the
 subordinate was **right**, held better evidence than the coordinator, and
 abandoned it to an assertion. Harmless here — an 18-line README deletion. The
 same exchange over `wa-01-tracer` pushes unvalidated code.
@@ -673,7 +673,7 @@ as the first)*
    moment the skill's own rule says not to judge.
 
 Both are the same shape as the first supervisor error and as [quiet
-obedience](../../CLAUDE.md) inverted: reasoning from a convenient artifact instead
+obedience](../../../geass/harness/CLAUDE.md) inverted: reasoning from a convenient artifact instead
 of the actor's own record. Worth keeping because in all three cases the worker was
 doing better than supervision credited.
 
@@ -3345,7 +3345,7 @@ workers hold the code. So the downward path — Lelouch to worker — is the
 *unverified* one, and the upward path is where verification actually happens.
 Every one of these four was caught by someone who checked instead of complying.
 
-That is the exact inverse of [quiet obedience](../../CLAUDE.md), the failure this
+That is the exact inverse of [quiet obedience](../../../geass/harness/CLAUDE.md), the failure this
 log has recorded twice in the other direction. The same run contains both: a
 worker who reasons from a convenient artifact and ships the wrong thing, and a
 worker who opens `gate.ts` and tells the orchestrator his instruction is dead
@@ -5885,7 +5885,7 @@ the session since 00:13:44, and was drafting this as an unauthorised-authority
 finding. The prompt's last line refutes it. What stopped it was reading the
 resume prompt in full instead of the 600 characters my earlier query had
 truncated it to — the same house rule, *read the artifact*, that
-[entry 18](../instrument-log.md) had already caught me breaking tonight.
+[entry 18](../../instrument-log.md) had already caught me breaking tonight.
 
 ---
 
@@ -7424,3 +7424,367 @@ because the schema is undocumented tribal knowledge each worker rediscovers.
 Either stop truncating findings in the view agents are told to use, or give
 `orca orchestration send` a `--body-file`. Either one alone removes the
 round-trip.
+
+---
+
+# Operator findings — C.C's own account of the run
+
+The eleven entries below come from a different instrument to everything above:
+**the person who ran it.** They were given raw at the 13–14 Sep debrief, in one
+unbroken pass, *before* any finding was discussed — deliberately, so the evidence
+could not contaminate the recall. Nothing here was derived by me from a
+transcript. Where a measurement confirms, contradicts or resizes a claim, it is
+named inline and the correction is recorded in place.
+
+They are findings, not a wishlist. Each one is an observation about how the
+system behaved under a human, and each carries the change it implies. The
+category exists because **no instrument in this repo can see any of it** —
+`observe.py` scores contract compliance, `watch.py` counts actions, and neither
+has a way to notice that the terminal was unreadable or that trust was lost.
+
+## Lelouch talks far too much — three symptoms, one root  <!-- F-112 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** the terminal stopped
+being readable
+
+C.C's account, and the shape is one defect wearing three coats.
+
+**1. Restating a decision that was just made.** Verbatim, from a grill round,
+after C.C overruled the answer on Q10:
+
+> *"Q10 — you're right, I overreached. Develop both, test both, pick one, delete
+> the loser. What that still requires is the thing my answer got right for the
+> wrong reason: both engines must sit behind one shared query contract, or you
+> end up with two half-applications and no comparable numbers…"*
+
+The correct output was `Develop both, test both, pick one, delete the loser.` —
+or, better, **nothing at all.** The call had been made; the paragraph after it is
+noise wearing the costume of diligence. Same on Q6, the table decision.
+
+**2. Narrating a Lavish artifact.** The styling, what went into the page, why.
+Useless: Lavish has a feedback sidebar and edits land live. Say the artifact is
+ready, name it, stop.
+
+**3. Narrating a dispatch.** What the scout will bring back, what it is working
+on. That is `britania-board`'s job, on demand ([F-114](#)).
+
+**The root is that the contract asks for reporting and never bounds it.** All
+three are the same instruction obeyed without a ceiling. C.C's sharper framing:
+he writes about *the decision C.C took* rather than *what is left to do* — the
+terminal fills with commentary on settled things and thins out exactly where it
+should carry the open ones.
+
+**This costs most when something breaks.** A problem must surface immediately,
+not after a chapter of prose. A reader who must page through a summary to reach
+a failure is a reader who finds it late.
+
+**One §-level rule fixes all three; three skill patches would not.**
+
+> Report state changes and blockers. Never restate a decision the user has just
+> made. Never describe a produced artifact — name it. State lives in
+> `britania-board`; the terminal carries exceptions and asks.
+
+Summaries after several decisions are welcome, but short and structured — an
+ASCII table, not fifty lines. Per-skill patching misses the fourth symptom,
+which has not been observed yet and will be.
+
+**It responded to correction.** C.C told him during the run and he adapted. So
+this is a contract gap, not a capability limit — which is the reason it belongs
+in the payload rather than in a prompt.
+
+## The session-lifecycle skills, and why all three are user-only  <!-- F-113 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** every AFK return is a
+catch-up read; every cap is a manual recovery
+
+Three asks, one family. All three are **user-invocable only** — a model that
+decides on its own to clear or restore is how work disappears.
+
+**`britania-afk`**, two modes. `afk`: go silent, write deltas to a file instead
+of the terminal. `back`: render the accumulated digest. The goal is a readable
+terminal on return rather than two hundred lines to reconstruct.
+
+Its contested clause: **while AFK and pre-MVP, Lelouch merges PRs himself**,
+following what he would otherwise have recommended. He could not until now
+because of permissions. Two locks have to move, not one — §6's approval gate is
+what stops him merging, permissions are only the second — and it removes C.C's
+sole checkpoint on work they did not watch. **It must expire at MVP, written
+into the skill rather than remembered.**
+
+**`britania-resume`** — after a quota cap, pick up in-flight work, Lelouch's and
+the workers', without losing what is already done. **This is
+[F-107](#)'s gap.** Nothing fired at the weekly reset; a human remembered. Note
+which half is missing: resuming is the easy part, *the trigger* is the finding.
+
+**`britania-restore`** — cold start. New session, fresh context, no continuity:
+a power cut, a crash, or a deliberate `/clear` taken for token reasons. Rebuild
+from files.
+
+**Restore is load-bearing for something else and must be proven first.** Auto-clear
+([F-118](#)) destroys whatever Lelouch had not written down, at the moment he is
+most loaded. Order is: build restore, PoC restore, *then* let a script trigger
+it. C.C agreed without argument, which is the right instinct.
+
+Useful primitive for restore, found while examining a related non-defect
+([F-122](#)): **`orca agent-context` prints the entire machine-readable command
+schema in one call.** One call instead of N `--help` probes.
+
+## `britania-board`: ticket names are not enough to know what is happening  <!-- F-114 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** state is
+unavailable except by asking
+
+C.C wants project state on demand: every ongoing ticket, its worker or scout,
+its stage — building, review, waiting on the gate — and the queue behind it.
+ASCII table. The stated reason is precise and is itself the finding:
+**ticket names alone are too ambiguous to identify what is being worked on.**
+
+Two consequences fall out of having this, beyond the obvious one:
+
+**It gives [F-112](#)'s verbosity rule somewhere to send the displaced
+narration.** A rule that only forbids is a rule that gets broken under pressure;
+"state lives in `britania-board`" is a rule with an address.
+
+**It has to read `~/.no-mistakes/state.sqlite` directly**, because the supported
+view truncates ([F-111](#)). Two workers in run 02 independently reached the
+same conclusion and went to sqlite for it, and one burned two turns on
+`no such column: step` because the schema is undocumented tribal knowledge.
+**Document the schema inside the skill** and the rediscovery tax dies with the
+skill that pays it once.
+
+## `britania-vitals`: the environment check that gates a dispatch, and the wake that costs nothing  <!-- F-115 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** every resource
+failure in this run arrived unannounced
+
+C.C wants Lelouch to know battery, session usage, RAM and disk **on the go** —
+check the environment *before* dispatching a worker or scout and validate the
+go, warn when a request is about to need RAM the machine does not have, and
+raise a threshold alarm.
+
+**The wake is the part that matters, and it is the part that is not obvious.**
+C.C's worked example: session usage reaches 95% → a script wakes Lelouch → he
+stops the work → the script wakes him two hours later → he resumes. A woken
+Lelouch costs nothing while asleep. A polling one pays a full context re-read
+every cycle, which is [F-118](#)'s measured 12×.
+
+**Most of it already exists and is pointed the wrong way:**
+
+| need | what already does it |
+|---|---|
+| session usage, runway, reset times, pace | the **`quota-axi`** skill, already installed |
+| RAM and disk, with a floor and alarms | **`fanwatch.py`**, written for this run |
+| the wake | **`orca terminal send`**, on a cron |
+| when to schedule the wake | `quota-axi` reports the reset time |
+| battery | one Win32 query |
+
+So this is assembly, not invention. **The shift is ownership**: these stop being
+the supervisor's instruments and become Lelouch's own, shipped in the geass
+payload. That is the whole difference between a run that is watched and a run
+that watches itself.
+
+## `grill-with-lavish`, and the two skills that come out of the payload  <!-- F-116 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** none — a packaging
+decision, not a defect
+
+C.C wants grill rounds rendered as Lavish artifacts rather than terminal Q&A,
+for visibility.
+
+The scorecard had flagged `grill-with-docs` as **called but never run**, and I
+nearly filed it as a defect. The cause is mundane and C.C supplied it: **the
+skill is not model-invokable.** Lelouch could not run it, so he read the skill
+and ran `grilling` and `domain-modeling` separately — the packaged behaviour,
+obtained the long way. Nothing is broken.
+
+The consequence is a deletion rather than a fix. C.C does not intend to invoke a
+grill skill by hand, so **`grill-with-docs` and `grill-me` both leave the v2
+payload**, and `grill-with-lavish` takes the whole job — **invoking
+`domain-modeling` itself** rather than leaving the second half to be remembered.
+
+**One thing stays open and it belongs to the instrument, not the run.**
+`observe.py` never listed `domain-modeling` among the skills invoked, and its
+glossary check reads unreachable. Either the detector misses the invocation or
+no glossary was ever written — and [F-038](#), no worker ever read one, is weak
+support for the second. Settle it before trusting that scorecard row again.
+
+## Tier by model, not by effort — and by role, not uniformly  <!-- F-117 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** the whole run ran one
+model at one effort
+
+C.C: Lelouch, scouts and workers all ran the same model at `max` or `high`
+effort, which is not needed for every task.
+
+**The mechanism is already there.** `orca orchestration worker-start` takes
+**`--model <id>`** and **`--effort <level>`**. Verified against the CLI. So this
+is a pure contract change with no upstream work — the contract simply never told
+Lelouch to choose.
+
+**Which lever matters, measured on one real gate review pass:**
+
+```
+input 84   ·   output 137   ·   cache-read 2,109,276
+```
+
+**Effort moves output tokens. That is the 137.** **Model moves the rate on all
+2.1M.** Tier by model first, effort second; the reverse is rounding error.
+
+**Tier by role, and C.C corrected me here.** I proposed dropping effort broadly.
+That is wrong for **scouts**: exploration is where thinking pays, and a scout
+exists to return judgement. **Builders** are the ones who can drop — they receive
+a spec with the information already in it, and a builder re-deriving its own
+brief is the spec's failure, not the model's. Correction accepted; it is the
+better rule.
+
+**The deeper point outranks the tuning, and it is C.C's:** *tasks stay static, so
+specification quality is the real lever.* Higher-quality input → less
+exploration → fewer tokens, at any tier. The model dial is a discount on a bill
+the spec decides.
+
+Upstream corollary, live for us: **v1.72.0 added independent reviewer and fixer
+harness profiles** (#1016), so the same tiering is available *inside* the gate.
+
+## Heartbeats re-enter context; the fix was already written down  <!-- F-118 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** 12× on short cycles,
+measured
+
+C.C: heartbeats consumed a lot of tokens, because each one processes the whole
+context again. In Firstmate this was done by scripts and cost nothing.
+
+**Already measured, already solved, and in a memory that was nearly deleted**
+([F-119](#)): `long-orchestration-waits-beat-polling` — *"measured 12x token cost
+for short cycles; keep the wait at a full hour."* Orca's long wait blocks
+without re-entering context, which is the script-shaped mechanism C.C
+remembered. **Put a floor on the wait interval in the contract.**
+
+The anti-pattern in the wild, from this run: `sleep 570; no-mistakes axi status`,
+polled for over an hour ([F-027](#)). Two separable faults, and the smaller one
+is the interesting one: **Lelouch was polling a gate he did not own.** The worker
+owns its gate and reports. That is a contract fix independent of any API.
+
+**On auto-compact, the answer is yes, and the mechanism is external.** Lelouch
+cannot invoke `/compact` on himself; there is no tool for it. But
+**`orca terminal send`** delivers input to a live terminal, so a script can push
+`/compact`, `/clear` or a wake prompt from outside. Three constraints, all
+agreed:
+
+1. **Wait for the turn boundary.** `orca terminal wait` supports `tui-idle`.
+   Injecting mid-turn corrupts state.
+2. **`britania-restore` must be proven first** ([F-113](#)).
+3. **If C.C is at the keyboard, the script only warns** and lets them do it by
+   hand. Automatic handling is for AFK.
+
+## Eleven pieces of harness knowledge are living in Claude's private memory  <!-- F-119 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** every fresh cast
+relearns them at full price
+
+C.C proposed deleting `~/.claude/projects/…-weave-atlas/memory/` for v2
+consistency. **The instinct is right and the action would have been wrong.**
+
+Of its 13 entries, **two** are weave-atlas-specific
+(`design-comes-from-external-team`, `capability-needs-its-surface-flipped`). The
+other **eleven are harness facts**, several of which this run independently
+rediscovered at cost:
+
+| memory | what it knows |
+|---|---|
+| `gate-finding-text-is-truncated` | [F-111](#) — arrived at twice, independently |
+| `ship-gate-strands-commits` | the [F-059](#) family |
+| `gate-run-owns-the-branch` | it auto-rebases; a second rebase collides |
+| `regate-after-checks-passed-strands-fix` | [F-087](#)'s neighbourhood |
+| `gate-intent-size-limit` | a `--intent` over ~6KB kills the run at the push, exit 141 |
+| `orchestration-send-type-status` | `note` is invalid; `decision_gate` needs a worker-only token |
+| `gate-timeout-two-outcomes` | check PID and HEAD before restarting anything |
+| `long-orchestration-waits-beat-polling` | the 12× figure [F-118](#) rests on |
+| `escalation-beats-ask-for-blockers` | `ask` times out in minutes; the wait runs on the hour |
+| `lavish-shares-one-design-system-copy` | tokens in `.lavish/ds/`; a subfolder cannot reach up |
+| `cc-delegates-backend-judgement` | act on recommendations; §4 decisions stay C.C's |
+
+**That is the finding: harness knowledge is accumulating in a per-project,
+per-agent memory store instead of in the harness.** Every `geass cast` into a
+new project starts blind and pays for all eleven again. Deleting them makes v2
+worse, not more consistent.
+
+**Agreed plan.** Cross-check all eleven against this run's findings *and* against
+the no-mistakes version we actually run — a memory recording a bug that upstream
+fixed is worse than no memory. Drop the superseded. Promote the survivors into a
+harness-gotchas doc shipped in the geass payload (`docs/agents/`). **Then** delete
+the memory directory. Consistency by moving the knowledge, not by dropping it.
+
+## Graphify: my objection was wrong for the design actually proposed  <!-- F-120 -->
+
+**Category:** operator · **Status:** unproven — one measurement decides it ·
+**Cost:** n/a
+
+C.C found Graphify — maps a project into a queryable knowledge graph instead of
+grepping files — and asked whether it fits.
+
+**I objected, and the objection did not survive contact with their design.** I
+argued that a graph over a codebase four builders rewrite in parallel is *a cache
+that asserts*: the [F-087](#) / [F-108](#) failure family, a stale read stated as
+fact. But C.C's model is **per-worktree graphs, updated on merge, with master
+holding the live one** — which is git's own model, and it defeats the objection
+cleanly. Recorded because I generalised from a failure family before checking
+which design was on the table, which is [F-039](#)'s error in a new costume.
+
+**The residual is real but narrow.** The ship gate **rebases** every branch onto
+master before review, so each merge invalidates every other worker's graph. The
+graph must regenerate **on rebase**, not only on merge — otherwise a worker
+queries a graph describing a master that no longer exists.
+
+So the open question is not correctness. **It is cost per regeneration**, and it
+is a single measurement: seconds → adopt as designed; a full project scan → the
+gate's rebase cadence makes it expensive. Measure before adopting.
+
+## Ponytail: rejected on the numbers, not on taste  <!-- F-121 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** none — caught before
+adoption
+
+C.C found Ponytail, which claims faster generation with fewer lines of emitted
+code, saving tokens.
+
+Measured spend on one real pass: **84 input / 137 output / 2,109,276
+cache-read.** Generation is roughly **0.01%** of the bill. Nothing that
+optimises emitted code touches it. C.C dropped it without argument.
+
+Kept as a finding because it generalises past this one tool: **an optimisation
+aimed at output tokens cannot move a bill made of cache reads.** Every future
+"saves tokens" claim gets checked against that ratio before it gets a trial, and
+the ratio is the reason [F-113](#)'s clear/restore skills matter more than any
+generation-side tuning — **context size is the bill.**
+
+## Permissions, and the blunt fix versus the one already in flight  <!-- F-122 -->
+
+**Category:** operator · **Status:** confirmed · **Cost:** one unrecoverable
+branch, this run
+
+C.C: either set the permissions properly, or run Lelouch and his agents with
+`--dangerously-skip-permissions`.
+
+The cost is already on the board. [F-052](#): the force-push that a gate-rebase
+recovery *requires* is refused by Claude Code's auto-mode classifier, so
+`wa-hydrate`'s banked line could not reach origin and PR #9 stayed eight commits
+short. **That is a permissions problem wearing a gate costume**, and no
+no-mistakes release will ever fix it.
+
+**The surgical version is already in flight:** PR #28 on `lelouch-harness` —
+*"Cast the permissions the workflow needs, not just the hook"*. Check which is
+further along before defaulting to the blunt one; the blunt one also removes
+every guard that has been correctly refusing things.
+
+**Recorded here as a non-defect, so nobody fixes it:** Lelouch probing
+`orca terminal send --help` after a `/clear` is *correct behaviour*. One
+`--help | head -50` is roughly 200 tokens; loading the `orca-cli` skill guide is
+thousands. He chose the cheap option. The real signal is why he had to — the
+`/clear` took the skill context with it, which is [F-113](#)'s argument, not an
+argument for a new skill.
+
+**Second non-defect, same reason:** gate duration. Roughly an hour for a
+three-round review plus test, lint, push, pr and ci is mostly real work. The
+*waiting pattern* is reducible ([F-118](#)); the duration largely is not.
+v1.70.0's *prepare dependencies once per run* shaves a little. Do not go looking
+for a bug in it.

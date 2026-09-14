@@ -143,6 +143,32 @@ and keep watching for the second instance. If something is genuinely urgent —
 the run cannot continue without it — say so and let the user decide, rather than
 editing and announcing it.
 
+## Where findings go
+
+**One folder per run, and nothing shared between runs.**
+
+```
+supervision/runs/run02/findings.md   append-only; ids never reused
+supervision/runs/run02/index.md      one row per finding, plus the scorecard
+supervision/runs/run03/…             the next run starts empty, at F-001
+supervision/runs/logs/               gitignored; watcher output, not evidence
+```
+
+Finding ids restart at **F-001** in every run. They are unique *within* a run, so
+a bare `F-060` always means "this run's F-060" — cross-run references carry the
+run: `run02/F-060`.
+
+This was flat until run 02 ended, with `run-02-findings.md` and
+`run-02-index.md` side by side in `runs/`. That does not survive a second run:
+the next set lands in the same directory, every `grep` spans both, and the drift
+check silently counts two runs as one. **Make the folder before the first
+finding, not after the last.**
+
+Cross-reference depth from inside a run folder: `../../instrument-log.md`,
+`../../../geass/harness/CLAUDE.md`. Check a link resolves before writing it —
+three of run 02's contract links pointed at a `CLAUDE.md` that has never existed
+at that path.
+
 ## Reporting
 
 Lead with what the user can act on. Separate **facts** (from the transcript)

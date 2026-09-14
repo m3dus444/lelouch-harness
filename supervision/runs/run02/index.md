@@ -1,21 +1,21 @@
 # Run 2 findings -- index
 
-One row per finding in `run-02-findings.md`. **The id is authoritative, the
+One row per finding in `findings.md`. **The id is authoritative, the
 line number is a fast path.** Corrections append, so line numbers are stable
-in practice -- but if one is stale, `grep -n 'F-0NN' run-02-findings.md`
+in practice -- but if one is stale, `grep -n 'F-0NN' findings.md`
 settles it in one command.
 
 ```
-grep '| gate ' run-02-index.md          # every gate finding
-grep 'confirmed' run-02-index.md        # skip the unproven and the corrected
-sed -n '3624,3695p' run-02-findings.md  # read one entry at its offset
+grep '| gate ' index.md          # every gate finding
+grep 'confirmed' index.md        # skip the unproven and the corrected
+sed -n '3624,3695p' findings.md  # read one entry at its offset
 ```
 
 **Drift check** -- these two must agree:
 
 ```
-grep -c '<!-- F-[0-9]' run-02-findings.md
-grep -c '^| F-[0-9]'   run-02-index.md
+grep -c '<!-- F-[0-9]' findings.md
+grep -c '^| F-[0-9]'   index.md
 ```
 
 **Do not narrow these to `F-0`.** That was the original pattern and it stopped
@@ -32,6 +32,7 @@ it. A check that fails into agreement is worse than no check.
 - **`docs`** (4) -- Documentation and artifact links, where the writing itself is the defect
 - **`working`** (13) -- Confirmed working -- kept because a run with none of these scores better and is worse
 - **`supervisor`** (10) -- My own errors, kept in place because corrections must sit where they happened
+- **`operator`** (11) -- C.C's own account of the run: what no instrument here can see
 - **`meta`** (4) -- Reading guides, scope notes, and what is not yet proven
 
 `status`: **confirmed** stands on evidence · **unproven** is one instance, do
@@ -207,6 +208,17 @@ not act on it · **corrected** is a claim I got wrong and fixed in place ·
 | F-110 | 7362 | gate | confirmed | 1 permanent wrong ref | F-059 realised: two parallel builders raced for PR #25; the loser's commit message points at the winner's PR forever. Collision rate is gate timing, not worker behaviour |
 
 | F-111 | 7395 | harness | confirmed | 1 round-trip per quote | The supported finding view truncates, so workers read state.sqlite and then fight shell quoting to relay it — lossy view, no structured relay, mangled backticks |
+| F-112 | 7445 | operator | confirmed | terminal unreadable | Lelouch talks far too much: restating settled decisions, narrating Lavish pages, narrating dispatches — one unbounded reporting rule wearing three coats |
+| F-113 | 7495 | operator | confirmed | manual recovery | The session-lifecycle skills: afk/back, resume, restore — all user-only, and restore is load-bearing for auto-clear so it gets proven first |
+| F-114 | 7532 | operator | confirmed | state on request only | Ticket names are too ambiguous to say what is being worked on; britania-board must read state.sqlite directly and document the schema |
+| F-115 | 7555 | operator | confirmed | silent resource failures | britania-vitals gates a dispatch on the environment and wakes Lelouch on a threshold; quota-axi and fanwatch already do most of it, pointed the wrong way |
+| F-116 | 7586 | operator | confirmed | none | grill-with-docs was never model-invokable, so it and grill-me leave the payload; grill-with-lavish absorbs the job and calls domain-modeling itself |
+| F-117 | 7611 | operator | confirmed | one model, one effort | worker-start already takes --model and --effort; model moves the rate on 2.1M cache-read, effort moves 137 output tokens. Tier by role: scouts keep thinking |
+| F-118 | 7648 | operator | confirmed | 12x on short cycles | Heartbeats re-enter context; the long-wait floor was already measured and written down. Auto-compact is possible, but only from outside via orca terminal send |
+| F-119 | 7679 | operator | confirmed | relearned per cast | Eleven harness facts are living in Claude's per-project memory instead of the harness; deleting them for consistency would make v2 worse |
+| F-120 | 7717 | operator | unproven | -- | Graphify: my cache-that-asserts objection did not survive C.C's per-worktree design; the open question is regeneration cost per gate rebase |
+| F-121 | 7742 | operator | confirmed | none | Ponytail rejected on the ratio: generation is ~0.01% of spend, so no output-side optimisation can move a bill made of cache reads |
+| F-122 | 7760 | operator | confirmed | 1 branch stranded | Permissions: F-052's refused force-push is a classifier problem no gate release will fix. Also records two non-defects so nobody fixes them |
 
 ## What the shape says
 
@@ -218,7 +230,7 @@ standing here until 12 Sep read 15/15/12, then 20/18/17 — and that last set wa
 already one short on `contract` before F-108 was written, drifting again in
 exactly the way this paragraph warns about. A count kept by hand beside the data it counts is not a summary, it is
 a second source that silently disagrees. Recompute:
-`awk -F'|' '$4==" harness " && $5==" confirmed "' run-02-index.md | wc -l`. There is no
+`awk -F'|' '$4==" harness " && $5==" confirmed "' index.md | wc -l`. There is no
 `worker` or `scout` category, and that is a finding in itself: across a
 four-day run, almost nothing here is a worker doing bad work. The scout
 terminal leak is a harness fault; the builders' own mistakes were caught by
@@ -270,7 +282,7 @@ PASS   held a decision rather than losing it
 - **Workers ran the skills their specs named: 4 of 4**, in the order named. The
   spec-to-behaviour link held for every builder dispatched on the final day.
 - **Escalations answered: 3 of 3, all under two minutes.** Measured against
-  [F-101](run-02-findings.md), where `ask` findings expired into the worker's own
+  [F-101](findings.md), where `ask` findings expired into the worker's own
   judgement because nothing answered them in time. This is the one place the run
   visibly improved on its own earlier behaviour.
 
@@ -302,7 +314,7 @@ invocation here still writes 0/0/0, and the forensic method it documents is
 still the one that works. **F-060**'s wrong error attribution is untouched in
 every version.
 
-Detail in [v2-inputs.md](../v2-inputs.md).
+Detail in the `operator` findings, [F-112 onward](findings.md).
 
 ## What this scorecard does not measure, and the omission is the finding
 
@@ -312,7 +324,7 @@ the instrument scores contract compliance and nothing else. A run could pass all
 eight checks and ship nothing.
 
 That gap is not cosmetic. It is the same gap named in the `mvp-first-ordering`
-memory and in [F-111](run-02-findings.md)'s neighbourhood: the contract has an
+memory and in [F-111](findings.md)'s neighbourhood: the contract has an
 approval gate, a design gate and a Scout gate, and **no notion of a product
 milestone that orders the backlog.** The scorecard inherited that blindness
 honestly, by measuring exactly what the contract asks for.
@@ -332,12 +344,12 @@ The v2 consequence is a deletion, not a fix: C.C does not intend to invoke a
 grill skill by hand, so **`grill-with-docs` and `grill-me` both come out of the
 payload**, and `grill-with-lavish` absorbs the job -- it must invoke
 `domain-modeling` itself rather than leaving it to be remembered. Recorded in
-[v2-inputs.md](../v2-inputs.md) §1.
+[F-116](findings.md).
 
 **One discrepancy left open.** `observe.py` does not list `domain-modeling`
 among the skills invoked, and the `wrote the glossary (domain-modeling)` check
 reads unreachable. Either the detector misses the invocation or the glossary was
-never written -- and [F-038](run-02-findings.md) says no worker ever read one,
+never written -- and [F-038](findings.md) says no worker ever read one,
 which is weak support for the second. Not resolved here; it is a detector
 question and it belongs to the instrument, not to the run.
 
@@ -352,15 +364,15 @@ showing only master.
 delete -- *"Device or resource busy"* from both `rmdir` and PowerShell, with **no
 process naming the path**. The candidate was the no-mistakes daemon, pid 23728,
 started `2026-09-12T15:45:17Z` -- the exact second of
-[F-108](run-02-findings.md)'s restart, when the doorway worker ran
+[F-108](findings.md)'s restart, when the doorway worker ran
 `no-mistakes daemon start` from inside that worktree. Its parent process was
 already gone, so it was orphaned and carrying that shell's working directory.
 
 Tested rather than asserted: delete before (busy) -> `no-mistakes update`
 replaces the daemon (23728 -> 19488) -> delete after (**removed**), nothing else
-changed in between. So this is **[F-108](run-02-findings.md) extended**: the
+changed in between. So this is **[F-108](findings.md) extended**: the
 global daemon does not only kill another worker's CI monitor, it **holds that
-worktree undeletable for its own lifetime**, which is [F-105](run-02-findings.md)'s
+worktree undeletable for its own lifetime**, which is [F-105](findings.md)'s
 orphan problem with a named mechanism and a one-line cause.
 
 **The update channel is four releases stale, and the fix for that is only

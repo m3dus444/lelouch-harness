@@ -2,7 +2,7 @@
 
 Not run findings. This is the supervisor's own tooling (`watch.py`, the liveness
 and memory monitors) breaking and being repaired while it watched run 2. It is
-split out of `runs/run-02-findings.md` so the debrief reads only evidence about
+split out of `runs/run02/findings.md` so the debrief reads only evidence about
 the Lelouch system.
 
 Kept because it is the honest record of how reliable the instrument was while it
@@ -335,7 +335,7 @@ and the restart there was no gate watch at all, and nothing anywhere said so
 except a task notification I happened to be awake for. Had it arrived while I was
 mid-report on something else, the log would show a monitor that simply stopped
 having opinions — which is indistinguishable, at a distance, from a gate that
-stopped having problems. That is [F-051](runs/run-02-findings.md) in miniature:
+stopped having problems. That is [F-051](runs/run02/findings.md) in miniature:
 death and quiet produce identical evidence.
 
 What would fix it properly is a monitor that records its own liveness where
@@ -380,7 +380,7 @@ it went.
 
 **The part that transfers, and is worth someone testing properly.** Lelouch
 backgrounds its filtered `orchestration check --wait` as a harness task
-([F-017](runs/run-02-findings.md)). If long-running background tasks are reaped
+([F-017](runs/run02/findings.md)). If long-running background tasks are reaped
 on roughly this horizon regardless of footprint, **Lelouch's wait is being reaped
 the same way** -- which would explain the re-arming, the shortened wait cycles it
 described, and why the orchestrator keeps discovering it has no listener. I am
@@ -421,7 +421,7 @@ hours untouched** while five successive gate watches died around it.
 
 That last fact is the only real regularity, and I am not going to build a fourth
 theory on one observation. Writing down "the oldest task survives" would be
-exactly the mistake of entries 12 and 14, and of [F-062](runs/run-02-findings.md),
+exactly the mistake of entries 12 and 14, and of [F-062](runs/run02/findings.md),
 where I generalised a rule from a single refusal and closed off a design C.C had
 argued for.
 
@@ -454,7 +454,7 @@ Two defects in one line, and the second is the one that matters.
 every session directory — 8.7 MB for lelouch alone. A session that writes a row
 *during* that walk reads as newer than `now`, and `{age:.0f}` rounds -0.6 to
 `-1`. Cosmetic in isolation. Not cosmetic in an alarm whose entire purpose,
-since entry 13 and [F-044](runs/run-02-findings.md), is to arrive with ages you
+since entry 13 and [F-044](runs/run02/findings.md), is to arrive with ages you
 can trust without taking a second measurement. Clamped at zero.
 
 **The wording, which is the real fault.** `quiet` is time since the last
@@ -468,7 +468,7 @@ was alive and mid-turn.
 
 A supervisor obeying its own instrument here concludes the orchestrator has
 stalled and intervenes in a run that is fine. That is the mirror image of
-[F-044](runs/run-02-findings.md): there I talked a correct alarm down, here the
+[F-044](runs/run02/findings.md): there I talked a correct alarm down, here the
 alarm invites a wrong intervention. Both come from an age whose meaning was
 never stated.
 
@@ -524,8 +524,8 @@ the cut. **Two genuinely different calls that render the same.** My comparison
 was on the rendering.
 
 Fourth time tonight I reached for a derived value instead of the source
-([F-071](runs/run-02-findings.md)'s exit code, [F-073](runs/run-02-findings.md)'s
-missing CLI command, [F-074](runs/run-02-findings.md)'s lint duration, now this).
+([F-071](runs/run02/findings.md)'s exit code, [F-073](runs/run02/findings.md)'s
+missing CLI command, [F-074](runs/run02/findings.md)'s lint duration, now this).
 Every one was cheap to catch and every one was one command away from being
 published wrong.
 
@@ -540,7 +540,7 @@ two and a half days is not a defect; it is a habit that took.
 
 Entry 17 closed with *"the scorecard's 'called tools directly' check passes, and
 passes by a wide margin -- one ~28s lapse in two and a half days."* Both halves
-are wrong, and [F-078](runs/run-02-findings.md) has the detail.
+are wrong, and [F-078](runs/run02/findings.md) has the detail.
 
 The count is **20 npx calls against 17 direct**, from the transcripts. I got "one"
 by grepping `!! npx` out of the watch stream, which starts on 8 Sep and misses
@@ -639,7 +639,7 @@ version prints no verdict. It correlates each heartbeat against the worker's own
 tool calls and labels the row `INLINE (worker tool call at …)` or
 `DETACHED LOOP (no worker tool call within 25s)`, and lets me do the judging.
 That answered it immediately: every beat after the first was inline, and the
-loop was dead ([F-084](runs/run-02-findings.md)).
+loop was dead ([F-084](runs/run02/findings.md)).
 
 **Third instance of entry 16's fault, and I wrote entry 16.** There, `quiet` was
 correct and its printed label described a different clock. Here the gap was
@@ -704,7 +704,7 @@ and the argument read as rigour because it was about a line of code I never
 opened.
 
 **What the alarm does still catch, stated fairly.** If everything stops writing,
-`last_data` freezes and it fires. That is [F-026](runs/run-02-findings.md)'s
+`last_data` freezes and it fires. That is [F-026](runs/run02/findings.md)'s
 three-hour dead run, and the alarm would catch it. It is a **run-stopped**
 detector, and a sound one. It is not an **action-stopped** detector, and both its
 old and new sentences claim to be.
@@ -837,14 +837,14 @@ but with very low memory usage. restart the logger, if it closes, it's not
 memory."* They were right and I had been taking the notice at face value.
 
 **The contrast that makes this a finding rather than a grievance.** Memory
-pressure on this machine is real and documented — [F-050](runs/run-02-findings.md)
+pressure on this machine is real and documented — [F-050](runs/run02/findings.md)
 records 0.42–1.19 GB free across a window where six Claude processes fell to
 four, with Brave holding 5494 MB. That was a genuine ceiling. Tonight's 4.22 GB
 is not, and the reaper said the same sentence both times.
 
 So the string is **not a measurement**. It is a fixed label attached to a kill
 event, and it reads exactly like a diagnosis. That is the same defect as
-[F-108](runs/run-02-findings.md)'s *"PR remains open"* — a status line asserting
+[F-108](runs/run02/findings.md)'s *"PR remains open"* — a status line asserting
 a remote condition it had not checked, at the moment it stopped looking — and
 [entry 18](#)'s asserted-not-read age. Third instance of one shape, now found in
 three separate systems: the ship gate, my own watch, and the agent harness.
