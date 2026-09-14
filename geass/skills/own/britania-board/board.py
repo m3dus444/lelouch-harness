@@ -224,10 +224,17 @@ def backlog() -> tuple[list[dict], list[dict], list[dict]]:
 
 
 def workers(run_id: str | None) -> dict[str, dict]:
-    """Orca task/dispatch state, keyed by the ticket id the task names.
+    """Real worker state, keyed by the ticket id its task names.
 
-    There is no `worker-list`; tasks carry the dispatch state, so task-list is
-    the listing and `worker-show --dispatch <id>` is the detail view.
+    Two calls, because neither alone answers it:
+
+        worker-list   workerState / terminalState, keyed by taskId
+        task-list     the ticket id, which only ever appears in the task text
+
+    `worker-list` carries the state that matters and no ticket id at all --
+    its keys are `dispatchId, taskId, runId, workerState, dispatchStatus,
+    agentTerminalHandle, terminalState`. So the join is on `taskId`, and the
+    ticket id is still recovered from the task's own text.
     """
     if not run_id:
         runs = (orca_json(["orca", "orchestration", "run-list", "--json"]) or {}).get("runs") or []
@@ -235,10 +242,15 @@ def workers(run_id: str | None) -> dict[str, dict]:
     if not run_id:
         return {}
 
+    by_task: dict[str, dict] = {}
+    wl = orca_json(["orca", "orchestration", "worker-list", "--run", run_id, "--json"]) or {}
+    for w in wl.get("workers") or []:
+        if isinstance(w, dict) and w.get("taskId"):
+            by_task[w["taskId"]] = w
+
     data = orca_json(["orca", "orchestration", "task-list", "--run", run_id, "--json"]) or {}
-    rows = data.get("tasks") or data.get("items") or []
     out: dict[str, dict] = {}
-    for t in rows:
+    for t in data.get("tasks") or data.get("items") or []:
         if not isinstance(t, dict):
             continue
         blob = " ".join(
@@ -247,7 +259,14 @@ def workers(run_id: str | None) -> dict[str, dict]:
         key = next((m for m in re.findall(r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+\b", blob)), None)
         if not key:
             continue
-        out.setdefault(key, {"state": t.get("status") or t.get("state"), "task": t.get("id")})
+        w = by_task.get(t.get("id"), {})
+        out.setdefault(key, {
+            # Prefer the worker's own state over the task's: a task reads
+            # completed while its terminal is still retained and holding a slot.
+            "state": w.get("workerState") or t.get("status") or t.get("state"),
+            "terminal": w.get("terminalState"),
+            "task": t.get("id"),
+        })
     return out
 
 
@@ -275,7 +294,12 @@ def main() -> int:
     # A task or run in a terminal state is history, not work in flight. Orca's
     # task-list returns every task the Run ever had, so without this the board
     # reports a finished project as fully busy.
-    DEAD_WORKER = {"completed", "failed", "cancelled", "released", "ready", "blocked"}
+    # Orca's own vocabulary, read from the runtime rather than guessed:
+    #   workerState     succeeded | failed | abandoned   (and running, while live)
+    #   terminalState   retained  | released | reclaimable
+    # A settled worker can still hold a `retained` terminal, which is a slot the
+    # machine cannot reuse -- that is worth seeing, but it is not work in flight.
+    DEAD_WORKER = {"succeeded", "failed", "abandoned", "cancelled"}
     DEAD_RUN = {"completed", "cancelled", "failed", "ci_monitor_interrupted"}
 
     def row(tid: str) -> list[str]:

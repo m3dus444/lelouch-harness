@@ -63,14 +63,49 @@ kill you did not measure.
 
 ## Auto mode — the watcher
 
-This runs **outside** the session, from a terminal or a scheduled task. It is
-not something you invoke mid-conversation.
+This runs **outside** the session. It is not something you invoke
+mid-conversation, and it is **not started by the session-start hook** — see
+below for why.
 
 ```
 python <skill>/vitals.py --watch --interval 300
 python <skill>/vitals.py --watch --present      # user at the keyboard: warn only
 python <skill>/vitals.py --watch --dry-run      # print what it would send
 ```
+
+### Where it should actually live: an Orca automation
+
+```
+orca automations create --name britania-vitals --trigger cron \
+  --precheck "python <skill>/vitals.py --gate" \
+  --prompt  "britania-vitals reports a threshold breach. Run the skill, park
+             any dispatch, and tell C.C what is short." \
+  --provider claude --workspace <selector>
+```
+
+`--precheck` is the part that makes this cheap: the gate runs on its own
+schedule and costs nothing, and **only a breach involves an agent at all.**
+Quiet hours are free.
+
+### Why NOT the session-start hook
+
+It is the obvious place and it is wrong, for a reason worth stating so nobody
+re-proposes it:
+
+- **The hook is deliberately role-neutral and fires for every agent that opens
+  this repo — including each dispatched worker in its own worktree.** Four
+  builders would start five watchers, all waking the same coordinator terminal.
+  There is no role check available to prevent it, because the hook refusing to
+  assert a role is the whole point of its design.
+- **A process spawned from a hook outlives the shell that started it and
+  inherits its working directory.** That is exactly how the ship gate's daemon
+  came to pin a worktree open and make it undeletable.
+- **Background processes here are killed unpredictably**, so a watcher started
+  this way would stop without saying so — and a monitor that has gone quiet is
+  indistinguishable from a healthy one.
+
+A scheduled automation has none of those properties: one instance, owned by the
+runtime, restartable, and visible in `orca automations list`.
 
 On a breach it finds the coordinator's terminal (from the Run's
 `coordinator_handle`), **waits for `tui-idle`**, and then sends one line into
