@@ -136,16 +136,82 @@
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Escalate blockers, do not ask" onchange="mark(this)"></td><td class="fid">F-063<br>F-101</td><td class="why"><b><code class="inl">ask</code> times out in minutes; the coordinator's wait runs on the hour.</b> Escalate blockers instead, or the finding expires into the worker's own judgement.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Glossary must be committed" onchange="mark(this)"></td><td class="fid">F-038<br>F-092<br>F-093<br>F-094</td><td class="why"><b>Decisions go in a committed file or they do not exist.</b> <code class="inl">CONTEXT.md</code> was gitignored so no worker ever read it; an ADR was called binding while uncommitted; <code class="inl">docs/adr/**</code> had a reader and no writer.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Browser session isolation" onchange="mark(this)"></td><td class="fid">F-102<br>F-104</td><td class="why"><b>Per-worker <code class="inl">CHROME_DEVTOOLS_AXI_SESSION</code>, and headed verification.</b> Already fixed in practice this run — write it down so it survives the cast.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Attribute skill decisions to the skill" onchange="mark(this)"></td><td class="fid">F-079</td><td class="why"><b>Say which skill made a call.</b> "Did you decide that on yourself?" — skill-driven decisions currently read as the agent's own.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Resolve the npx contradiction" onchange="mark(this)"></td><td class="fid">F-078</td><td class="why"><b>The contract says call tools directly; the <code class="inl">lavish</code> skill says <code class="inl">npx -y</code>.</b> ~9 min lost to the conflict. Pick one and say which wins.</td></tr>
+      <tr class="ring-1 ring-warning/40"><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Attribute skill decisions to the skill" onchange="mark(this)"></td><td class="fid">F-079</td><td class="why"><b>Tag a skill-driven choice with the skill that drove it.</b> A tag, not a sentence: <code class="inl">(lavish: matched the project's tokens)</code>. Four words, appended to a decision he is already reporting.
+      <div class="mt-2 p-2 rounded bg-base-300/60 text-xs leading-relaxed">
+        <b>Does this fight F-112?</b> No — they act on different things, and only collide if this one is written as prose.
+        <b>F-112 removes commentary on decisions <em>you</em> made</b> and descriptions of artifacts: settled things, zero information.
+        <b>F-079 adds provenance to decisions <em>he</em> made</b>: unsettled things, where you are trying to work out how much latitude your orchestrator is taking.
+        You asked <i>"did you decide that on yourself?"</i> — twice reassuring him you weren't angry — which is what someone does when they can't tell.
+        <b>Without F-079, F-112 makes that worse</b>: cutting the narration removes the only place provenance currently leaks out. The finding's own words are <i>"the rule, and it is small."</i> Keep it small and it is a tag on a line that already exists.
+      </div></td></tr>
+      <tr class="ring-1 ring-warning/40"><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Resolve the npx contradiction in the contract, not the skill" onchange="mark(this)"></td><td class="fid">F-078</td><td class="why"><b>State the precedence in the contract: if a tool resolves on <code class="inl">PATH</code>, call it directly; <code class="inl">npx -y</code> is the fallback for when it does not.</b>
+      <div class="mt-2 p-2 rounded bg-base-300/60 text-xs leading-relaxed">
+        <b>Measured just now, on this machine:</b>
+        <table class="table table-xs mt-1 mb-2"><tbody>
+          <tr><td><code class="inl">lavish-axi --version</code></td><td class="cnt">849 ms · 1025 ms</td></tr>
+          <tr><td><code class="inl">npx -y lavish-axi --version</code></td><td class="cnt">2318 ms · 2640 ms</td></tr>
+        </tbody></table>
+        <b>≈1.5 s of pure overhead per call</b>, and <code class="inl">lavish-axi</code> <em>is</em> on PATH here
+        (<code class="inl">~/AppData/Roaming/npm/lavish-axi</code>). I paid it on every call while building this page.
+        The ~9 min in F-078 was the round-trip cost of an agent resolving the contradiction, not per-call time.
+        <div class="mt-2"><b>Do not patch the lavish skill.</b> It is third-party — a skill update silently overwrites the patch,
+        which is issue #20's exact shape. The contract is ours and <code class="inl">geass</code> casts it, so the rule belongs there.
+        And it must stay <em>conditional</em> on PATH: the skill says <code class="inl">npx</code> because it cannot assume a global
+        install, and a flat "never use npx" would break on a machine that has none.</div>
+      </div></td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Wait ownership and recovery" onchange="mark(this)"></td><td class="fid">F-017<br>F-082</td><td class="why"><b>The §7 wait is a singleton and outlives the session that armed it.</b> <code class="inl">/clear</code> orphans its holder and only a force-kill frees it. Define who re-arms and how.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="No backgrounded heartbeat loops" onchange="mark(this)"></td><td class="fid">F-084<br>F-097</td><td class="why"><b>A backgrounded loop dies silently.</b> One died after a single beat and nothing noticed for 65 of 70 minutes. Use the blocking wait, not a loop.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Woken worker resumes its work" onchange="mark(this)"></td><td class="fid">F-011<br>F-015</td><td class="why"><b>On wake, state your ticket and resume it.</b> A woken worker that does nothing is indistinguishable from a dead one.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Architecture before parallel dispatch" onchange="mark(this)"></td><td class="fid">F-037</td><td class="why"><b>Shared-file conflicts are a sequencing decision, not a gate problem.</b> One README collision cost over an hour; the gate was not why.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Permissions the workflow needs" onchange="mark(this)"></td><td class="fid">F-052<br>F-122</td><td class="why"><b>Cast the permissions, or run skip-permissions.</b> The force-push a gate-rebase recovery requires is refused by the classifier — no gate release will ever fix that. PR #28 on lelouch-harness is the surgical version.</td></tr>
+      <tr class="ring-1 ring-warning/40"><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Merge PR #28: cast the permission allow-list" onchange="mark(this)"></td><td class="fid">F-052<br>F-122</td><td class="why"><b>They are already written — <a class="link link-primary" href="https://github.com/m3dus444/lelouch-harness/pull/28">PR #28</a>, open, unmerged.</b> The cast currently ships <em>only</em> the SessionStart hook; <code class="inl">geass/harness/settings.json</code> has no <code class="inl">permissions</code> block at all.
+      <div class="mt-2 p-2 rounded bg-base-300/60 text-xs leading-relaxed">
+        <pre class="blk" style="margin:.4rem 0"><code>"permissions": { "allow": [
+  "Bash(git push:*)",   "Bash(git -C:*)",
+  "Bash(gh-axi:*)",     "Bash(gh:*)",
+  "Bash(no-mistakes:*)","Bash(tasks-axi:*)",
+  "Bash(orca:*)"
+]}</code></pre>
+        <b>Two non-obvious things about that shape.</b>
+        <span class="block mt-1"><b>There is no force-push rule to write.</b> Force is a flag, not a command, and Bash rules match by
+        command prefix — so <code class="inl">Bash(git push:*)</code> already covers
+        <code class="inl">git push --force-with-lease=…</code>. A separate force entry would match nothing.</span>
+        <span class="block mt-1"><b><code class="inl">Bash(git -C:*)</code> is the broad one, deliberately.</b> The command actually refused was
+        <code class="inl">git -C "$P" push --force-with-lease=…</code>, which does <em>not</em> match
+        <code class="inl">Bash(git push:*)</code> — the string starts with <code class="inl">git -C</code>. Prefix matching is
+        unforgiving. The trade: any git subcommand against any path, in worktrees whose work is banked on the shadow
+        remote and recoverable.</span>
+        <span class="block mt-2"><b>The caveat the fix cannot retire.</b> The refusal said <em>auto mode classifier</em>, not a
+        permission rule. An allow rule normally outranks it — <b>but I have never seen a force-push tested against one.</b>
+        The first gate rebase after a cast is where that gets answered, and if it still refuses, skip-permissions is the
+        only remaining lever.</span>
+        <span class="block mt-2"><b>v2 adds work this list does not cover yet.</b> The retirement script deletes directories
+        (<code class="inl">Bash(rm:*)</code> / <code class="inl">Bash(rmdir:*)</code>), and <code class="inl">britania-afk</code>
+        merges PRs unattended — that one is inside <code class="inl">Bash(gh-axi:*)</code> already, which is worth noticing
+        deliberately rather than discovering later.</span>
+      </div></td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Report links must be verified" onchange="mark(this)"></td><td class="fid">F-014</td><td class="why"><b>The losing path reports success.</b> A report link that did not survive still reads as delivered — verify the artifact exists before claiming it.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Scout terminal lifecycle" onchange="mark(this)"></td><td class="fid">F-039<br>F-105</td><td class="why"><b>Close what you open.</b> Leaked scout terminals are a standing tax on the concurrency budget and accumulate across days, not across a run.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Harness gotchas doc in the payload" onchange="mark(this)"></td><td class="fid">F-119</td><td class="why"><b>Ship the eleven memories as <code class="inl">docs/agents/harness-gotchas.md</code>.</b> Cross-check against v1.72.0 first, drop the superseded, then delete the private memory directory.</td></tr>
+      <tr class="ring-1 ring-warning/40"><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Promote the eleven memories: 5 become rules, 6 become reference" onchange="mark(this)"></td><td class="fid">F-119</td><td class="why"><b>Split them, don't dump them.</b> A memory that constrains behaviour is a contract rule; one that describes a trap is reference. Cross-check against v1.72.0 first — a memory recording a bug upstream fixed is worse than no memory.
+      <div class="mt-2 p-2 rounded bg-base-300/60 text-xs leading-relaxed">
+        <b>Become contract rules (5):</b>
+        <ul class="list-disc ml-4 mt-1 space-y-0.5">
+          <li><code class="inl">long-orchestration-waits-beat-polling</code> — already the wait-floor row above</li>
+          <li><code class="inl">escalation-beats-ask-for-blockers</code> — already the escalation row above</li>
+          <li><code class="inl">cc-delegates-backend-judgement</code> — act on recommendations; §4 decisions stay yours</li>
+          <li><code class="inl">gate-intent-size-limit</code> — keep <code class="inl">--intent</code> under ~6KB or the run dies at the push, exit 141</li>
+          <li><code class="inl">orchestration-send-type-status</code> — only <code class="inl">--type status</code> reaches a worker</li>
+        </ul>
+        <b class="block mt-2">Stay reference, in <code class="inl">docs/agents/harness-gotchas.md</code> (6):</b>
+        <ul class="list-disc ml-4 mt-1 space-y-0.5">
+          <li><code class="inl">gate-run-owns-the-branch</code> · <code class="inl">ship-gate-strands-commits</code> · <code class="inl">regate-after-checks-passed-strands-fix</code> — the custody family; procedures, not rules</li>
+          <li><code class="inl">gate-timeout-two-outcomes</code> — check PID and HEAD before restarting anything</li>
+          <li><code class="inl">gate-finding-text-is-truncated</code> — and <code class="inl">britania-board</code> absorbs the workaround</li>
+          <li><code class="inl">lavish-shares-one-design-system-copy</code> — skill-specific, belongs beside the skill</li>
+        </ul>
+        <span class="block mt-2"><b>The distinction matters more than the split.</b> A rule in a reference doc gets read once and
+        forgotten; a trap written as a rule reads as a prohibition on something that is sometimes correct. <b>Then</b> delete the
+        private memory directory — not before.</span>
+      </div></td></tr>
     </tbody>
   </table>
   </div>
@@ -172,11 +238,76 @@
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-resume" onchange="mark(this)"></td><td><b>britania-resume</b><br><span class="badge badge-ghost badge-xs">user only</span></td><td class="fid">F-003<br>F-054<br>F-107<br>F-113</td><td class="why">Resume in-flight work after a quota cap without losing what is done. <b>The trigger is the finding, not the resuming</b> — nothing fired at the weekly reset; a human remembered.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-restore" onchange="mark(this)"></td><td><b>britania-restore</b><br><span class="badge badge-ghost badge-xs">user only</span></td><td class="fid">F-008<br>F-053<br>F-081<br>F-113</td><td class="why">Cold start from files. <b>Must derive state, not replay a record of it.</b> Load <code class="inl">orca agent-context</code> in one call rather than N <code class="inl">--help</code> probes. Blocks auto-clear until proven.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-board" onchange="mark(this)"></td><td><b>britania-board</b><br><span class="badge badge-soft badge-xs">model</span></td><td class="fid">F-111<br>F-114</td><td class="why">Ticket, worker, stage, queue — ASCII table, on demand. Reads <code class="inl">state.sqlite</code> directly because the supported view truncates, and <b>documents the schema inside itself</b> so nobody rediscovers it.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-vitals" onchange="mark(this)"></td><td><b>britania-vitals</b><br><span class="badge badge-soft badge-xs">model</span></td><td class="fid">F-032<br>F-045<br>F-115</td><td class="why">Gate every dispatch on the environment. Battery, RAM, disk, session usage. <b>Wake on threshold rather than poll.</b> <code class="inl">quota-axi</code> and <code class="inl">fanwatch.py</code> already do most of it — this repoints them at Lelouch.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="britania-vitals" onchange="mark(this)"></td><td><b>britania-vitals</b><br><span class="badge badge-soft badge-xs">model</span></td><td class="fid">F-032<br>F-045<br>F-115</td><td class="why"><b>One script, two modes — and Lelouch never writes shell for this.</b>
+      <div class="mt-2 p-2 rounded bg-base-300/60 text-xs leading-relaxed">
+        <span class="block"><b>Manual mode</b> — Lelouch calls the script and reads structured output. One call, the fields it
+        asked for, nothing else. The skill is thin: <em>when</em> to call it (before a dispatch, on a resource-shaped request)
+        and how to read the result. <b>It must never mean "improvise a PowerShell query for free RAM"</b> — that is exactly
+        how <code class="inl">F-034</code> and <code class="inl">F-071</code> happened, an agent writing platform-specific shell
+        and hitting a platform-specific trap.</span>
+        <span class="block mt-2"><b>Auto mode</b> — the wake script, running outside Claude entirely. Owns the thresholds,
+        the wake on breach, the scheduled resume, and the automated clear/compact via
+        <code class="inl">orca terminal send</code>. Lelouch does not poll it; it interrupts him.</span>
+        <span class="block mt-2">This is the <code class="inl">*-axi</code> shape you already use everywhere else: a CLI that
+        emits token-efficient structured output, with the skill as a usage guide rather than a set of commands to retype.
+        <b>The script owns every platform-specific query</b>, so a trap gets fixed once, in one file, instead of being
+        rediscovered by each agent that needs a number.</span>
+        <span class="block mt-2">Sources stay the same — <code class="inl">quota-axi</code> for session runway and reset time,
+        <code class="inl">fanwatch.py</code>'s logic for RAM and disk, one Win32 call for battery — but they move behind the
+        script instead of being things Lelouch invokes separately.</span>
+      </div></td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="grill-with-lavish" onchange="mark(this)"></td><td><b>grill-with-lavish</b><br><span class="badge badge-soft badge-xs">model</span></td><td class="fid">F-116</td><td class="why">Grill rounds as Lavish artifacts. <b>Calls <code class="inl">domain-modeling</code> itself.</b> Replaces <code class="inl">grill-with-docs</code> and <code class="inl">grill-me</code>, both removed from the payload.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Wake script via orca terminal send" onchange="mark(this)"></td><td><b>wake script</b><br><span class="badge badge-ghost badge-xs">script</span></td><td class="fid">F-115<br>F-118</td><td class="why">Cron + <code class="inl">orca terminal send</code>, gated on <code class="inl">orca terminal wait --tui-idle</code>. Warns when C.C is present; acts automatically only when AFK. This is what makes auto-clear possible at all.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Worktree retirement script" onchange="mark(this)"></td><td><b>worktree-retire</b><br><span class="badge badge-ghost badge-xs">script</span></td><td class="fid">F-105<br>F-106<br>F-108</td><td class="why">Already staged in <code class="inl">supervision/proposed/</code>. <b>Verify before removal, not after</b> — the proof of safety dies with <code class="inl">.git</code>. And it now has to handle a daemon that pins the worktree it was started from.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Graphify trial" onchange="mark(this)"></td><td><b>Graphify</b><br><span class="badge badge-warning badge-soft badge-xs">unproven</span></td><td class="fid">F-120</td><td class="why"><b>One measurement decides it: regeneration cost per rebase.</b> The gate rebases every branch before review, so each merge invalidates every other worker's graph. Seconds → adopt. Full scan → too expensive at this cadence.</td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Worktree retirement script" onchange="mark(this)"></td><td><b>worktree-retire</b><br><span class="badge badge-ghost badge-xs">script</span></td><td class="fid">F-105<br>F-106<br>F-108</td><td class="why"><b>A rule alone can't do this one, and the reason is ordering.</b> Already written — 73 lines, staged in <code class="inl">supervision/proposed/</code>.
+      <div class="mt-2 p-2 rounded bg-base-300/60 text-xs leading-relaxed">
+        <span class="block">The safety questions — is the tree clean, is the tip an ancestor of master — <b>can only be asked while
+        <code class="inl">.git</code> is still attached.</b> Once the directory is orphaned, <code class="inl">.git</code> is
+        severed and nothing inside can answer them ever again. So the check is not <em>advice that precedes</em> the removal,
+        it is <b>a precondition that must hold at the moment of removal</b>.</span>
+        <span class="block mt-2">Prose delegates ordering to whoever executes it, and the failure is silent:
+        <b>a bare <code class="inl">rm -rf</code> appended to the removal looks correct every single time</b> — including the
+        one run where the worker had uncommitted work. That is the exact silence F-105 already produced once, six orphans over
+        four days, both registries reading correct.</span>
+        <span class="block mt-2"><b>So it is both, not either.</b> The contract rule is "never delete a worktree by hand; run
+        the script" — one line. The script is what that line means. Without the rule the script never gets called; without the
+        script the rule is a checklist someone skips at 2am.</span>
+        <span class="block mt-2"><b>And it needs one addition now.</b> Tonight proved a worktree can be <em>pinned</em> by the
+        global daemon that was started inside it — empty, and undeletable until the daemon was replaced. The script must
+        report that as a distinct outcome rather than failing halfway through a delete.</span>
+      </div></td></tr>
+      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Graphify trial" onchange="mark(this)"></td><td><b>Graphify</b><br><span class="badge badge-warning badge-soft badge-xs">kept · scout out</span></td><td class="fid">F-120</td><td class="why"><b>Scout returned. The storage question lands in your favour; three others land badly.</b>
+      <div class="mt-2 p-2 rounded bg-base-300/60 text-xs leading-relaxed">
+        <span class="block"><b>✅ Storage — your design works by default.</b> The graph lives at
+        <code class="inl">graphify-out/</code> <em>inside the repo working tree</em>, and the docs say to
+        <b>commit it</b>: <i>"graphify-out/ is meant to be committed to git so everyone on the team starts with a map."</i>
+        Each worktree has its own checkout, so each gets its own graph. No shared store. There is also an opt-in global
+        store (<code class="inl">~/.graphify/global-graph.json</code>) — do not use it.</span>
+
+        <span class="block mt-2"><b>⚠ But committing it puts a generated artifact in every PR diff the gate reviews.</b>
+        They ship a <b>git merge driver</b> specifically because <code class="inl">graph.json</code> conflicts constantly.
+        Our review cost is already 2.1M cache-read per pass; a regenerated graph in every diff is the wrong direction.</span>
+
+        <span class="block mt-2"><b>❌ Rebase is undocumented. Entirely.</b> The word does not appear anywhere in the README,
+        ARCHITECTURE.md, or the site. Hooks cover <code class="inl">commit</code> (AST-only) and
+        <code class="inl">checkout</code> (granularity <em>unstated</em>) — and <code class="inl">pull</code>/<code class="inl">merge</code>
+        are <b>explicitly not covered</b>, requiring a manual <code class="inl">graphify update .</code>. Our gate rebases in its
+        own clone and the worker syncs afterwards, which is a case the docs never contemplate.</span>
+
+        <span class="block mt-2"><b>❌ Deletions leave stale nodes.</b> Documented plainly: <i>"If a refactor deleted files, the
+        old nodes linger. Pass --force… to overwrite."</i> So incremental alone drifts, and the corrective is a full rebuild.
+        Renames are not documented at all.</span>
+
+        <span class="block mt-2"><b>❌ Source quality is poor, and that matters for the numbers.</b> <code class="inl">graphify.net</code>
+        contradicts the actual repo: it says MIT, GitHub says <b>Apache-2.0</b>; it says "3.7k stars" on one page and "82.1K" on
+        another, GitHub API says <b>116,455</b>; language counts of 19, 25, and 37+ appear across pages. <b>The headline
+        "71.5× fewer tokens" claim appears only on that site</b>, uncorroborated in the repo. And its pricing page gates
+        <i>"incremental webhook rebuilds"</i> behind a paid tier, which contradicts the local-and-free story.</span>
+
+        <span class="block mt-2"><b>So: still worth trying, but nothing here can be taken on faith.</b> Two cheap local tests
+        settle it — <b>(1)</b> time a full vs <code class="inl">--update</code> rebuild on weave-atlas and see what a gate rebase
+        actually fires; <b>(2)</b> check whether <code class="inl">graph.json</code> in the diff changes review cost. Both are
+        measurements we can take ourselves, which is the only kind of evidence this product's docs leave us.</span>
+      </div></td></tr>
     </tbody>
   </table>
   </div>
