@@ -54,12 +54,21 @@ def sh(cmd: list[str], timeout: int = 30) -> str | None:
     raises `FileNotFoundError` even though the command works perfectly in a
     shell. `shutil.which` finds the shim; without this every source silently
     returns nothing and the board reports an empty project.
+
+    **Force UTF-8 too.** `text=True` decodes with the locale codec -- cp1252 on
+    a French Windows -- so a single non-ASCII byte in the output (a path with
+    an accent in it) raises inside subprocess's reader thread. The call still
+    returns, empty, and every consumer concludes the thing it asked about does
+    not exist.
     """
     exe = shutil.which(cmd[0])
     if exe is None:
         return None
     try:
-        p = subprocess.run([exe, *cmd[1:]], capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(
+            [exe, *cmd[1:]], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=timeout,
+        )
     except (OSError, subprocess.TimeoutExpired):
         return None
     return p.stdout if p.returncode == 0 else None

@@ -374,15 +374,16 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
     unmet = report_dependencies(project)
 
     # Reported, never registered. See `watcher()` for why the line is drawn here.
-    present = watcher_present()
+    present = watcher_present(project)
+    name = watcher_name(project)
     if present is False:
         print("\nWatcher")
-        print(f"  {WATCHER_NAME}: not registered with the OS scheduler")
+        print(f"  {name}: not registered with the OS scheduler")
         print("  It runs on its own schedule, so casting does not register it for you.")
         print("  When you want it:  geass watcher")
     elif present:
         print("\nWatcher")
-        print(f"  {WATCHER_NAME}: registered")
+        print(f"  {name}: registered")
 
     print("\nDone. Next:")
     step = 1
@@ -477,8 +478,18 @@ def diff(skill: str) -> int:
     return 0
 
 
-WATCHER_NAME = "britania-vitals"
 WATCHER_EVERY_MIN = 15
+
+
+def watcher_name(project: Path) -> str:
+    """One watcher per project, never one per machine.
+
+    The watcher wakes *a specific session*, so a second project needs a second
+    registration. A constant name would have silently replaced the first
+    project's watcher when the second was cast -- with no error, and no sign
+    until something breached and nobody was told.
+    """
+    return f"britania-vitals-{project.resolve().name}"
 
 
 def _run(args: list[str]) -> tuple[bool, str]:
@@ -495,15 +506,15 @@ def _run(args: list[str]) -> tuple[bool, str]:
 
 def watcher_command(project: Path) -> str:
     """The thing a scheduler should run, every {WATCHER_EVERY_MIN} minutes."""
-    script = project / SKILLS_DEST / WATCHER_NAME / "vitals.py"
+    script = project / SKILLS_DEST / "britania-vitals" / "vitals.py"
     return f'python "{script}" --once --path "{project}"'
 
 
-def watcher_present() -> bool | None:
+def watcher_present(project: Path) -> bool | None:
     """True/False if the scheduler answered, None if it could not be asked."""
     if platform.system() != "Windows":
         return None
-    ok, _ = _run(["schtasks", "/Query", "/TN", WATCHER_NAME])
+    ok, _ = _run(["schtasks", "/Query", "/TN", watcher_name(project)])
     return ok
 
 
@@ -530,6 +541,7 @@ def watcher(project: Path, force: bool, remove: bool) -> int:
     change to the machine, and that is the user's call to make explicitly.
     """
     cmd = watcher_command(project)
+    name = watcher_name(project)
 
     if platform.system() != "Windows":
         verb = "Remove" if remove else "Add"
@@ -538,23 +550,23 @@ def watcher(project: Path, force: bool, remove: bool) -> int:
         print(f"    */{WATCHER_EVERY_MIN} * * * * {cmd}")
         return 0
 
-    present = watcher_present()
+    present = watcher_present(project)
     if remove:
         if not present:
-            print(f"  {WATCHER_NAME}: not registered, nothing to remove")
+            print(f"  {name}: not registered, nothing to remove")
             return 0
-        ok, out = _run(["schtasks", "/Delete", "/TN", WATCHER_NAME, "/F"])
-        print(f"  removed {WATCHER_NAME}" if ok else f"! remove failed: {out}")
+        ok, out = _run(["schtasks", "/Delete", "/TN", name, "/F"])
+        print(f"  removed {name}" if ok else f"! remove failed: {out}")
         return 0 if ok else 1
 
     if present and not force:
-        print(f"  {WATCHER_NAME} already registered. Re-run with --force to replace it.")
+        print(f"  {name} already registered. Re-run with --force to replace it.")
         return 0
     if present:
-        _run(["schtasks", "/Delete", "/TN", WATCHER_NAME, "/F"])
+        _run(["schtasks", "/Delete", "/TN", name, "/F"])
 
     ok, out = _run([
-        "schtasks", "/Create", "/TN", WATCHER_NAME, "/TR", cmd,
+        "schtasks", "/Create", "/TN", name, "/TR", cmd,
         "/SC", "MINUTE", "/MO", str(WATCHER_EVERY_MIN), "/F",
     ])
     if not ok:
@@ -562,11 +574,11 @@ def watcher(project: Path, force: bool, remove: bool) -> int:
         print()
         print("  Register it by hand:")
         print()
-        print(f'    schtasks /Create /TN {WATCHER_NAME} /TR "{cmd}" '
+        print(f'    schtasks /Create /TN {name} /TR "{cmd}" '
               f"/SC MINUTE /MO {WATCHER_EVERY_MIN} /F")
         return 1
 
-    print(f"  registered {WATCHER_NAME}, every {WATCHER_EVERY_MIN} minutes")
+    print(f"  registered {name}, every {WATCHER_EVERY_MIN} minutes")
     print("  It runs a script, not an agent. Quiet checks cost nothing.")
     print(f"  Remove it with:  geass watcher --remove")
     return 0

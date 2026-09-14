@@ -48,13 +48,28 @@ QUOTA_FLOOR = 10.0  # percent of the window still available
 
 
 def sh(cmd: list[str], timeout: int = 30) -> str | None:
-    """Run a command. Resolve the executable first: on Windows these CLIs are
-    .CMD shims and subprocess refuses them by bare name."""
+    """Run a command and return stdout, or None if it failed in any way.
+
+    Two Windows traps, both of which fail *silently* rather than loudly:
+
+    **Resolve the executable first.** These CLIs install as `.CMD` shims, and
+    subprocess refuses them by bare name with `FileNotFoundError` even though
+    the same command works in a shell.
+
+    **Force UTF-8.** `text=True` decodes using the locale codec -- cp1252 on a
+    French Windows -- and any non-ASCII byte in the output (a path containing
+    `é`, say) raises inside subprocess's reader thread. The call still returns,
+    with nothing in it, so every consumer silently sees an empty result and
+    concludes the thing it asked about does not exist.
+    """
     exe = shutil.which(cmd[0])
     if exe is None:
         return None
     try:
-        p = subprocess.run([exe, *cmd[1:]], capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(
+            [exe, *cmd[1:]], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=timeout,
+        )
     except (OSError, subprocess.TimeoutExpired):
         return None
     return p.stdout if p.returncode == 0 else None
@@ -262,19 +277,81 @@ def render(v: dict) -> str:
 # ----------------------------------------------------------------- auto mode
 
 
-def coordinator_handle() -> str | None:
-    """Lelouch's terminal, from the Run he is bound to."""
-    raw = sh(["orca", "orchestration", "run-list", "--json"])
+def _orca(args: list[str]) -> dict:
+    raw = sh(["orca", *args])
     if not raw:
-        return None
+        return {}
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
+        return {}
+    return (data.get("result", data) or {}) if isinstance(data, dict) else {}
+
+
+def _same_project(a: str | None, b: str) -> bool:
+    """Do two paths name the same project? Compared case-insensitively with
+    normalised separators, because Orca reports `C:/...` and argv carries
+    `C:\\...` for the identical directory."""
+    if not a:
+        return False
+    norm = lambda p: os.path.normcase(os.path.abspath(str(p))).replace("\\", "/").rstrip("/")
+    return norm(a) == norm(b)
+
+
+def coordinator_handle(project: str) -> str | None:
+    """The orchestrator's terminal **for this project**, or None.
+
+    This is the part that must not be guessed. A Run carries no project
+    identity at all -- only an id, a free-text objective and a
+    `coordinator_handle` -- and a machine running several projects will have
+    several Runs. Taking "the first Run with a handle" would poke whichever
+    project happened to sort first, which is worse than doing nothing.
+
+    Terminals are what know where they live, so the join goes through them:
+
+        run-list      -> coordinator_handle
+        terminal list -> handle, worktreePath, connected, orphaned
+
+    A handle only qualifies when its terminal is in **this** project, is
+    connected, and is not orphaned. Runs are considered newest first, so a
+    finished Run from last week cannot win over the live one.
+    """
+    def alive(t: dict) -> bool:
+        return (
+            isinstance(t, dict)
+            and _same_project(t.get("worktreePath"), project)
+            and str(t.get("orphaned")).lower() != "true"
+            and str(t.get("connected")).lower() != "false"
+        )
+
+    terminals = _orca(["terminal", "list", "--json"]).get("terminals") or []
+    here = {t["handle"]: t for t in terminals if isinstance(t, dict) and t.get("handle") and alive(t)}
+    if not here:
         return None
-    runs = (data.get("result", data) or {}).get("runs") or []
+
+    # Strongest signal: a Run that names one of this project's live terminals.
+    runs = _orca(["orchestration", "run-list", "--json"]).get("runs") or []
+    runs.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
     for r in runs:
-        if r.get("coordinator_handle"):
+        if r.get("coordinator_handle") in here:
             return r["coordinator_handle"]
+
+    # Fallback, because a Run outlives the terminal it names. Runs persist for
+    # weeks while terminals are closed and recreated, so `coordinator_handle`
+    # goes stale and the strong signal simply stops matching anything.
+    #
+    # The discriminator that still holds: **a coordinator sits in the project
+    # directory itself, workers sit in their own worktrees.** So an agent
+    # terminal whose worktreePath IS the project is the orchestrator. Terminals
+    # without an `agentIdentity` are plain shells and are never it.
+    agents = [t for t in here.values() if t.get("agentIdentity")]
+    if len(agents) == 1:
+        return agents[0]["handle"]
+    if agents:
+        # More than one agent in the project root is ambiguous, and waking the
+        # wrong one is worse than waking none. Prefer the most recently active.
+        agents.sort(key=lambda t: int(t.get("lastOutputAt") or 0), reverse=True)
+        return agents[0]["handle"]
     return None
 
 
@@ -325,7 +402,7 @@ def once(args) -> int:
     tick. That is deliberate: a level that is still bad is still worth saying,
     and de-duplication belongs to whoever reads it.
     """
-    handle = args.terminal or coordinator_handle()
+    handle = args.terminal or coordinator_handle(args.path)
     if not handle and not args.dry_run:
         print("no coordinator terminal found; nothing to wake", file=sys.stderr)
         return 0
@@ -336,7 +413,7 @@ def once(args) -> int:
 def watch(args) -> int:
     """Stay resident and poll. Useful in a foreground terminal you are watching;
     for anything unattended prefer `--once` on a scheduler (see above)."""
-    handle = args.terminal or coordinator_handle()
+    handle = args.terminal or coordinator_handle(args.path)
     if not handle and not args.dry_run:
         print("no coordinator terminal found; pass --terminal <handle>", file=sys.stderr)
         return 2
