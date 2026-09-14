@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lelouch v2 — change list</title>
+<title>Lelouch v2 — decisions</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
@@ -42,6 +42,26 @@
     Uncheck anything you want cut, then queue each section. Only what survives gets written into the
     payload — which is the point: I should not be shipping contract edits off my own reading.
   </p>
+
+  <div class="fig mt-6">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <span class="badge badge-success badge-soft">carried over</span>
+      <span class="text-sm opacity-70">fresh session — the previous page hung; all decisions below are already recorded</span>
+    </div>
+    <div class="grid gap-3 md:grid-cols-3 text-sm">
+      <div><b>Contract</b><br><span class="opacity-75">26 kept · 0 cut — <span class="text-success">settled</span></span></div>
+      <div><b>Skills &amp; scripts</b><br><span class="opacity-75">9 kept · 0 cut — <span class="text-success">settled</span></span></div>
+      <div><b>Upstream</b><br><span class="opacity-75">11 kept · 3 cut — <span class="text-success">settled</span></span></div>
+    </div>
+    <div class="divider my-3"></div>
+    <p class="text-sm opacity-85 mb-1"><b>Still open — this is what's left:</b></p>
+    <ul class="text-sm opacity-80 list-disc ml-5 space-y-1">
+      <li><b>Which app v2 runs on</b> — the radio at the bottom of this page</li>
+      <li><b>Graphify</b> — scout results are in the row below; two local measurements decide it</li>
+      <li>Three test-shaped questions in <i>Still open</i>, none blocking</li>
+    </ul>
+    <p class="text-xs opacity-60 mt-3">Everything already decided stays editable — re-queue any section to change your mind.</p>
+  </div>
 </header>
 
 <!-- ===================== THE SHAPE ===================== -->
@@ -58,20 +78,20 @@
   <svg viewBox="0 0 860 250" class="w-full" role="img" aria-label="91 confirmed findings split by who can act on them">
     <defs>
       <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="oklch(0.72 0.13 85)" stop-opacity="0.95" />
-        <stop offset="100%" stop-color="oklch(0.72 0.13 85)" stop-opacity="0.55" />
+        <stop offset="0%" stop-color="oklch(0.72 0.13 85)" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="oklch(0.72 0.13 85)" stop-opacity="0.55"/>
       </linearGradient>
     </defs>
     <text x="0" y="16" font-size="13" fill="currentColor" opacity="0.55">91 confirmed findings</text>
 
     <!-- bar -->
     <g transform="translate(0,32)">
-      <rect x="0"   y="0" width="228" height="44" rx="6" fill="url(#g1)" />
-      <rect x="232" y="0" width="150" height="44" rx="6" fill="oklch(0.62 0.10 200)" opacity="0.85" />
-      <rect x="386" y="0" width="176" height="44" rx="6" fill="oklch(0.58 0.09 25)"  opacity="0.75" />
-      <rect x="566" y="0" width="106" height="44" rx="6" fill="currentColor" opacity="0.22" />
-      <rect x="676" y="0" width="110" height="44" rx="6" fill="oklch(0.65 0.12 150)" opacity="0.55" />
-      <rect x="790" y="0" width="70"  height="44" rx="6" fill="currentColor" opacity="0.12" />
+      <rect x="0"   y="0" width="228" height="44" rx="6" fill="url(#g1)"/>
+      <rect x="232" y="0" width="150" height="44" rx="6" fill="oklch(0.62 0.10 200)" opacity="0.85"/>
+      <rect x="386" y="0" width="176" height="44" rx="6" fill="oklch(0.58 0.09 25)"  opacity="0.75"/>
+      <rect x="566" y="0" width="106" height="44" rx="6" fill="currentColor" opacity="0.22"/>
+      <rect x="676" y="0" width="110" height="44" rx="6" fill="oklch(0.65 0.12 150)" opacity="0.55"/>
+      <rect x="790" y="0" width="70"  height="44" rx="6" fill="currentColor" opacity="0.12"/>
 
       <text x="10"  y="28" font-size="14" font-weight="700" fill="#1a1a1a">26 contract</text>
       <text x="242" y="28" font-size="14" font-weight="700" fill="#f5f5f5">17 skill</text>
@@ -109,7 +129,7 @@
 <!-- ===================== 1. CONTRACT ===================== -->
 <section class="mb-16">
   <p class="q mb-1">Bucket one</p>
-  <h2 class="text-2xl font-bold mb-2">Contract edits <span class="opacity-50 font-normal cnt">26</span></h2>
+  <h2 class="text-2xl font-bold mb-2">Contract edits <span class="opacity-50 font-normal cnt">26</span> <span class="badge badge-success badge-soft align-middle">settled · 26 kept</span></h2>
   <p class="lead opacity-80 max-w-3xl mb-5">
     These land in <code class="inl">geass/harness/CLAUDE.md</code> and the payload docs. Cheap to write,
     immediately testable, and the only bucket where run 03 will measure whether we were right.
@@ -222,7 +242,7 @@
 <!-- ===================== 2. SKILLS ===================== -->
 <section class="mb-16">
   <p class="q mb-1">Bucket two</p>
-  <h2 class="text-2xl font-bold mb-2">Skills and scripts <span class="opacity-50 font-normal cnt">17</span></h2>
+  <h2 class="text-2xl font-bold mb-2">Skills and scripts <span class="opacity-50 font-normal cnt">17</span> <span class="badge badge-success badge-soft align-middle">settled · 9 kept</span></h2>
   <p class="lead opacity-80 max-w-3xl mb-5">
     The six <code class="inl">britania</code> skills, and the findings each one closes. This is the real
     build work in v2 — and the reason to build them is not convenience: several of these findings have
@@ -318,7 +338,7 @@
 <!-- ===================== 3. UPSTREAM ===================== -->
 <section class="mb-16">
   <p class="q mb-1">Bucket three</p>
-  <h2 class="text-2xl font-bold mb-2">Upstream — file it, don't wait for it <span class="opacity-50 font-normal cnt">20</span></h2>
+  <h2 class="text-2xl font-bold mb-2">Upstream — file it, don't wait for it <span class="opacity-50 font-normal cnt">20</span> <span class="badge badge-success badge-soft align-middle">settled · 11 kept, 3 cut</span></h2>
   <p class="lead opacity-80 max-w-3xl mb-5">
     Nothing here is castable. The decision is only whether to write the issue.
     <b>Note the constraint we just discovered:</b> <code class="inl">no-mistakes update</code> cannot reach
@@ -335,7 +355,7 @@
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Daemon is global and pins its worktree" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-108</td><td class="why">One daemon for every worktree: a restart kills another worker's CI monitor, <b>and it holds the worktree it was started from undeletable for its lifetime</b> — proven this evening. Also: an interruption notice should stamp staleness, not assert <code class="inl">PR remains open</code> from a 4h49m-old read.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Update channel is stale and self-blocking" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">teardown</td><td class="why"><code class="inl">channels.json</code> names v1.72.0 with its asset updated after v1.75.0 shipped, and the repair (#1024) is in v1.73.0. <b>No client at or below v1.72.0 can update past it by updating.</b></td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="PR number written before the PR exists" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-059<br>F-110</td><td class="why">Two parallel builders raced for #25; the loser's commit message points at the winner's PR permanently. <b>Collision rate is a function of gate timing, not worker behaviour.</b></td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Every failure reports the same wrong error" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-060</td><td class="why">15 runs across 6 days and 10 branches all report the <code class="inl">dopecert.cer</code> warning, which has never caused anything. The real cause is only in <code class="inl">agent_invocations</code>.</td></tr>
+      <tr class="cut"><td><input type="checkbox" class="checkbox checkbox-sm" data-item="Every failure reports the same wrong error" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-060</td><td class="why">15 runs across 6 days and 10 branches all report the <code class="inl">dopecert.cer</code> warning, which has never caused anything. The real cause is only in <code class="inl">agent_invocations</code>. <span class="badge badge-ghost badge-xs ml-1">cut — the dopecert noise is local — and now fixed at source</span></td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Review does not converge" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-058<br>F-076</td><td class="why">Five rounds, no repeated finding id, and gate cost shows a 50× spread that the diff size does not predict.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Traverse bypass ledger is empty" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-066</td><td class="why">Three of thirteen PRs shipped without a completed traverse and the bypass ledger has zero rows — the record of exceptions does not record them.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Remediation advice is a trap" onchange="mark(this)"></td><td>no-mistakes</td><td class="fid">F-042</td><td class="why">The command the gate suggests on failure makes things worse from the state it suggests it in.</td></tr>
@@ -343,8 +363,8 @@
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Expired ask leaks a pending thread" onchange="mark(this)"></td><td>Orca</td><td class="fid">F-101</td><td class="why">Three threads over two days; only a schema migration collects them.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Worktree removal de-registers before deleting" onchange="mark(this)"></td><td>Orca</td><td class="fid">F-105</td><td class="why">592 MB orphaned over four days, invisible to both registries. The removal order is backwards.</td></tr>
       <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Background task kill reason is fabricated" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">entry 23</td><td class="why">Three kills, each reported as low memory, with <b>4.22 GB free of 15.62 GB</b> measured seconds later. The string is a label, not a measurement. Trigger still unknown.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Context exhaustion deadlocks dispatch" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">F-053</td><td class="why">Dispatch is stuck until a human types <code class="inl">/clear</code> — two hours, and no agent can break it from inside.</td></tr>
-      <tr><td><input type="checkbox" class="checkbox checkbox-sm" checked data-item="Classifier blocks the only recovery path" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">F-052</td><td class="why">Every gate-rebased branch is unpublishable without a human, because the force-push it requires is auto-blocked. The refusal is correct; the dead end is not.</td></tr>
+      <tr class="cut"><td><input type="checkbox" class="checkbox checkbox-sm" data-item="Context exhaustion deadlocks dispatch" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">F-053</td><td class="why">Dispatch is stuck until a human types <code class="inl">/clear</code> — two hours, and no agent can break it from inside. <span class="badge badge-ghost badge-xs ml-1">cut — C.C had taken the terminal over by hand</span></td></tr>
+      <tr class="cut"><td><input type="checkbox" class="checkbox checkbox-sm" data-item="Classifier blocks the only recovery path" onchange="mark(this)"></td><td>Claude Code</td><td class="fid">F-052</td><td class="why">Every gate-rebased branch is unpublishable without a human, because the force-push it requires is auto-blocked. The refusal is correct; the dead end is not. <span class="badge badge-ghost badge-xs ml-1">cut — the PR #28 permission list covers it</span></td></tr>
     </tbody>
   </table>
   </div>
@@ -416,17 +436,39 @@
       <h3 class="font-bold mb-2">Can a blocking wait observe a gate you don't own?</h3>
       <p class="text-sm opacity-85"><code class="inl">axi run</code> blocks but <b>triggers</b> a run; <code class="inl">attach</code> opens a TUI that would hang an agent. There may be no non-polling observer API at all. <b>Test:</b> throwaway branch, trivial diff, start a gate, try to observe from a second terminal. The risk to avoid is a duplicate run.</p>
     </div>
-    <div class="fig">
-      <h3 class="font-bold mb-2">What enforces "user-only, never model-invoked"?</h3>
-      <p class="text-sm opacity-85"><code class="inl">user-invocable</code> is a real frontmatter field. Whether the converse is <em>enforced</em> or only discouraged by wording is unverified — and three skills depend on it for safety.</p>
+    <div class="fig ring-1 ring-success/40">
+      <div class="flex items-center gap-2 mb-2"><span class="badge badge-success badge-soft badge-sm">closed</span><h3 class="font-bold">What enforces "user-only, never model-invoked"?</h3></div>
+      <p class="text-sm opacity-85 mb-2"><b>Settled, and I named the wrong field.</b> It is not the converse of <code class="inl">user-invocable</code> — it is its own flag:</p>
+      <pre class="blk" style="margin:.3rem 0"><code>disable-model-invocation: true   → user only   (grill-with-docs, grill-me)
+user-invocable: false            → model only  (quota-axi)</code></pre>
+      <p class="text-sm opacity-85"><b>And run 02 already proved it is enforced, not advisory.</b> That is exactly what the scorecard caught: Lelouch <em>called</em> <code class="inl">grill-with-docs</code> and it <em>never ran</em> — the flag refused the model. <span class="opacity-75">Corroborating detail: that skill's body reads <i>"Call the Skill tool twice, for grilling and domain-modeling"</i>, which is precisely what he then did by hand.</span></p>
+      <p class="text-sm opacity-85 mt-2">So <code class="inl">britania-afk</code>, <code class="inl">-resume</code> and <code class="inl">-restore</code> get <code class="inl">disable-model-invocation: true</code>, and the safety they depend on is demonstrated rather than assumed.</p>
     </div>
     <div class="fig">
       <h3 class="font-bold mb-2">Graphify's regeneration cost</h3>
       <p class="text-sm opacity-85">One measurement. Seconds → adopt as designed. Full project scan → the gate's rebase cadence makes it expensive.</p>
     </div>
-    <div class="fig">
-      <h3 class="font-bold mb-2">Does <code class="inl">observe.py</code> miss <code class="inl">domain-modeling</code>?</h3>
-      <p class="text-sm opacity-85">It never listed it, and the glossary check reads unreachable. Either the detector is blind or no glossary was written. Settle it before trusting that scorecard row again.</p>
+    <div class="fig ring-1 ring-success/40">
+      <div class="flex items-center gap-2 mb-2"><span class="badge badge-success badge-soft badge-sm">closed</span><h3 class="font-bold">Does <code class="inl">observe.py</code> miss <code class="inl">domain-modeling</code>?</h3></div>
+      <p class="text-sm opacity-85 mb-2"><b>No — and neither of my two guesses was right.</b> Both halves are true at once:</p>
+      <pre class="blk" style="margin:.3rem 0"><code>CONTEXT.md          exists, 10,652 bytes, "## Vocabulary" at line 27
+Skill tool calls    12 across the run: research, lavish, to-tickets,
+                    prototype, grill-with-docs, grilling, chrome-devtools-axi
+domain-modeling     never invoked, not once, in six days</code></pre>
+      <p class="text-sm opacity-85"><b>So the glossary was written by hand, and the skill that exists to write it never ran.</b>
+      <code class="inl">observe.py</code> reported correctly. The check is <em>mislabelled</em>: it is called
+      <i>"wrote the glossary (domain-modeling)"</i> but it measures <b>skill invocation</b>, not the artifact. This run is
+      exactly where those two diverge, and the label hid the divergence.</p>
+      <p class="text-sm opacity-85 mt-2">Same family as <span class="fid">F-040</span> — <i>a step that runs and a step that
+      does its job are different things</i> — inverted. <b>Fix: check the artifact and the invocation separately</b>, and name
+      each for what it measures.</p>
+      <p class="text-sm opacity-85 mt-2"><b>It also resizes <span class="fid">F-116</span>.</b> The cost of
+      <code class="inl">grill-with-docs</code> being refused was not one extra step — it is that
+      <code class="inl">domain-modeling</code>'s method was skipped entirely and a hand-written glossary stood in for it.</p>
+      <p class="text-sm opacity-85 mt-2"><b>Your contract question, answered:</b> coverage already exists —
+      <code class="inl">CLAUDE.md:251</code> routes <i>"Terminology or ADR work"</i> to <code class="inl">domain-modeling</code>,
+      and <code class="inl">docs/agents/domain.md</code> says to note missing concepts for it. <b>It was simply never followed
+      in six days</b>, which makes this a rule that needs a trigger, not a rule that needs writing.</p>
     </div>
   </div>
 </section>

@@ -43,10 +43,51 @@ skill; `worktree-retire` stays as a **script plus a one-line rule**.
    Two local measurements settle it; both are in the artifact row.
 3. **`no-mistakes axi run` re-attach** — can a blocking wait observe a gate you
    do not own? Test on a throwaway branch; the risk is starting a duplicate run.
-4. **What enforces `user-invocable`** as a one-way door, for the three user-only
-   skills.
-5. **Does `observe.py` miss `domain-modeling`** — detector question, decides
-   whether that scorecard row can be trusted.
+
+## Closed since — two of the five open questions
+
+**Model invocation is enforced, and I had named the wrong field.** There are two
+independent flags, not one with two directions:
+
+```
+disable-model-invocation: true   -> user only   (grill-with-docs, grill-me)
+user-invocable: false            -> model only  (quota-axi)
+```
+
+C.C pointed out the proof was already in our own scorecard: `grill-with-docs`
+was **called and never ran** — the flag refusing the model, observed live. So it
+is enforced, not advisory, and `britania-afk` / `-resume` / `-restore` get
+`disable-model-invocation: true` on demonstrated rather than assumed safety.
+
+**`observe.py` was right; its label was wrong.** Both halves are true at once:
+
+```
+CONTEXT.md        exists, 10,652 bytes, "## Vocabulary" at line 27
+Skill tool calls  12 across the run -- research, lavish, to-tickets, prototype,
+                  grill-with-docs, grilling, chrome-devtools-axi
+domain-modeling   never invoked. Not once, in six days.
+```
+
+**The glossary was written by hand and the skill that exists to write it never
+ran.** The check is called *"wrote the glossary (domain-modeling)"* but it
+measures **skill invocation**, not the artifact — and this run is exactly where
+those diverge. Same family as [F-040](findings.md), *a step that runs and a step
+that does its job are different things*, inverted. **Fix: measure the artifact
+and the invocation separately, and name each for what it measures.**
+
+This also resizes [F-116](findings.md): the cost of `grill-with-docs` being
+refused was not one extra step — `domain-modeling`'s method was skipped
+entirely.
+
+And it answers C.C's contract question: coverage **already exists**
+(`CLAUDE.md:251` routes *"Terminology or ADR work"* to `domain-modeling`;
+`docs/agents/domain.md` says to note missing concepts for it) and **was never
+followed in six days.** So it is a rule that needs a *trigger*, not a rule that
+needs writing.
+
+**Run-03 scorecard row, agreed with C.C:** count `domain-modeling` invocations.
+It should fire several times — once in the grill, and again whenever terminology
+changes.
 
 ## The dopecert warning — diagnosed and fixed, 14 Sep
 
