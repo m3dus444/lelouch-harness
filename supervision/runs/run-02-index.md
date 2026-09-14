@@ -285,16 +285,24 @@ PRs                  29, all merged, none closed unmerged
 backlog              31 queued, 23 ready, 0 in flight, 10 done retained
 ```
 
-**Re-verified against no-mistakes v1.75.1** (we ran v1.64.0 throughout; eleven
-releases landed during the run). Of eleven candidates: **F-056** and **F-075**
-are superseded upstream -- `fix(pipeline): give each review agent a fresh
-timeout` (#962) and `fix(daemon): refuse reruns that differ from the clean
-caller HEAD` (#972) name the same mechanisms. **F-109** is half-superseded:
-#1059 makes a killed invocation record *unknown* rather than a fabricated 0, so
-the artifact it was diagnosed from is gone, but **F-060**'s wrong error
-attribution is untouched. The other eight stand, including F-087 and F-110,
-which I initially and wrongly matched to upstream fixes. Detail in
-[v2-inputs.md](../v2-inputs.md).
+**Re-verified against the upstream changelog** (we ran v1.64.0 throughout;
+eleven releases landed during the run). Of eleven candidates: **F-056** and
+**F-075** are superseded -- `fix(pipeline): give each review agent a fresh
+timeout` (#962, v1.68.0) and `fix(daemon): refuse reruns that differ from the
+clean caller HEAD` (#972, v1.66.0) name the same mechanisms, and **both are in
+the version we now run.** The other nine stand, including F-087 and F-110, which
+I initially and wrongly matched to upstream fixes.
+
+**F-109 is the one that needs the distinction "fixed upstream" cannot carry.**
+`fix(agent): record honest token usage on failed and cancelled invocations`
+(#1059) makes a killed invocation record *unknown* rather than a fabricated 0 --
+but it shipped in **v1.75.1, and `no-mistakes update` cannot reach past
+v1.72.0** (see below). So F-109 stands *for this deployment*: a killed
+invocation here still writes 0/0/0, and the forensic method it documents is
+still the one that works. **F-060**'s wrong error attribution is untouched in
+every version.
+
+Detail in [v2-inputs.md](../v2-inputs.md).
 
 ## What this scorecard does not measure, and the omission is the finding
 
@@ -332,3 +340,43 @@ reads unreachable. Either the detector misses the invocation or the glossary was
 never written -- and [F-038](run-02-findings.md) says no worker ever read one,
 which is weak support for the second. Not resolved here; it is a detector
 question and it belongs to the instrument, not to the run.
+
+## Teardown, and two things it proved
+
+Run 02 was torn down 2026-09-14 with Lelouch on hold and nothing in flight.
+Watchers down, logger stopped, no worker terminals left, `git worktree list`
+showing only master.
+
+**The global daemon pins the worktree that started it. Confirmed, not inferred.**
+`wa-cache-projection-doorway` survived as an empty directory that would not
+delete -- *"Device or resource busy"* from both `rmdir` and PowerShell, with **no
+process naming the path**. The candidate was the no-mistakes daemon, pid 23728,
+started `2026-09-12T15:45:17Z` -- the exact second of
+[F-108](run-02-findings.md)'s restart, when the doorway worker ran
+`no-mistakes daemon start` from inside that worktree. Its parent process was
+already gone, so it was orphaned and carrying that shell's working directory.
+
+Tested rather than asserted: delete before (busy) -> `no-mistakes update`
+replaces the daemon (23728 -> 19488) -> delete after (**removed**), nothing else
+changed in between. So this is **[F-108](run-02-findings.md) extended**: the
+global daemon does not only kill another worker's CI monitor, it **holds that
+worktree undeletable for its own lifetime**, which is [F-105](run-02-findings.md)'s
+orphan problem with a named mechanism and a one-line cause.
+
+**The update channel is four releases stale, and the fix for that is only
+distributed through the channel it fixes.** `no-mistakes update` took us
+v1.64.0 -> **v1.72.0** and then reported "already up to date". GitHub has
+v1.75.1, published 12 Sep. The channel manifest explains it:
+
+```
+channels.json   stable: v1.72.0      asset updated 2026-09-12T13:21:57Z
+```
+
+Updated *after* v1.75.0 shipped, still naming v1.72.0. And v1.73.0 contains
+`fix: publish update channels after automated releases` (#1024) -- **the repair
+for the stale channel is itself only reachable through the stale channel.** A
+bootstrap trap: no client on <= v1.72.0 can update past it by updating.
+
+Consequence for these findings: "fixed upstream" and "fixed in what we run" are
+different claims, and only the second one matters to a run. Everything through
+v1.72.0 is live for us; v1.73.0-v1.75.1 is not, including #1059.
