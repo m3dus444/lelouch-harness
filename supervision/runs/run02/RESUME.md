@@ -157,9 +157,27 @@ until restarted. Do not read that as the fix having failed.
 
 ## Next actions, in order
 
-1. Reopen the Lavish session and poll; answer the subject radio.
-2. Apply the two Graphify measurements, or defer it out of v2.
-3. Write the v2 contract from the 26 kept edits.
-4. `geass cast --force` into the chosen project, `git diff` to confirm the
-   version landed (issue #20), commit, then start the session.
-5. Open `supervision/runs/run03/` — numbering restarts at **F-001**.
+1. **C.C names the fresh app.** Everything downstream is blocked on it.
+2. **Write the v2 contract** from the 26 kept edits, plus the five memories that
+   become rules and the six that become `docs/agents/harness-gotchas.md`.
+3. **Build the six skills.** `britania-restore` first and proven, because
+   auto-clear depends on it. All three session-lifecycle skills carry
+   `disable-model-invocation: true`.
+4. **Merge [PR #28](https://github.com/m3dus444/lelouch-harness/pull/28)** so the
+   cast ships the permission allow-list and not only the hook.
+5. **Fix `observe.py`'s glossary check** — measure the artifact and the
+   invocation separately, and add a `domain-modeling` invocation count for the
+   run-03 scorecard.
+6. **Create the project directory and `git init`**, then
+   `python -m geass.cli cast --force <project>`, `git diff` to confirm the
+   version actually landed (issue #20 — the cast ships whatever was last
+   pip-installed), and commit it there.
+7. **Start the session** from the Orca GUI: `+` → Claude agent. The Run is
+   created by the `orchestration` skill; no `orca` CLI command is needed.
+   **Cast before starting** — the session-start hook and `CLAUDE.md` are read at
+   session open.
+8. **Open `supervision/runs/run03/`** — `findings.md` and `index.md`, numbering
+   restarts at **F-001** — and re-arm the watchers with `--from-now`.
+
+Not blocking, do whenever: the two Graphify measurements (on weave-atlas) and
+the `axi run` re-attach test (on a throwaway branch).
