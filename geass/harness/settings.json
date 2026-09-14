@@ -12,5 +12,16 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(git -C:*)",
+      "Bash(gh-axi:*)",
+      "Bash(gh:*)",
+      "Bash(no-mistakes:*)",
+      "Bash(tasks-axi:*)",
+      "Bash(orca:*)"
+    ]
   }
 }
