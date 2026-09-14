@@ -67,6 +67,42 @@ so the briefing prints **how** it picked one:
 
 Binding the wrong Run points your waits and dispatches at someone else's work.
 
+## Where the sources disagree
+
+A crash lands *between* systems. Each one is updated by a different actor at a
+different moment, so the boundaries between them are where state goes wrong —
+and the briefing reconciles them explicitly:
+
+```
+backlog says done, gate never finished     the fix may not have shipped
+backlog says done, PR still open           nobody merged it
+backlog in flight, no live worker          a crash left the ticket started
+live worker, backlog not in flight         the start was never recorded
+a registered worktree is gone from disk    removal died halfway
+```
+
+**`backlog.md` and `tasks-axi` are not on that list, and cannot be.** The file
+*is* the store rather than a rendering of one, so there is nothing to reconcile
+between them.
+
+### Reported, never repaired — and the flagged side is not the wrong side
+
+A restored session does not know which source is right, and guessing turns a
+visible inconsistency into an invisible one. That is not caution for its own
+sake; here is a real instance from run 2:
+
+```
+wa-06a-paging: closed in the backlog, gate run is ci_monitor_interrupted
+```
+
+The backlog said done. The gate said its run never completed and its PR was
+still open. **The backlog was right** — PR #24 had merged, and the gate's CI
+monitor had been killed and never saw it. An automatic "fix" that trusted the
+gate would have reopened finished work.
+
+So: bring each disagreement to the user with what both sides claim, and check
+the thing neither of them owns — the remote — before acting.
+
 ## What it cannot recover
 
 **The conversation.** Anything decided and never written to the backlog, the

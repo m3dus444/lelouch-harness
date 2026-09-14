@@ -160,6 +160,88 @@ def board(project: Path) -> str:
     return out.rstrip() if out else "  (board returned nothing)"
 
 
+def contradictions(project: Path) -> list[str]:
+    """Where the registries disagree with each other.
+
+    **`backlog.md` and `tasks-axi` cannot disagree** -- the file *is* the store,
+    not a rendering of one, so there is nothing to reconcile there.
+
+    What genuinely diverges is the boundary *between* systems, because each one
+    is updated by a different actor at a different moment and a crash lands
+    between them. Every check below is a shape run 2 actually produced:
+
+      backlog says done, gate never finished   the fix may not have shipped
+      backlog says done, PR still open         nobody merged it
+      backlog in flight, no live worker        a crash left the ticket started
+      live worker, backlog not in flight       the start was never recorded
+      a registered worktree is gone from disk  removal died halfway
+
+    These are reported, never repaired. A restored session does not know which
+    side is right, and guessing would turn a visible inconsistency into an
+    invisible one -- which is how the worst of these got expensive in the first
+    place.
+    """
+    sys.path.insert(0, str(HERE.parent / "britania-board"))
+    try:
+        import board as B  # type: ignore
+    except Exception:
+        return []
+
+    cwd = os.getcwd()
+    try:
+        os.chdir(project)
+        gate = B.gate_rows()
+        crew = B.workers(None)
+        flight, _queued, _held = B.backlog()
+        done = {t.get("id") for t in B.tasks_axi("done") if t.get("id")}
+    except Exception:
+        return []
+    finally:
+        os.chdir(cwd)
+        sys.path.pop(0)
+
+    DEAD = {"succeeded", "failed", "abandoned", "cancelled"}
+    out: list[str] = []
+
+    for t in flight:
+        tid = t.get("id")
+        if not tid:
+            continue
+        state = (crew.get(tid) or {}).get("state")
+        if state is None:
+            out.append(f"{tid}: backlog says in flight, Orca has no worker for it "
+                       f"-- a crash between start and dispatch, or the ticket was never released")
+        elif state in DEAD:
+            out.append(f"{tid}: backlog says in flight, its worker is {state} "
+                       f"-- the completion was never written back")
+
+    for tid, w in crew.items():
+        if (w.get("state") or "") in DEAD:
+            continue
+        if tid not in {t.get("id") for t in flight} and tid not in done:
+            out.append(f"{tid}: a worker is {w.get('state')}, the backlog does not have it in flight")
+
+    for tid in sorted(done):
+        g = gate.get(tid)
+        if not g:
+            continue
+        if g.get("run_status") not in (None, "completed"):
+            out.append(f"{tid}: closed in the backlog, gate run is {g['run_status']} "
+                       f"at {g['stage']} -- check the work actually shipped")
+        elif g.get("pr_state") == "open":
+            out.append(f"{tid}: closed in the backlog, PR #{g['pr']} is still open "
+                       f"(last looked {g['pr_age']} ago)")
+
+    listed = sh(["git", "-C", str(project), "worktree", "list", "--porcelain"]) or ""
+    for line in listed.splitlines():
+        if line.startswith("worktree "):
+            path = line.split(" ", 1)[1].strip()
+            if path and not Path(path).exists():
+                out.append(f"git registers a worktree at {path}, which is not on disk")
+
+    return out
+
+
 # ------------------------------------------------------------------ briefing
 
 
@@ -215,6 +297,18 @@ def main() -> int:
 
     print()
     print(board(project))
+
+    clashes = contradictions(project)
+    print()
+    if clashes:
+        print("  Sources disagree -- resolve these before dispatching anything")
+        for line in clashes:
+            print(f"    {line}")
+        print()
+        print("    Reported, not repaired. Which side is right is not derivable,")
+        print("    and guessing turns a visible inconsistency into an invisible one.")
+    else:
+        print("  Sources agree: backlog, Orca and the gate tell the same story.")
 
     print()
     print("  Not recoverable")
