@@ -76,23 +76,34 @@ cheap to make pointless.
 
 ## A dead terminal is not a resume
 
-If the terminal is gone, this skill **does not message anything**. It says so and
-stops:
+Everything here runs in **your** session. C.C talks to you, not to builders, and
+these skills are `disable-model-invocation: true` — so no worker can invoke one
+even in principle. There is no worker-side half of this.
+
+So when a terminal is gone, there is nothing to nudge. The skill says so and
+hands you the material for the **replacement dispatch you will write**:
 
 ```
-TERMINAL GONE -- this is not a resume. Open a fresh session in that worktree and
-let it run britania-restore; recovering a dead session is that skill's job, from
-inside, and its unfinished work is listed below.
+TERMINAL GONE -- nothing to nudge. This needs a replacement dispatch from you;
+its unfinished state is below, to go into the spec.
 ```
 
-The boundary is worth holding. You cannot restore a session from outside it —
-restore runs **in** the session being rebuilt. So resume reports the state and
-hands over, rather than pretending a dead worker can be nudged.
+### The stranding trap, which is the part to read
 
-`britania-restore` detects that it is in a linked worktree (its `.git` is a file,
-not a directory) and gives the **worker's** briefing instead of the
-orchestrator's: read §W and stop there, here are your uncommitted files, your own
-banked commits, and what the gate added.
+```
+DECIDE FIRST: 2 uncommitted file(s) live only in that worktree. §6 dispatches
+Build and Fix with `--worktree new-top-level`, so a replacement gets a FRESH
+checkout and this work is stranded. Either dispatch into the existing worktree,
+or bank it first -- it is not on any branch and nothing else knows it exists.
+```
+
+Uncommitted work is the only state in this entire system that **no registry
+holds**. The backlog does not know it, Orca does not know it, the gate does not
+know it. It exists on one disk, in one directory, and the standard recovery —
+a fresh dispatch into a new worktree — walks away from it without a word.
+
+That is a decision, so it is yours: reuse the worktree, bank the work first, or
+knowingly drop it.
 
 ## Three verdicts, and how to tell them apart
 

@@ -258,11 +258,19 @@ def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
             done.append("told the worker what changed while it was parked (--type status)"
                         if sent else "could not reach the worker; treat it as gone")
     elif pos["dirty"] or pos["mine"] or pos["behind"]:
-        done.append(
-            "TERMINAL GONE -- this is not a resume. Open a fresh session in that "
-            "worktree and let it run britania-restore; recovering a dead session is "
-            "that skill's job, from inside, and its unfinished work is listed below."
-        )
+        # Nothing to message: the agent is gone, and only C.C invokes these
+        # skills, only in your session. So this is material for the replacement
+        # dispatch YOU write, not a briefing anyone else will read.
+        done.append("TERMINAL GONE -- nothing to nudge. This needs a replacement dispatch "
+                    "from you; its unfinished state is below, to go into the spec.")
+        if pos["dirty"]:
+            done.append(
+                f"DECIDE FIRST: {len(pos['dirty'])} uncommitted file(s) live only in that "
+                f"worktree. §6 dispatches Build and Fix with `--worktree new-top-level`, so "
+                f"a replacement gets a FRESH checkout and this work is stranded. Either "
+                f"dispatch into the existing worktree, or bank it first -- it is not on any "
+                f"branch and nothing else knows it exists."
+            )
 
     return done
 
