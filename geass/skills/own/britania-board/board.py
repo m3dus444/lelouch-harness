@@ -12,7 +12,16 @@ worker is building, waiting on review, or dead -- which is the whole reason this
 exists.
 
 Read-only throughout. It opens the gate's database with `mode=ro` and shells out
-to the two CLIs with their JSON flags; it never writes anything anywhere.
+to the two CLIs for the rest; it never writes anything anywhere.
+
+**Why Python and not shell.** Measured on this machine: the interpreter costs
+~270ms against bash's ~180ms, while the script's own run is 3.7-5.0s -- so the
+choice is roughly 3% of runtime, and shell would call the identical Node
+binaries for the rest of it. What actually decides it is that **the `sqlite3`
+CLI is not installed here**, so shell cannot read the gate database at all,
+while Python's `sqlite3` is stdlib. Quoted-CSV parsing in awk is the second
+reason. A future script that is pure CLI calls with no parsing and no database
+would be fine in shell.
 """
 
 from __future__ import annotations
@@ -80,6 +89,10 @@ def toon(text: str) -> list[dict]:
 
     Header names the columns; rows are indented and CSV-quoted. Anything that is
     not a header-plus-rows block is ignored rather than guessed at.
+
+    `tasks-axi` does have a `--json` flag, but it is scoped to **mutations** --
+    it returns a machine-readable result for `add`, `done`, `hold` and friends.
+    Reads like `list` and `show` emit TOON, so a reader parses TOON.
     """
     rows: list[dict] = []
     cols: list[str] | None = None
