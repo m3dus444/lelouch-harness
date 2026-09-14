@@ -68,6 +68,23 @@ orca worktree rm --worktree "path:$WT" --force
 if [ -d "$WT" ]; then
   echo "NOTE: orca left the directory behind; removing $(du -sh "$WT" | cut -f1)"
   rm -rf "$WT"
-  [ -d "$WT" ] && { echo "FAILED to remove $WT -- something holds a handle" >&2; exit 1; }
+  if [ -d "$WT" ]; then
+    # Observed 14 Sep, and it is NOT corruption. The no-mistakes daemon is
+    # global, outlives the shell that started it, and keeps that shell's working
+    # directory -- so a worktree where anyone ever ran `no-mistakes daemon start`
+    # stays undeletable for the daemon's lifetime. The directory was completely
+    # empty and still refused, with no process naming its path.
+    #
+    # Proven by test: delete refused, `no-mistakes update` replaced the daemon
+    # (pid 23728 -> 19488), delete succeeded, nothing else changed in between.
+    if [ -z "$(ls -A "$WT" 2>/dev/null)" ]; then
+      echo "NOTE: $WT is EMPTY and still held. This is almost certainly the" >&2
+      echo "      global no-mistakes daemon pinning the directory it was started in." >&2
+      echo "      Restart it (\`no-mistakes daemon stop\` / \`update\`), then re-run." >&2
+      exit 2
+    fi
+    echo "FAILED to remove $WT -- something holds a handle, and it is not empty" >&2
+    exit 1
+  fi
 fi
 echo "retired  : $WT"

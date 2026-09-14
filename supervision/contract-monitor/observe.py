@@ -56,10 +56,14 @@ def rows(path: Path) -> list[dict]:
 def failed_calls(rs: list[dict]) -> set[str]:
     """tool_use ids whose result came back an error.
 
-    A call is not an invocation. `grill-with-docs` is `disable-model-invocation`,
-    so Lelouch calling it produces a tool_use block and then a refusal -- and
-    scoring the block alone credited a skill that never ran, on a run whose whole
-    problem was that it could not run it.
+    A call is not an invocation. A `disable-model-invocation` skill produces a
+    tool_use block and then a refusal, so scoring the block alone credits a skill
+    that never ran -- which is how run 2's scorecard reported intake as having
+    started at the moment it had died.
+
+    Still live in v2, and more so: the payload now ships four user-only skills
+    (`britania-afk`, `-resume`, `-restore`, `brief`), so there are four ways for
+    a refused call to look like a successful one.
     """
     bad = set()
     for r in rs:
@@ -151,10 +155,11 @@ def _before(ev, marker, skills=None, kind=None):
 # One row per thing we shipped, so a run scores the fixes rather than vibes.
 SCORECARD = [
     # intake
-    # Only the underlying skills count. `grill-me` and `grill-with-docs` are
-    # user-only wrappers that do nothing but call these -- so when a human runs
-    # one, the real calls show up here anyway, and crediting the wrapper only
-    # ever hid the fact that it had been refused.
+    # Only the underlying skills count. v2 routes intake through
+    # `grill-with-lavish`, which invokes `grilling` and `domain-modeling`
+    # itself, so the real calls appear here either way. The wrappers this row
+    # used to allow for -- `grill-me`, `grill-with-docs` -- are out of the
+    # payload entirely: crediting a wrapper only ever hid that it was refused.
     ("grilled before dispatching",
      lambda e: _before(e, "DISPATCH", {"grilling"})),
     # Was one row called "wrote the glossary (domain-modeling)" while measuring
