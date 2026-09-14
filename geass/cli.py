@@ -138,6 +138,14 @@ def resolve_skills() -> list[tuple[str, Path, str]]:
     for old, (new, _why) in manifest.RENAMED.items():
         out.append((new, SKILLS / "patched" / new, f"patched, renamed from {old}"))
 
+    # Skills this harness wrote. They have no vanilla counterpart to diff
+    # against, so they are neither vendored nor forked -- hence their own home.
+    own = SKILLS / "own"
+    if own.is_dir():
+        for src in sorted(own.iterdir()):
+            if src.is_dir():
+                out.append((src.name, src, "own"))
+
     return sorted(out)
 
 

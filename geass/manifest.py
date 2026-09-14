@@ -201,3 +201,11 @@ def platform_notes(system: str) -> str:
         "Linux. POSIX shell throughout, so the vendored skills' shell assumptions\n"
         "hold as written."
     )
+
+
+# Skills this harness wrote, as (name, what it does). Not upstream forks -- there
+# is no vanilla copy to diff against, which is exactly why they live apart from
+# `skills/vanilla` and `skills/patched`.
+OWN = {
+    "britania-board": "project state as one table: tickets, workers, gate stages, queue",
+}
