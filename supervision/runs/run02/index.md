@@ -277,6 +277,36 @@ PASS   held a decision rather than losing it
 
 **8 PASS, 0 FAIL, 3 unreachable.** No check regressed across the run.
 
+> **Instrument caveat, added 2026-09-18 -- these numbers are NOT recomputed.**
+> Two defects in `observe.py` were found after this run and fixed forward only:
+> run 03's **F-072** (the `grilled before dispatching` row credited a literal
+> `grilling` call and nothing else, so a run that grills through the
+> `grill-with-lavish` wrapper scores a silent FAIL on the row that certifies
+> the approval gate) and run 03's **F-073** (`slug_dir()` kept one matching
+> transcript directory out of the many a run writes, and sessions were ordered
+> by file mtime with the real clock discarded). Both live in
+> `runs/run03/findings.md`; run 02's own F-072 and F-073, in the table above,
+> are unrelated findings that happen to share the ids.
+>
+> What that makes unreliable here:
+>
+> - **Every row above, and the volume figures.** The 13 sessions read are one
+>   directory's. 29 transcript directories match `weave-atlas`, 28 of them
+>   builder worktrees, and none of those was read -- so `skills invoked` is the
+>   coordinator's list alone, and any `--` may be a builder invocation the
+>   instrument never saw rather than something that did not happen.
+> - **The two ordering rows**, `grilled before dispatching` and `Lavish shown
+>   BEFORE first dispatch`. Session order came from mtime, which tracks the last
+>   append, so a long session sorts behind short ones that started after it:
+>   either verdict can be an artifact of how long a session ran.
+> - **`grilled before dispatching`** again, on F-072's side: run 02 did make a
+>   literal `grilling` call, so the bug did not manufacture this PASS -- but it
+>   is not the same row that run 03 onward reports.
+>
+> The numbers stay exactly as produced on 2026-09-14. Re-deriving them under
+> the repaired instrument would leave two runs measured differently while
+> looking comparable, which is worse than a caveat beside them.
+
 ## Two things the script cannot see, and I watched happen
 
 - **Workers ran the skills their specs named: 4 of 4**, in the order named. The
