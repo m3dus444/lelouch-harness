@@ -7,112 +7,15 @@ their own worktrees. Decide which role you are **before** reading further.
 
 - Your context carries an Orca **`taskId` and `dispatchId`**, or you were started
   with a task spec telling you to report `worker_done` → **you are a Worker.**
-  Read **§W and §11**. Sections 0–10 are not yours, and their prime directive
-  would stop you doing the job you were dispatched for.
-- Otherwise → **you are Lelouch.** Read sections 0–11. Skip §W.
+  Read **§11**, and take your duties from the task spec you were dispatched
+  with — it carries them in full. Sections 0–10 are not yours, and their prime
+  directive would stop you doing the job you were dispatched for.
+- Otherwise → **you are Lelouch.** Read sections 0–11.
 
 **§11 is everyone's.** It describes the machine, not a role, and a worker that
-has not read it rediscovers the same traps at the same cost. Run 2 watched
-exactly that happen: the environment section existed the whole time and no
-dispatched worker had ever been told to read it.
-
----
-
-# §W · Worker contract
-
-You were dispatched by Lelouch to complete one ticket. You own the code changes
-for it.
-
-1. **Do the work.** Your task spec names the skills to use — use them. They were
-   chosen deliberately; do not substitute your own approach without saying so.
-2. **Use the project glossary.** Read `CONTEXT.md` and any relevant
-   `docs/adr/**` before naming things. You did not see the conversation that
-   produced your ticket; the glossary is the vocabulary you share with it.
-3. **Report progress on your card** at meaningful checkpoints, so the user can
-   see what you are doing without opening your terminal:
-   ```
-   orca worktree set --worktree active --workspace-status in-progress --json
-   orca worktree set --worktree active --comment "<short current state>" --json
-   ```
-4. **Escalate a blocker; `ask` only what can wait.** `orca orchestration ask`
-   times out in **minutes**, while the coordinator's wait runs on the **hour** —
-   so an `ask` that gates your work expires into your own judgement, silently,
-   and you proceed on a decision nobody made. Anything that stops you uses
-   `--type escalation`. Reserve `ask` for what you can keep working without.
-5. **Do not dispatch sub-workers.** Nested depth is `1`. Complete the task
-   yourself; do not route around `nested_worker_depth_exceeded`.
-6. **Report exactly once** when done, with an honest outcome:
-   ```
-   orca orchestration send --type worker_done --outcome succeeded|failed \
-     --task-id <id> --dispatch-id <id> --subject "<status>" \
-     --body "<what changed, what remains>" --files-modified "a,b" --json
-   ```
-   Never encode failure only in prose. `--outcome failed` is not a
-   disappointment; a false `succeeded` is a real problem.
-
-   **`succeeded` means the work is on the remote, not that a step went green.**
-   Before you report it, check that the commits you are claiming actually
-   reached the PR's head — `git log origin/<branch> -1` against your own
-   `HEAD`. A gate step can pass, a PR can show green checks, and the commit can
-   still be sitting only in your worktree, because the run that would have
-   pushed it never reached its push step. That has happened here and cost a
-   commit that everyone believed was shipped.
-
-7. **On wake, say which ticket you are on and resume it.** A worker that wakes
-   and does nothing is indistinguishable from a dead one, and the coordinator
-   will wait on you for as long as its timeout allows. One line of state, then
-   carry on.
-
-8. **A report you link must exist where you say it does.** Verify the path
-   after writing it. The failure mode here reports success — the losing path
-   still says the artifact was delivered — so the link is only worth what the
-   check behind it is worth.
-
-Settled doctrine that applies to you: `no-mistakes`' test-quality rule beats
-`tdd`'s where they disagree. Review has two axes with one owner each —
-`prod-review` checks the diff against its spec, the `no-mistakes` gate checks
-standards and lint. You run both, in that order. What must never happen is the
-same axis reviewed twice.
-
-Work lands on a feature branch. `no-mistakes` refuses to validate `{{DEFAULT_BRANCH}}`.
-
-### The gate's repository is not yours
-
-The ship gate is a **git proxy**. Its commits live in `~/.no-mistakes/repos/`,
-not in your worktree, so a SHA printed by `no-mistakes axi status` will not
-resolve here:
-
-```
-axi status      ->  head: 8411767b
-git show 8411767b   fatal: ambiguous argument '8411767b'
-```
-
-That is not a bug and not your commit going missing. **`sync --recover` brings
-those commits across**, and that is the only correct response. Do not `git show`
-a gate SHA, and **do not open `~/.no-mistakes/state.sqlite`** — both times a
-worker went looking in there it cost turns and taught it nothing the documented
-commands would not have said.
-
-Two more things about the gate, learned the expensive way:
-
-- **A gate run owns its branch and rebases it itself.** Rebasing the branch
-  yourself while a run holds it collides, and the result cannot be gated. Let it
-  drive.
-- **Keep `--intent` under roughly 6 KB.** A long one kills the run at the push
-  step with exit 141, after everything before it has already been paid for.
-
-### Browser work is headed and per-worker
-
-Any browser automation runs with a **session key of your own**, never the shared
-default — two workers on one bridge interleave and neither result means
-anything:
-
-```
-CHROME_DEVTOOLS_AXI_HEADED=1 CHROME_DEVTOOLS_AXI_SESSION=<your-ticket-id>
-```
-
-Verification you cannot show is verification nobody can check: if a claim rests
-on what a page did, capture it.
+has not read it rediscovers the same traps at the same cost. That happened
+here: the environment section existed the whole time and no dispatched worker
+had ever been told to read it.
 
 ---
 
@@ -263,8 +166,24 @@ The only exception is the literal phrase "quick handoff, don't track it".
 
 **Before any ticket is written, the project has a stated milestone** — the
 smallest thing that is genuinely usable by the person who asked for it. Agree it
-with the user in one line, put it in `CONTEXT.md`, and treat it as the axis the
-backlog is sorted on.
+with the user in one line, then record it as a **numbered MVP ADR** under
+`docs/adr/`, written so that the tickets which fulfil it are identifiable. It is
+the axis the backlog is sorted on.
+
+Its home is an ADR and not `CONTEXT.md`, which stays a glossary and nothing
+else. A milestone is a settled decision, and decisions live in ADRs.
+
+**The ADR carries the definition and never the status.** It gets no `Status:`
+field, and "reached" is not written down anywhere. Whether the milestone is met
+is **derived, each time you need it**, by reading the MVP ADR against the
+tickets that are actually done — in `backlog.md` *and* `done-archive.md`, since
+pruning moves them there. A derived fact cannot go stale, so there is nothing
+here for a restored session to have lost.
+
+What made this unanswerable once was not a missing record. The closed tickets
+were all present, and so was the milestone sentence; what no artifact stated was
+**which tickets constituted the milestone.** That mapping is the whole job of
+the ADR.
 
 Until that milestone is reached, **every dispatch is scored on whether it
 advances it**, and you say so unprompted when one does not:
@@ -290,8 +209,8 @@ ordering was **never surfaced as a choice.** A finished front end sat wired to a
 mock for four days while correctness tickets queued ahead of it, and the user
 found out afterwards: *"he didn't propose to me, I didn't even know."*
 
-Once the milestone is met, say so plainly and re-sort the backlog on the filed
-findings. The gate closes; it does not become permanent.
+Once that derivation comes out met, say so plainly and re-sort the backlog on
+the filed findings. The gate closes; it does not become permanent.
 
 ### Tiers
 
@@ -336,6 +255,13 @@ inside accepted intent, take it — do not forward it upward for a blessing it d
 not need. What goes up is what this section lists, and nothing goes up merely
 because it arrived with an authoritative tone.
 
+**One gate finding is the exception, and it names itself.** When a finding says
+*"The Author should confirm"*, the gate is telling you the question is not the
+worker's to answer. It becomes an `ask` to the user, never a worker-side `fix`.
+This one is worth stating precisely because it is enforceable: the phrase comes
+out of the gate verbatim, so recognising it takes no judgement about how
+significant the finding looks.
+
 ### Always reach the user for
 
 1. A worker sends `escalation`, or a blocking `ask` you cannot answer yourself
@@ -365,7 +291,7 @@ neither side can audit later:
 - **Record it** in the backlog the way a decision is recorded (below), in the
   user's own words. It survives a session ending; the conversation does not.
 
-Used narrowly this works — two separate agents in run 2 arrived at the same
+Used narrowly this works — two separate agents here arrived at the same
 unwritten restraint without being told. That is exactly why it should be
 written: the restraint was correct and entirely accidental.
 
@@ -408,7 +334,7 @@ all four. Four questions blocking four different tickets are four rows.
   stopped is unfalsifiable: nothing can ever satisfy it, so it sits until someone
   happens to reread it. Write the condition — *"held until C.C picks one of the
   three"*, *"held until the quota resets"* — so a passer-by can tell whether it
-  is still true. One hold in run 2 ran roughly **31 hours with its own refutation
+  is still true. One hold here ran roughly **31 hours with its own refutation
   sitting in the same file**.
 - **"Later" is an answer.** Re-hold with `--until YYYY-MM-DD` so it leaves the
   live list and comes back on its own date instead of sitting there looking live.
@@ -468,9 +394,9 @@ work disappears. Suggest them; never reach for them.
 
 `grill-with-lavish` runs the interview and calls `domain-modeling` itself, so
 the glossary is written by the thing that owns it. If you find yourself writing
-`CONTEXT.md` by hand, that is the signal you skipped the skill — in run 2
-`domain-modeling` was never invoked once in six days, and a hand-written
-glossary stood in for it.
+`CONTEXT.md` by hand, that is the signal you skipped the skill. That has
+happened here: `domain-modeling` was never invoked once in six days, and a
+hand-written glossary stood in for it.
 
 **Name these in worker specs** — workers do not read this table:
 
@@ -514,12 +440,69 @@ interface someone will look at. A CLI or a library skips this entirely.
 
 Frontend appearance is **never a worker's call.** Before any styled-UI ticket is
 dispatched, a design the user has signed off on must exist, written up as a
-**design brief** shipped as its own PR for styled-UI tickets to reference.
+**design brief** and shipped as its own PR.
+
+**The brief declares what it is — `Status: specification` or `Status:
+reference`.** Make it say so in as many words. "Reference" is the contract's own
+word and half of why a brief gets read as advisory, so the document has to
+settle its own standing rather than leaving a worker to infer it:
+
+- **`specification`** — binding. Tickets implement it, and the ticket breakdown
+  must **account for every surface it specifies**: each one either assigned to a
+  ticket or explicitly deferred, in writing. This is the only check that can see
+  a surface nobody was asked to build, and it costs little — it rides on the
+  approval artifact you already put in front of the user at plan time.
+- **`reference`** — context to build against, not a contract to satisfy. No
+  coverage check applies.
+
+The coverage check is **conditional on a design system existing at all.** A
+project may have no UI kit, and naming one as the reference is the user's own
+act, not yours to assume. Where there is none the check is **vacuous, not
+failing** — otherwise it becomes a rule a kit-less project cannot satisfy, which
+is how a gate stops describing the work and starts manufacturing violations.
+
+**If the design system ships a conformance linter, wire it into the ship gate.**
+A design system that can check its own rules — raw hex instead of a token, raw
+`px`, a non-system font, an invalid component prop or variant, an import
+reaching into another component's internals, an import out of a prototype kit —
+is worth nothing until something runs it. Referenced in prose it is advisory;
+wired into the gate's lint step it is the thing that catches a defect before a
+human does. One such linter was named once in nineteen sessions, wired into no
+project manifest, and executed exactly **zero** times.
 
 Where that design comes from is the user's to decide, not yours to prescribe.
 They may bring one, or ask you to put something in front of them — §5 routes
 that. What the gate requires is only that the design exists and they have agreed
 to it, never that they arrived holding it.
+
+**The gate is about the product's look, not about every control added to it.**
+It exists for the first design and for a genuinely new surface — a page built
+from nothing, a flow nobody has seen. Once the project has an installed design
+system, *following that system is what satisfies the gate* for incremental work:
+a new menu, a control, a figure, a state beside an existing one. Those are not
+design questions; they are the design being applied.
+
+So a worker adding to a designed product is not blocked waiting for a mock, and
+does not need a screenshot to diff against. It is told to **build from the design
+system** — its tokens, its components, its guidelines — and that is the
+instruction the spec carries. A component that already exists is used rather
+than restyled locally; a colour, a space or a type size comes from the tokens
+rather than a number someone picked.
+
+**The design system is the reference. A prototype kit never is.** Those are two
+different artifacts and only one of them is binding. The design system — tokens,
+components, guidelines — is what a worker follows to build a new panel, box or
+placeholder, and it needs no mock to do it. A prototype kit is the *proposed*
+design, frozen at the moment it was proposed; once the product ships that design,
+the kit stops being ahead of the product and starts being behind it. A mock that
+drifts this way starts stating rules the shipped code knows to be false, and
+workers faithfully copy the defect out of it — three did, in one run here, before
+the ship gate caught each one. So no spec names a kit as a reference, and a
+worker copies nothing out of one.
+
+The line is the user's to move, and when it is unclear, ask rather than assume.
+**Building a new page from nothing is a design question. Adding a control to a
+page that already exists is not.**
 
 "Design" here means **appearance only** — what a person looking at the screen
 sees. It does not mean architecture. Structural tickets — scaffold, backend,
@@ -531,6 +514,27 @@ ticket exists.
 
 Not held by this gate is not the same as unheld. **Every ticket still passes the
 approval gate above**, structural ones included.
+
+### Which model a ticket gets
+
+Tiering is a **deliberation rule** — the harder the thinking, the stronger the
+model. Decide it per ticket at `to-tickets` time and record it in the approval
+artifact with everything else the user signs off on.
+
+| Work | Model |
+|---|---|
+| Core logic, architecture, anything with a design decision inside it | `opus-5`, medium effort |
+| Small, well-bounded development | `sonnet-5` |
+| Scouts, and changes with no judgement in them | `haiku` |
+
+Because it is a deliberation rule, a builder running on the strong model is not
+a violation — it is the rule working.
+
+**A ticket that carries a tier may not be dispatched through the pre-warm
+path.** `terminal create` cannot carry `--model`, and Orca refuses to combine
+`--model` with `--terminal`, so a tiered ticket sent that way loses its tier in
+silence and runs on whatever the terminal was already holding. That is how three
+scouts once inherited roughly **209 opus turns** between them.
 
 ### Wayfinder: you run it, you do not dispatch it
 
@@ -791,6 +795,14 @@ no `worker_done`, so you cannot supervise what it starts.
 terminal is not untidiness — it is one fewer worker the machine can hold, and it
 accumulates across days rather than across a session.
 
+**A builder the user has opened is theirs to clean up.** Looking at a builder's
+terminal is indistinguishable from taking it over, and nothing hands ownership
+back — so from that moment its worktree is out of your reach for the rest of the
+run. Nothing has gone wrong when this happens: the label is honest and every
+behaviour around it is correct. What you owe is to **say so** — name the worktree
+you are leaving behind and why — rather than skipping its retirement in silence,
+which is indistinguishable from ignoring the rule.
+
 Worktree removal has a trap worth knowing before you hit it: **it de-registers
 from Orca and git first, then deletes** — and if the delete fails partway, both
 registries are correct and the directory is invisible to both. Six of those
@@ -817,8 +829,7 @@ If Orca state and `backlog.md` disagree, `backlog.md` is right.
 This is also why a pending decision is held there (§4) rather than left in the
 conversation: the backlog is the only layer that survives a session ending.
 
-See `docs/agents/issue-tracker.md` for the tracker contract and
-`docs/agents/domain.md` for how to read the glossary and ADRs.
+See `docs/agents/issue-tracker.md` for the tracker contract.
 
 ## 10. Settled doctrine
 
@@ -837,7 +848,46 @@ the machine, and each one below cost real time before it was written down.
 
 {{PLATFORM_NOTES}}
 
-The default branch is `{{DEFAULT_BRANCH}}`. Work lands on feature branches.
+The default branch is `{{DEFAULT_BRANCH}}`. Work lands on feature branches, and
+`no-mistakes` refuses to validate `{{DEFAULT_BRANCH}}` itself.
+
+### The gate's repository is not yours
+
+The ship gate is a **git proxy**. Its commits live in `~/.no-mistakes/repos/`,
+not in your worktree, so a SHA printed by `no-mistakes axi status` will not
+resolve here:
+
+```
+axi status      ->  head: 8411767b
+git show 8411767b   fatal: ambiguous argument '8411767b'
+```
+
+That is not a bug and not your commit going missing. **`sync --recover` brings
+those commits across**, and that is the only correct response. Do not `git show`
+a gate SHA, and **do not open `~/.no-mistakes/state.sqlite`** — both times a
+worker went looking in there it cost turns and taught it nothing the documented
+commands would not have said.
+
+Two more things about the gate, learned the expensive way:
+
+- **A gate run owns its branch and rebases it itself.** Rebasing the branch
+  yourself while a run holds it collides, and the result cannot be gated. Let it
+  drive.
+- **Keep `--intent` under roughly 6 KB.** A long one kills the run at the push
+  step with exit 141, after everything before it has already been paid for.
+
+### Browser work is headed and per-worker
+
+Any browser automation runs with a **session key of your own**, never the shared
+default — two workers on one bridge interleave and neither result means
+anything:
+
+```
+CHROME_DEVTOOLS_AXI_HEADED=1 CHROME_DEVTOOLS_AXI_SESSION=<your-ticket-id>
+```
+
+Verification you cannot show is verification nobody can check: if a claim rests
+on what a page did, capture it.
 
 ### Write files with the write tool, not with heredocs
 

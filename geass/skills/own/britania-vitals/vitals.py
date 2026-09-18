@@ -42,10 +42,65 @@ IS_WIN = sys.platform.startswith("win")
 # Defaults. Every one of them is a judgement call, so each is overridable and
 # each prints its own value in the report -- a threshold you cannot see is a
 # threshold you cannot argue with.
-FREE_GB_FLOOR = 2.0
+FREE_GB_FLOOR = 1.0  # was 2.0: four breaches in one run, every one self-recovering,
+                     # zero kills. Defender alone holds ~1.5GB, so 2.0GB free was
+                     # nowhere near distress -- a 100% false-positive rate is a line
+                     # drawn in the wrong place, not a machine in trouble.
 DISK_GB_FLOOR = 5.0
 BATTERY_FLOOR = 25
 QUOTA_FLOOR = 10.0  # percent of the window still available
+
+# How far back a value must come before anyone is told it recovered. Declaring
+# an all-clear at exactly the floor means declaring it one reading before the
+# next alarm, and a run that is parked, released and parked again has been told
+# nothing it can act on. The band between the two lines is deliberately silent:
+# whatever was last said about that value still stands.
+RECOVERY_MARGIN = 1.25  # of the floor
+
+# Memory is judged over a window rather than at a moment -- see `memory_collapsed`.
+MEM_HISTORY = 6    # readings kept; half an hour of them at the watcher's cadence
+MEM_STEP_GB = 1.0  # a fall this large is something *taking* memory, not churn
+MEM_SUSTAIN = 2    # consecutive low readings before a dip counts as a level
+
+# On the watcher's cadence, which lives elsewhere: `WATCHER_EVERY_MIN` in
+# geass/cli.py was agreed to move 15 -> 5 minutes **conditional on the quiet in
+# this file landing first** -- the quota-0 skip, the latch, and the all-clear.
+# Tripling the rate of an instrument that could only ever say "park" would have
+# turned one run's nine injections into twenty-seven. If any of that quiet is
+# ever taken back out, the cadence goes back up with it.
+
+
+# Where a CLI lives when it is installed for the user rather than the machine.
+# A scheduled task does not inherit an interactive shell's environment, so a
+# tool on the *user* PATH is simply absent as far as `shutil.which` is
+# concerned -- and both `python` and `orca` install here by default.
+FALLBACK_BINS: dict[str, tuple[str, ...]] = {
+    "orca": (
+        r"%LOCALAPPDATA%\Programs\orca\resources\bin\orca.exe",
+        r"%LOCALAPPDATA%\Programs\orca\resources\bin\orca.cmd",
+        r"%PROGRAMFILES%\orca\resources\bin\orca.exe",
+    ),
+}
+
+
+def resolve(name: str) -> str | None:
+    """Find an executable, including one only the user's PATH knows about.
+
+    `shutil.which` searches the PATH of the process it is running in. Under the
+    OS scheduler that is not the PATH you get in a terminal, and this is not
+    hypothetical: fixing the watcher's interpreter without fixing this would
+    have produced a task that started cleanly, failed to find `orca`, woke
+    nobody, and **exited 0** -- reporting success while doing nothing, which is
+    strictly harder to notice than the crash it replaced.
+    """
+    exe = shutil.which(name)
+    if exe:
+        return exe
+    for candidate in FALLBACK_BINS.get(name, ()):
+        path = Path(os.path.expandvars(candidate))
+        if path.exists():
+            return str(path)
+    return None
 
 
 def sh(cmd: list[str], timeout: int = 30) -> str | None:
@@ -63,7 +118,7 @@ def sh(cmd: list[str], timeout: int = 30) -> str | None:
     with nothing in it, so every consumer silently sees an empty result and
     concludes the thing it asked about does not exist.
     """
-    exe = shutil.which(cmd[0])
+    exe = resolve(cmd[0])
     if exe is None:
         return None
     try:
@@ -234,16 +289,32 @@ def collect(path: str, provider: str) -> dict:
         "resets_at": q.get("resets_at"), "resets_in": resets_in(q.get("resets_at")),
         "quota_windows": q.get("windows"),
     }
-    blocks = []
-    if free_gb is not None and free_gb < FREE_GB_FLOOR:
-        blocks.append(f"memory {free_gb:.2f}GB < {FREE_GB_FLOOR}GB")
-    if free_disk is not None and free_disk < DISK_GB_FLOOR:
-        blocks.append(f"disk {free_disk:.1f}GB < {DISK_GB_FLOOR}GB")
+    # Two lines per reading, not one. `blocks` is the floor -- what is bad now.
+    # `clears` sits RECOVERY_MARGIN above it -- what is good enough to say so out
+    # loud. Everything between them says nothing at all, which is what stops a
+    # value sitting on the line from announcing itself twice a tick.
+    blocks, clears = [], []
+    if free_gb is not None:
+        if free_gb < FREE_GB_FLOOR:
+            blocks.append(f"memory {free_gb:.2f}GB < {FREE_GB_FLOOR}GB")
+        elif free_gb >= FREE_GB_FLOOR * RECOVERY_MARGIN:
+            clears.append(f"memory back to {free_gb:.2f}GB free")
+    if free_disk is not None:
+        if free_disk < DISK_GB_FLOOR:
+            blocks.append(f"disk {free_disk:.1f}GB < {DISK_GB_FLOOR}GB")
+        elif free_disk >= DISK_GB_FLOOR * RECOVERY_MARGIN:
+            clears.append(f"disk back to {free_disk:.1f}GB free")
     if pct is not None and mains is False and pct < BATTERY_FLOOR:
         blocks.append(f"battery {pct}% on battery")
-    if isinstance(v["quota_pct"], (int, float)) and v["quota_pct"] < QUOTA_FLOOR:
-        blocks.append(f"quota {v['quota_pct']}% left, resets in {v['resets_in']}")
+    elif pct is not None and (mains or pct >= BATTERY_FLOOR * RECOVERY_MARGIN):
+        clears.append(f"battery {pct}%" + (" and back on mains" if mains else " and above the floor"))
+    if isinstance(v["quota_pct"], (int, float)):
+        if v["quota_pct"] < QUOTA_FLOOR:
+            blocks.append(f"quota {v['quota_pct']}% left, resets in {v['resets_in']}")
+        elif v["quota_pct"] >= QUOTA_FLOOR * RECOVERY_MARGIN:
+            clears.append(f"quota back to {v['quota_pct']}% on the binding window")
     v["blocks"] = blocks
+    v["clears"] = clears
     return v
 
 
@@ -388,25 +459,148 @@ def user_is_away(project: str) -> bool:
         return False
 
 
-def tick(args, handle: str | None, fired: set[str]) -> set[str]:
-    """One check, and a wake if something breached. Returns what is breaching now."""
+def session_can_reply(v: dict) -> bool:
+    """Is there anyone home to hear a wake?
+
+    A binding window at exactly 0% is not "nearly out", it is out, and every
+    line sent into that session comes back *"you've hit your session limit"*.
+    Eight wake injections once landed in a session in precisely that state: the
+    breach had disabled the reader the breach was addressed to.
+
+    This is the one condition where the usual delegation -- *"a level that is
+    still bad is still worth saying, and de-duplication belongs to whoever reads
+    it"* -- cannot hold, because the reader is structurally incapable of
+    performing its half. Anything above 0 keeps the delegation; only 0 is
+    hopeless. An unavailable reading (None) is not 0 and still gets woken: not
+    knowing the quota is no reason to stay quiet about the disk.
+    """
+    return v.get("quota_pct") != 0
+
+
+def memory_collapsed(free_gb: float | None, history: list[float]) -> bool:
+    """Did memory take a step down, stay down, and land somewhere dangerous?
+
+    **Both halves, never either**, because each one alone is a false-alarm
+    generator with this machine's data behind it:
+
+    - *The floor alone fires on churn.* Free RAM here wanders across whatever
+      line you draw -- three dips under 2GB in forty-five minutes, every one
+      recovered by the next reading, not one of them a kill.
+    - *The step alone fires on a harmless drop.* 8GB falling to 6GB and staying
+      is a large sustained step and entirely fine: something launched, and there
+      is still ample headroom.
+
+    What is worth a wake is the intersection: a fall big enough to be a program
+    taking memory and keeping it, which also leaves the machine somewhere it
+    cannot afford. 2.2GB -> 0.4GB held is that. 1.92GB for one minute is not,
+    and neither is a machine that has simply been low all along -- no step, no
+    news, and the latch already said what there was to say.
+
+    `history` is the previous readings, oldest first. Without a window there is
+    nothing to compare against, so the very first run never alarms on memory;
+    the floor is a backstop here, not the trigger.
+    """
+    if free_gb is None or free_gb >= FREE_GB_FLOOR:
+        return False
+    recent = [free_gb, *reversed(history)][:MEM_SUSTAIN]
+    if len(recent) < MEM_SUSTAIN or any(r >= FREE_GB_FLOOR for r in recent):
+        return False  # a dip, not a level
+    return bool(history) and max(history) - free_gb >= MEM_STEP_GB
+
+
+STATE_FILE = ".lelouch/vitals-state.json"  # beside britania-afk's marker
+
+
+def load_state(project: str) -> dict:
+    """What the last tick saw. Missing or unreadable means "nothing yet".
+
+    File-held state in a stateless one-shot deserves suspicion, so be precise
+    about what it can cost. **This file never decides what to send, only whether
+    to repeat it.** Every message is driven by the reading taken from the
+    machine this tick. So a lost or corrupt write produces a duplicate park, or
+    a duplicate all-clear -- one wasted turn -- and it cannot produce an
+    inverted one. That asymmetry is why `--once` is allowed to keep state at all.
+    """
+    try:
+        data = json.loads((Path(project) / STATE_FILE).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_state(project: str, state: dict) -> None:
+    path = Path(project) / STATE_FILE
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    except OSError:
+        pass  # see load_state: this costs a duplicate message and nothing else
+
+
+def tick(args, handle: str | None) -> dict:
+    """One check: wake on a new breach, wake again when it lifts, else say nothing.
+
+    **The pairing is the point.** There used to be exactly one `wake()` here with
+    one fixed text, which made the watcher a ratchet -- it could only ever reduce
+    activity. A transient dip converted a live run into a parked one
+    *permanently*, and nothing but a human ever converted it back. It said
+    "park" every fifteen minutes indefinitely and "resume" under no condition at
+    all. Recovery therefore depended on exactly the unreliable attention the
+    watcher exists to compensate for.
+
+    So there are two directions now, and a latch across ticks so that each is
+    said once per episode rather than once per reading.
+    """
     v = collect(args.path, args.provider)
-    current = {b.split()[0] for b in v["blocks"]}
+    state = load_state(args.path)
+    parked: set[str] = set(state.get("parked") or [])
+    history = [float(x) for x in (state.get("mem_free_history") or [])
+               if isinstance(x, (int, float))]
+
+    breaching = {b.split()[0] for b in v["blocks"]}
+    if "memory" in breaching and not memory_collapsed(v["mem_free"], history):
+        # Under the floor, but not a step that stuck. See memory_collapsed.
+        breaching.discard("memory")
+        print(f"{datetime.now():%H:%M:%S}  memory {v['mem_free']:.2f}GB under the floor, "
+              f"no sustained step -- not alarming", flush=True)
+    recovered = {c.split()[0] for c in v["clears"]} - breaching
+
     # Explicit --present still wins; otherwise the marker decides.
     present = args.present or not user_is_away(args.path)
 
-    for kind in sorted(current - fired):
-        detail = next(b for b in v["blocks"] if b.startswith(kind))
-        print(f"{datetime.now():%H:%M:%S}  BREACH  {detail}", flush=True)
+    def say(detail: str, text: str, label: str) -> None:
+        print(f"{datetime.now():%H:%M:%S}  {label}  {detail}", flush=True)
         if present:
             # C.C is at the keyboard: warn, never act for them.
             print("        (user present -- warning only, taking no action)", flush=True)
+        elif not session_can_reply(v):
+            print("        (session at 0% quota -- it cannot answer, so not waking it)", flush=True)
         else:
-            wake(handle, f"britania-vitals: {detail}. Stop dispatching and park the run.", args.dry_run)
+            wake(handle, text, args.dry_run)
+
+    for kind in sorted(breaching - parked):
+        detail = next(b for b in v["blocks"] if b.startswith(kind))
+        say(detail, f"britania-vitals: {detail}. Stop dispatching and park the run.", "BREACH")
+
+    for kind in sorted(parked & recovered):
+        detail = next(c for c in v["clears"] if c.startswith(kind))
+        say(detail, f"britania-vitals: {detail}. If the run was parked for it, "
+                    f"the hold is lifted and you may resume.", "CLEAR ")
 
     if v["quota_pct"] is not None and v["quota_pct"] < QUOTA_FLOOR and v["resets_at"]:
         print(f"{datetime.now():%H:%M:%S}  quota resets in {v['resets_in']}", flush=True)
-    return current
+
+    state["parked"] = sorted((parked | breaching) - recovered)
+    if v["mem_free"] is not None:
+        history.append(v["mem_free"])
+    state["mem_free_history"] = history[-MEM_HISTORY:]
+    if args.dry_run:
+        # A dry run that latched would make the next real run think it had
+        # already spoken -- which is the one way this file could lose a message.
+        print(f"[dry-run] would remember parked={state['parked']}")
+    else:
+        save_state(args.path, state)
+    return v
 
 
 def once(args) -> int:
@@ -416,17 +610,36 @@ def once(args) -> int:
     machine's own history: a long-lived watcher is a process that can die
     without saying so, and a monitor that has gone quiet looks exactly like a
     healthy one. A scheduled one-shot has nothing to keep alive -- if a run is
-    missed the scheduler says so, and the next one still fires.
+    missed the scheduler records it, and the next one still fires. *Records*,
+    not announces: that record is `LastTaskResult`, and it is only a safety net
+    if something reads it. `geass doctor` does.
 
-    State is not carried between runs, so a standing breach re-alarms on every
-    tick. That is deliberate: a level that is still bad is still worth saying,
-    and de-duplication belongs to whoever reads it.
+    A one-shot has no memory of its own, so what it must not repeat is written
+    down -- see `load_state`. It carries the latch and the memory window, and
+    nothing else: the decision is always taken from the machine, never from the
+    file. The older rule here was that a standing breach should re-alarm every
+    tick because *"de-duplication belongs to whoever reads it"*. That reasoning
+    holds whenever the reader can read, and the latch costs it nothing; it is
+    the case where the breach silences the reader that it never covered, and
+    that case is `session_can_reply`.
+
+    **Two ways to wake nobody, and only one of them is fine.** An idle machine
+    with no orchestrator open is the normal case and exits 0 -- alarming on it
+    would make the scheduler's record useless through sheer noise. Being unable
+    to *ask* is the other case: if `orca` cannot be resolved at all, this cannot
+    do its job and must say so with a non-zero exit, because the only surface a
+    scheduled task has is its result code.
     """
+    if resolve("orca") is None:
+        print("orca not found; cannot see the session, so nothing is being watched",
+              file=sys.stderr)
+        return 3
+
     handle = args.terminal or coordinator_handle(args.path)
     if not handle and not args.dry_run:
         print("no coordinator terminal found; nothing to wake", file=sys.stderr)
         return 0
-    tick(args, handle, set())
+    tick(args, handle)
     return 0
 
 
@@ -439,11 +652,12 @@ def watch(args) -> int:
         return 2
 
     print(f"vitals watching every {args.interval}s  ->  {handle or '(dry run)'}", flush=True)
-    fired: set[str] = set()
     while True:
-        # Clearing a breach re-arms it, so a level that recovers and degrades
-        # again alarms twice. A latch is right for an episode, wrong for a level.
-        fired = tick(args, handle, fired)
+        # The latch lives in the state file rather than in this loop, so a
+        # foreground watcher and a scheduled one-shot cannot disagree about what
+        # has already been said -- and restarting this process does not re-alarm
+        # everything that was already reported.
+        tick(args, handle)
         time.sleep(args.interval)
 
 

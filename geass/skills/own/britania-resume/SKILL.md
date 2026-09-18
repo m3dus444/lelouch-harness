@@ -24,9 +24,10 @@ finished**, and **tells each live worker where it now stands** so it carries on
 instead of rebuilding. You do not run the commands afterwards; it ran them.
 
 ```
-  wa-paging   worker running   local c0fa1bd   gate 7bfd6af
+  wa-paging   worker running (terminal live, dispatch ctx_7b41c9d0e255)   local c0fa1bd   gate 7bfd6af
     -> fast-forwarded 1 commit(s); the checkout now has its own finished work
-    -> sent the worker its position by --type status
+    -> queued its position for the worker (--type status). Queued, not read:
+       mail is pull, so it lands when the worker next runs `orchestration check`
        Work it already has -- name these when you resume it:
            7bfd6af fix(paging): keep the cursor stable across a refill
 ```
@@ -47,6 +48,33 @@ from here:
 
 It also skips the fast-forward on any tree with uncommitted files and says so,
 rather than moving a branch under work in progress.
+
+## The dry run reads ahead, not only behind
+
+`--dry-run` runs **the same two checks the acting path runs**, against the same
+refs, before it promises anything:
+
+| | |
+|---|---|
+| does `no-mistakes/<branch>` exist here | a gate-owned worktree may never have pushed, and there is no fast-forwarding onto commits that were never sent |
+| is `HEAD` an ancestor of it | the only condition under which git moves a branch without a merge commit |
+
+So a dry run either says *"would fast-forward N commit(s) — checked against the
+real condition, not assumed"*, or it says **"will NOT fast-forward, in either
+mode"** and names why. The two paths can no longer disagree about what is going
+to happen.
+
+They once did, and it is the reason this section exists. The dry run predicted
+from `behind` alone — *"would fast-forward 14 commit(s)"* — on a branch that was
+also **3 commits ahead**. Behind and ahead are not exclusive; together they mean
+*diverged*, which `--ff-only` refuses by definition, and the real run refused it
+minutes later.
+
+**The safety held; the report did not.** Nothing was overwritten and no history
+was rewritten — the damage was to the plan built on the promise. That is the
+shape of every reporting defect this skill has had, and a dry run that predicts
+from what already happened, without checking the state it is about to move into,
+is how each of them got written.
 
 ## A parked worker still has its context
 
@@ -73,6 +101,38 @@ it cannot verify without looking.
 The ticket is named in one clause anyway. [F-011](../../harness/docs/agents/harness-gotchas.md)
 recorded a woken worker that simply did nothing, and a nudge with no subject is
 cheap to make pointless.
+
+## Addressed by dispatch id — and a bounce is not a death
+
+A worker has **two addresses, and they take different couriers**:
+
+| | |
+|---|---|
+| `orca orchestration send --to dispatch:<dispatchId>` | mail, which the worker pulls |
+| `orca terminal send --terminal <handle>` | a keystroke into its TUI |
+
+The skill addresses mail by **`dispatchId`**, in full, and it never falls back to
+the terminal handle when the dispatch id is missing. A handle used as a mail
+address does not reach anybody — and the report says so instead, naming the
+terminal route as the alternative.
+
+**A failed delivery is not a dead worker.** Liveness is read from
+`orca terminal list` and from nothing else; a bounce means *undeliverable*.
+
+> Two workers were once reported *"gone, treat as dead"* because the message
+> sent to them had bounced off a truncated terminal handle. **Both terminals
+> were alive and connected.** Acting on it meant replacement dispatches into
+> fresh worktrees and walking away from the gate-side fix commits already
+> sitting in the existing ones — *the exact trap this skill warns about two
+> sections down.*
+
+The inverse holds just as firmly, and costs just as much: **a live terminal is
+not a working agent.** A session that hit a usage cap still answers
+`orca terminal list` as live and connected while its agent cannot act — two
+builders sat frozen for four hours that way and were reported as *"both builds
+are running again."* When the answer depends on whether an agent is doing
+anything, read its screen: `britania-restore` classifies every builder as
+**building / idle / capped** from exactly that.
 
 ## A dead terminal is not a resume
 
@@ -105,8 +165,12 @@ a fresh dispatch into a new worktree — walks away from it without a word.
 That is a decision, so it is yours: reuse the worktree, bank the work first, or
 knowingly drop it.
 
-## Three verdicts, and how to tell them apart
+## Four verdicts, and how to tell them apart
 
+- **"Its terminal is LIVE."** Read first, and it outranks the worker record
+  beside it — a record is a memory, `orca terminal list` is a reading. Resuming
+  this one is **mail to its dispatch id**, never a replacement dispatch, and
+  never a decision made from whether the last message landed.
 - **"Its terminal is gone but the gate run is NOT."** The client died, the run
   did not — the pipeline lives in the daemon. Do not start anything. Check
   `no-mistakes axi status` in that worktree; re-running `axi run --intent …`
@@ -114,8 +178,9 @@ knowingly drop it.
 - **"Gate is at review."** A timeout there **recycles the agent inside the
   step**. A new process with an advancing head is still working, and restarting
   it throws away a round. Check before acting.
-- **"Worker is <settled>, terminal gone."** Resuming means a fresh dispatch, not
-  a nudge. A live worker takes `--type status` mail instead.
+- **"Worker is <settled>, terminal gone."** Both halves are settled, so resuming
+  means a fresh dispatch rather than a nudge. Note the **and**: a settled record
+  over a live terminal is not this verdict, and the skill says so separately.
 
 ## Why it is driven by git rather than by Orca
 

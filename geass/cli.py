@@ -23,9 +23,11 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from . import manifest
@@ -120,6 +122,47 @@ def _copy_tree(src: Path, dest: Path, values: dict[str, str]) -> None:
 
 
 # --------------------------------------------------------------------- skills
+
+
+# A run index is authority the payload's reader cannot resolve. `supervision/
+# runs/` is never cast, so a contract that says "in run 2" points at a document
+# that does not exist on the machine reading it -- and the reader cannot even
+# tell whether it is missing or was never theirs. Keep every number, drop the
+# index: "here", "once", "four days" all survive the cast intact.
+#
+# Markdown only. The same lint over *.py fires on maintainer comments in this
+# repo, whose reader has `supervision/runs/` sitting right there and can resolve
+# a run index perfectly well.
+#
+# The single-digit bound is deliberate: it catches `run 2` and `run 03` while
+# leaving "tasks routinely run 15-60 minutes" alone, which is a duration and not
+# a citation.
+RUN_INDEX = re.compile(
+    r"\b[Rr]uns? (?:0\d|[1-9])\b"
+    r"(?!\s*[-\u2013\u2014]\s*\d)"          # a range: "run 15-60 minutes"
+    r"(?!\s+(?:times|checks|minutes|hours|seconds|days))"  # a count
+)
+
+
+def lint_run_index(paths: list[Path]) -> list[tuple[Path, int, str]]:
+    """Every run-index citation in prose that is about to ship to a project."""
+    hits: list[tuple[Path, int, str]] = []
+    for path in sorted(paths):
+        if path.suffix != ".md" or not path.is_file():
+            continue
+        with open(path, encoding="utf-8", newline="") as fh:
+            for n, line in enumerate(fh, 1):
+                if RUN_INDEX.search(line):
+                    hits.append((path, n, line.strip()))
+    return hits
+
+
+def payload_prose() -> list[Path]:
+    """The Markdown the cast copies, at its source."""
+    out = [HARNESS / src for src, _dest in manifest.PAYLOAD]
+    for _name, src, _origin in resolve_skills():
+        out.extend(src.rglob("*.md"))
+    return out
 
 
 def resolve_skills() -> list[tuple[str, Path, str]]:
@@ -366,6 +409,12 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
         if origin != "vanilla":
             print(f"                {name}  ({origin})")
 
+    stale = lint_run_index(payload_prose())
+    if stale:
+        print(f"  ! prose     {len(stale)} run-index citation(s) the reader cannot resolve:")
+        for path, n, line in stale:
+            print(f"                {path.name}:{n}  {line[:70]}")
+
     print(f"  settings    .claude/settings.json ({merge_settings(project)})")
     print(f"  gitignore   {update_gitignore(project)}")
     print(f"  ship gate   {init_gate(project)}")
@@ -383,7 +432,7 @@ def cast(project: Path, force: bool, agent: str = "claude") -> int:
         print("  When you want it:  geass watcher")
     elif present:
         print("\nWatcher")
-        print(f"  {name}: registered")
+        watcher_report(project)
 
     print("\nDone. Next:")
     step = 1
@@ -426,6 +475,10 @@ def status(project: Path) -> int:
     print("\nDependencies")
     unmet = report_dependencies(project)
 
+    if watcher_present(project):
+        print("\nWatcher")
+        watcher_report(project)
+
     print()
     if missing:
         print("Not fully cast. Run: geass cast")
@@ -442,6 +495,21 @@ def doctor(project: Path) -> int:
     values = detect(project)
     print(f"{values['PROJECT']}  (platform {platform.system()})\n")
     unmet = report_dependencies(project)
+
+    # A registered-but-failing watcher counts as a problem here, not a footnote.
+    # It is the state that cost run 03 its safety net: the place where someone
+    # would have noticed nothing was watching was occupied by a task that said
+    # it was.
+    health = watcher_health(project) if watcher_present(project) else None
+    print("\nWatcher")
+    if health is None and not watcher_present(project):
+        print(f"  {watcher_name(project)}: not registered")
+        print("  When you want it:  geass watcher")
+    else:
+        watcher_report(project)
+        if health and health["ran"] and health["last_result"] != 0:
+            unmet += 1
+
     print()
     if unmet:
         print(f"{unmet} blocking problem(s).")
@@ -478,7 +546,15 @@ def diff(skill: str) -> int:
     return 0
 
 
-WATCHER_EVERY_MIN = 15
+# Five minutes, not fifteen -- but only because the alarm got quiet first.
+# Tightening the cadence multiplies whatever the watcher already does, so it was
+# explicitly conditional on the spam fixes landing: the quota-0 skip (a session
+# at 0% cannot answer, so waking it is pure noise), the all-clear with
+# hysteresis (one wake() with hardcoded park text meant a transient dip parked
+# the run permanently), and memory firing on a sustained step AND a dangerous
+# level rather than either alone. Those are in `britania-vitals/vitals.py`.
+# If any of that quiet is ever removed, this number goes back up with it.
+WATCHER_EVERY_MIN = 5
 
 
 def watcher_name(project: Path) -> str:
@@ -493,11 +569,28 @@ def watcher_name(project: Path) -> str:
 
 
 def _run(args: list[str]) -> tuple[bool, str]:
+    """Run a command, returning (succeeded, output).
+
+    **Decode explicitly.** `text=True` alone decodes with the locale codec, and
+    the console tools here do not cooperate: `schtasks` emits UTF-16 on this
+    machine and Windows error strings arrive in the system language. A byte the
+    codec rejects raises *inside subprocess's reader thread*, where the
+    exception cannot be caught -- the call still returns, with nothing in it, so
+    every caller silently concludes the thing it asked about does not exist.
+
+    `vitals.py` already carries this fix and says why; `_run` did not, which is
+    how a health check could have reported a missing watcher as absent rather
+    than broken. `errors="replace"` is deliberate: mojibake in a message is
+    recoverable, a thread that died is not.
+    """
     exe = shutil.which(args[0])
     if exe is None:
         return False, f"{args[0]} not on PATH"
     try:
-        proc = subprocess.run([exe, *args[1:]], capture_output=True, text=True, timeout=60)
+        proc = subprocess.run(
+            [exe, *args[1:]], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=60,
+        )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return False, str(exc)
     out = (proc.stdout or proc.stderr or "").strip()
@@ -505,17 +598,117 @@ def _run(args: list[str]) -> tuple[bool, str]:
 
 
 def watcher_command(project: Path) -> str:
-    """The thing a scheduler should run, every {WATCHER_EVERY_MIN} minutes."""
+    """The thing a scheduler should run, every {WATCHER_EVERY_MIN} minutes.
+
+    **Absolute interpreter, always.** A bare `python` here registered a task
+    that failed every single fire with `0x80070002` -- for an entire run, ~17
+    times, silently. A scheduled task does not get an interactive shell's
+    environment, and on a normal Windows install `python` lives under
+    `%LOCALAPPDATA%\\Programs` on the *user* PATH, which is not searched.
+
+    `sys.executable` is the interpreter already running geass, so it is correct
+    by construction. It is also the right choice for a second reason worth
+    recording: it keeps the task on `python.exe` itself, which is old and
+    prevalent, rather than a freshly generated launcher `.exe` -- which
+    Defender's "block executables that lack prevalence, age, or trusted list"
+    rule blocks on sight. That rule is why the pip-installed `geass.exe` had to
+    be replaced by a `.cmd` wrapper. A fix that resolved PATH by shipping a new
+    binary would clear this bug and land straight in that one.
+
+    Both paths are quoted: `sys.executable` routinely contains a space.
+    """
     script = project / SKILLS_DEST / "britania-vitals" / "vitals.py"
-    return f'python "{script}" --once --path "{project}"'
+    return f'"{sys.executable}" "{script}" --once --path "{project}"'
 
 
 def watcher_present(project: Path) -> bool | None:
-    """True/False if the scheduler answered, None if it could not be asked."""
+    """True/False if the scheduler answered, None if it could not be asked.
+
+    Answers only *"is there a registration"*. That is not the same question as
+    *"is it working"* -- see `watcher_health`, and prefer it when reporting to a
+    human.
+    """
     if platform.system() != "Windows":
         return None
     ok, _ = _run(["schtasks", "/Query", "/TN", watcher_name(project)])
     return ok
+
+
+def watcher_health(project: Path) -> dict | None:
+    """What the scheduler knows about the watcher: not just registered, but running.
+
+    **Why this exists.** `watcher_present` reported a task as registered for a
+    whole run while every one of its fires failed instantly. A scheduled task
+    that cannot start writes its reason to `LastTaskResult` and nowhere else --
+    no console, no log anyone tails, no notification. The original design chose
+    `--once` on a scheduler over a resident `--watch` precisely because "a
+    monitor that has gone quiet looks exactly like a healthy one"; the quiet
+    death then moved into the registration instead of the process. Reading the
+    result code is what actually closes that, rather than moving it again.
+
+    Returns None when the question cannot be asked (not Windows, no scheduler,
+    no such task). Otherwise: `last_result` (0 is healthy), `last_run`,
+    `missed`, and `ran` -- False when it has never successfully fired.
+
+    Queried through PowerShell rather than `schtasks /Query /FO LIST /V`
+    because that output is **localised**: this machine answers in French, so
+    parsing by English label would fail on exactly the machines the watcher
+    runs on. `Get-ScheduledTaskInfo` returns .NET property names, untranslated.
+    """
+    if platform.system() != "Windows":
+        return None
+    name = watcher_name(project)
+    script = (
+        f"$i = Get-ScheduledTaskInfo -TaskName '{name}' -ErrorAction Stop; "
+        "[Console]::Out.Write(($i.LastTaskResult).ToString() + '|' + "
+        "($i.LastRunTime) + '|' + ($i.NumberOfMissedRuns))"
+    )
+    ok, out = _run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script])
+    if not ok or "|" not in out:
+        return None
+    result, last_run, missed = (out.split("|", 2) + ["", ""])[:3]
+    try:
+        code = int(result.strip())
+    except ValueError:
+        return None
+    return {
+        "last_result": code,
+        "last_run": last_run.strip(),
+        "missed": missed.strip(),
+        # A task that has never run reports result 267011 (SCHED_S_TASK_HAS_NOT_RUN).
+        "ran": code != 267011,
+    }
+
+
+def watcher_report(project: Path, indent: str = "  ") -> None:
+    """Print the watcher's real state. Silent when there is no registration.
+
+    Deliberately loud on a non-zero result: a watcher that is registered and
+    failing is worse than no watcher, because it occupies the place where
+    someone would otherwise notice there is nothing watching.
+    """
+    present = watcher_present(project)
+    name = watcher_name(project)
+    if present is None or present is False:
+        return
+    health = watcher_health(project)
+    if health is None:
+        print(f"{indent}{name}: registered (could not read its run history)")
+        return
+    code, missed = health["last_result"], health["missed"]
+    if not health["ran"]:
+        print(f"{indent}{name}: registered, has never run yet")
+    elif code == 0:
+        print(f"{indent}{name}: registered, last run {health['last_run']} ok")
+    else:
+        print(f"{indent}! {name}: registered but FAILING")
+        print(f"{indent}  last run {health['last_run']} exited 0x{code & 0xFFFFFFFF:08X}")
+        if code & 0xFFFFFFFF == 0x80070002:
+            print(f"{indent}  0x80070002 is 'file not found' -- the scheduler could not")
+            print(f"{indent}  resolve the command. Re-register:  geass watcher --force")
+        if missed and missed not in ("0", ""):
+            print(f"{indent}  {missed} missed run(s)")
+        print(f"{indent}  Nothing has been watching this project.")
 
 
 def watcher(project: Path, force: bool, remove: bool) -> int:
@@ -580,8 +773,65 @@ def watcher(project: Path, force: bool, remove: bool) -> int:
 
     print(f"  registered {name}, every {WATCHER_EVERY_MIN} minutes")
     print("  It runs a script, not an agent. Quiet checks cost nothing.")
+
+    # Registration is not execution, and the gap between them is where this
+    # went wrong before: `schtasks /Create` reports success for a command it
+    # never attempts to resolve. Force one fire and read the result, so a
+    # watcher that cannot start says so now rather than in a post-mortem.
+    if not _verify_watcher(name):
+        print()
+        print("! it registered but did not complete a successful run.", file=sys.stderr)
+        print("  Check it with:  geass doctor", file=sys.stderr)
+        print(f"  Remove it with:  geass watcher --remove", file=sys.stderr)
+        return 1
+
     print(f"  Remove it with:  geass watcher --remove")
     return 0
+
+
+def _verify_watcher(name: str, timeout_s: int = 45) -> bool:
+    """Fire the task once and wait for a verdict. True only on a clean run.
+
+    Returns True on an inconclusive read as well as a clean one -- this is a
+    post-registration confidence check, and failing a registration because the
+    scheduler was slow to answer would be worse than the bug it guards.
+    Anything genuinely broken shows up as a non-zero result, which is decisive.
+    """
+    ok, _ = _run(["schtasks", "/Run", "/TN", name])
+    if not ok:
+        print("! could not start the task to verify it", file=sys.stderr)
+        return False
+
+    print("  verifying (one forced run)...", end="", flush=True)
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        time.sleep(3)
+        ok, out = _run([
+            "powershell", "-NoProfile", "-NonInteractive", "-Command",
+            f"$i = Get-ScheduledTaskInfo -TaskName '{name}' -ErrorAction Stop; "
+            "[Console]::Out.Write(($i.LastTaskResult).ToString())",
+        ])
+        if not ok:
+            continue
+        try:
+            code = int(out.strip())
+        except ValueError:
+            continue
+        # 267009 = still running, 267011 = has not run yet. Keep waiting.
+        if code in (267009, 267011):
+            continue
+        print(f" exited 0x{code & 0xFFFFFFFF:08X}")
+        if code == 0:
+            print("  it runs.")
+            return True
+        if code & 0xFFFFFFFF == 0x80070002:
+            print("  0x80070002: the scheduler could not resolve the command.",
+                  file=sys.stderr)
+        return False
+
+    print(" no verdict in time")
+    print("  Confirm later with:  geass doctor")
+    return True
 
 
 def main() -> int:

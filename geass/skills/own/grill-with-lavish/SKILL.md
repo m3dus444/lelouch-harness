@@ -26,7 +26,12 @@ It composes three skills. It adds no logic of its own:
 file, so the user keeps their history and can revisit an earlier answer.
 
 1. **Run `grilling`** to produce this round's questions. Do not ask them in the
-   terminal.
+   terminal. **Every round, including the first** — the same reasoning that
+   puts `domain-modeling` in step 4 applies here, and the wrapper has been
+   inconsistent about it before: nested on one day's rounds and skipped at the
+   next day's intake. That inconsistency is invisible from inside the
+   conversation and shows up only as a compliance row that disagrees with what
+   actually happened.
 2. **Build the round into the artifact** (see below), then open it:
    `lavish-axi <file>`.
 3. **Poll and wait:** `lavish-axi poll <file>`. It blocks silently — that is
@@ -47,10 +52,10 @@ there is one. A term settled in round one is a term round three can use without
 re-litigating, and the glossary is written while the reasoning is still fresh
 rather than reconstructed at the end.
 
-It is also the only thing that reliably makes it happen at all. In run 2
-`domain-modeling` was invoked **zero times in six days**, and a hand-written
-`CONTEXT.md` stood in for it. A skill that calls it is worth more than a rule
-that asks someone to remember.
+It is also the only thing that reliably makes it happen at all. Left to a rule,
+`domain-modeling` was invoked **zero times in six days** here, and a
+hand-written `CONTEXT.md` stood in for it. A skill that calls it is worth more
+than a rule that asks someone to remember.
 
 ## Building the round
 

@@ -6,10 +6,11 @@ a dispatched worker gets its own slug under .../workspaces/<project>-<branch>.
 So watching every slug whose name contains the project catches the orchestrator
 AND its crew, without either of them reporting anything.
 
-Emits one line per ACTION only - skills, dispatches, holds, tickets, gates. Not
-prose: the conversation is the user's to have, and a per-message stream would
-drown the signal. Failure signatures are in the filter too, because a run that
-dies silently must not look identical to one still thinking.
+Emits one line per ACTION only - skills, dispatches, holds, tickets, gates, and
+the slash commands the operator types by hand. Not prose: the conversation is
+the user's to have, and a per-message stream would drown the signal. Failure
+signatures are in the filter too, because a run that dies silently must not look
+identical to one still thinking.
 
     python watch.py weave-atlas
 """
@@ -50,6 +51,25 @@ def emit(line: str) -> None:
 def interesting(row: dict) -> list[str]:
     """Actions worth a notification. Deliberately narrow."""
     content = (row.get("message") or {}).get("content")
+
+    # A slash command the operator types is not a tool call at all. Claude Code
+    # injects it as a USER row whose content is a plain string carrying
+    # `<command-name>/britania-restore</command-name>` (element order varies,
+    # `<command-args>` optional), so nothing in the assistant branch below ever
+    # sees it. Run 3 typed 23 of them and this watcher streamed none - including
+    # four restores, which is the exact moment F-060/062/066/067 happen and the
+    # exact moment the supervisor most needs waking.
+    #
+    # String content only: a user row whose content is a LIST can carry the same
+    # markup verbatim inside a tool_result (an `observe.py` dump quotes whole
+    # transcripts), and matching there reports a command nobody typed.
+    if row.get("type") == "user" and isinstance(content, str):
+        m = re.search(r"<command-name>\s*(\S+)\s*</command-name>", content)
+        if not m:
+            return []
+        a = re.search(r"<command-args>(.*?)</command-args>", content, re.S)
+        args = " ".join((a.group(1) if a else "").split())
+        return [f"** C.C     {m.group(1)}{(' ' + args) if args else ''}"[:160]]
 
     # A refusal arrives one row after the call, on a user-role row. Without this
     # a blocked skill streams as if it ran -- and in run 2 that sent the
@@ -110,8 +130,14 @@ def interesting(row: dict) -> list[str]:
             q = qs[0].get("question", "") if qs and isinstance(qs[0], dict) else ""
             out.append(f"** ASK-CC  {' '.join(str(q).split())[:120]}")
             continue
-        if name != "Bash":
+        # PowerShell is the primary shell on this machine and it is a SEPARATE
+        # tool, so every orca command issued through it was invisible here. Same
+        # input shape (`command`), so it goes through the same table below and
+        # is tagged in the line rather than given its own vocabulary.
+        if name not in ("Bash", "PowerShell"):
             continue
+        shell = "[ps] " if name == "PowerShell" else ""
+        before = len(out)
 
         cmd = " ".join(str(inp.get("command", "")).split())
         low = cmd.lower()
@@ -136,13 +162,17 @@ def interesting(row: dict) -> list[str]:
         # defect, and flagging both alike just teaches me to ignore the marker.
         if re.search(r"\bnpx\b.*\b(tasks-axi|gh-axi|lavish-axi)\b", low):
             mark = "slow-npx  " if "--no-install" in low else "!! npx    "
-            out.append(f"{mark} {cmd[:150]}")
+            out.append(f"{mark} {shell}{cmd[:150]}")
 
         # Match the tool as an executed COMMAND - name followed by a real
         # subcommand - never as a substring of a path or a sentence.
         for pattern, label in (
             (r"orchestration\s+worker-start\b", "DISPATCH  "),
             (r"orchestration\s+task-create\s+", "task-new  "),
+            # A reset discards the orchestration state the whole contract runs
+            # on. Rare, destructive, and until now invisible - the one event
+            # that must never be inferred afterwards from what stopped working.
+            (r"orchestration\s+reset\b", "!! RESET  "),
             # `orchestration check` is deliberately absent: a compliant run
             # re-arms it constantly and silently (contract section 7), so
             # streaming it would drown everything in the noise the contract
@@ -153,6 +183,17 @@ def interesting(row: dict) -> list[str]:
             # the single event the whole run exists to produce.
             (r"orchestration\s+send\s+.*--type\s+worker_done", "** DONE   "),
             (r"orchestration\s+send\s+.*--type\s+(escalation|question)", "** ASKS   "),
+            # `ask` BLOCKS the caller until someone answers. A session sitting in
+            # one writes nothing and looks exactly like a stall, so leaving it
+            # unstreamed means the silence alarm below indicts a session doing
+            # precisely what the contract asks of it.
+            (r"orchestration\s+ask\b", "** ASK    "),
+            # The merge is the terminal event of a ticket and it was the one
+            # thing not streamed: every gate line showed, the thing they gate
+            # did not. High, because the close-out arrives as one chained
+            # command - `pr merge && tasks-axi done && worktree rm` - and of
+            # those three the merge is the fact the others are bookkeeping for.
+            (r"(?<![\w/-])gh-axi\s+pr\s+merge\b", "** MERGE  "),
             # Board updates carry real progress ("master merged, 192 tests
             # green") and workers chain them with a heartbeat in one command.
             # First match wins, so with `hb` listed first the whole line was
@@ -167,6 +208,16 @@ def interesting(row: dict) -> list[str]:
             (r"(?<![\w/-])tasks-axi\s+add\s+", "ticket+   "),
             (r"(?<![\w/-])tasks-axi\s+done\s+", "ticket-ok "),
             (r"(?<![\w/-])tasks-axi\s+unhold\s+", "released  "),
+            # Teardown, and last on purpose. Releasing the worker, removing its
+            # worktree and closing its terminal are the three moves that end a
+            # dispatch, and run 3 shows them going wrong in exactly that window -
+            # a half-removed worktree left `runtime_unavailable` behind (F-062).
+            # None of the three streamed. They lose the label to a ticket or a
+            # hold chained with them, because the close-out of a ticket is the
+            # bigger fact and the command text prints either way.
+            (r"orchestration\s+worker-release\b", "release   "),
+            (r"worktree\s+(rm|remove)\b", "wt-rm     "),
+            (r"terminal\s+close\b", "term-close"),
             (r"(?<![\w/-])lavish-axi\s+\S", "lavish    "),
             # `axi status` and `axi sync` are reads; only `run` ships.
             # Labelling both `ship-gate` made a status poll read as a gate
@@ -187,8 +238,14 @@ def interesting(row: dict) -> list[str]:
             (r"terminal\s+send\s+.*--text", "** SEND   "),
         ):
             if re.search(pattern, low):
-                out.append(f"{label} {cmd[:150]}")
+                out.append(f"{label} {shell}{cmd[:150]}")
                 break
+        if name == "PowerShell" and len(out) == before:
+            # Catch-all, PowerShell only. An unmatched Bash line is noise - Bash
+            # runs everything here - but PowerShell was wholly invisible, so
+            # "the tool is in use at all" is itself signal. main() rate-limits
+            # this kind the way it rate-limits heartbeats.
+            out.append(f"ps         {cmd[:150]}")
     return out
 
 
@@ -346,7 +403,6 @@ def main() -> int:
                         fh.seek(start)
                         chunk = fh.read()
                         offsets[f] = fh.tell()
-                    last_data = time.time()
                 except OSError:
                     continue
 
@@ -359,8 +415,16 @@ def main() -> int:
                     except json.JSONDecodeError:
                         continue  # a partial trailing write; next poll gets it
                     for ev in interesting(row):
+                        # An ACTION re-arms the silence alarm; a ROW does not.
+                        # Reading a chunk used to do it, so a session emitting
+                        # prose, thinking and tool results while DOING nothing
+                        # could never trip the alarm - which is the exact state
+                        # the alarm exists to catch. Before the throttle,
+                        # deliberately: a heartbeat is suppressed for display but
+                        # is still a real action, and must not read as silence.
+                        last_data = time.time()
                         kind = ev.split()[0] if ev.split() else ""
-                        if kind in ("hb", "gate-read"):
+                        if kind in ("hb", "gate-read", "ps"):
                             seen = noise_last.get((tag, kind), 0.0)
                             if time.time() - seen < NOISE_EVERY:
                                 continue

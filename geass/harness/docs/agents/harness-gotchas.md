@@ -13,6 +13,45 @@ harness instead of being rediscovered per project.
 
 ---
 
+## Two shells, two filesystem views — a path made in one may not resolve in the other
+
+There are two ways to run a command here and they do not see the same
+filesystem. Git-Bash sees `/tmp` and `/c/Users/…`. Native Windows Python and
+PowerShell see `%TEMP%` and `C:\Users\…`. Each is internally consistent, which
+is why this is invisible until **a path produced in one is consumed by the
+other** — then it simply does not resolve, and the error names the path rather
+than the boundary it crossed.
+
+So it does not bite at all until a command hands a path across. A run that never
+does will never see it; one that does can hit it three times in a night.
+
+- **Write intermediates to the session scratchpad**, not to a shared temp
+  directory. Besides the two views, a shared temp dir is a shared namespace: a
+  stray `types.py` sitting in `%TEMP%` **shadows the standard library** for
+  anything run from there, and the resulting failure looks like a broken
+  interpreter rather than a stray file.
+- **Decide which view owns a path before you build it**, not after a command
+  fails on it.
+
+**A project may opt into WSL, which adds a third view — and that is a per-project
+decision recorded in an ADR, never a default.** One project needed it because a
+tenant Defender rule blocked freshly compiled executables on the Windows host,
+so native `cargo` could not work there at all. Under WSL, `/mnt/c/…` paths exit
+`127` when handed to Git-Bash, and WSL `git` cannot read an Orca worktree's
+`.git` pointer because that pointer holds a Windows path. None of that applies
+to a project that has not opted in.
+
+## The background-shell reaper kills long-running jobs on memory pressure
+
+A backgrounded shell can be killed by the host's memory-pressure reaper while it
+is working, with no failure of its own. It killed one long review loop **five
+times**, once with **3.59 GB free of 15.6 GB** — comfortable, by any reading
+except the reaper's.
+
+Set `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1` at launch. It is set here at
+User scope. Filed upstream; until it moves, treat a backgrounded job that
+vanished without an error as this until proven otherwise.
+
 ## The ship gate commits to a shadow remote, so a worker can be behind its own work
 
 The gate is a git proxy. Its fix rounds are committed to

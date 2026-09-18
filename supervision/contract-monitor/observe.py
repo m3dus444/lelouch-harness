@@ -20,24 +20,60 @@ import subprocess
 import sys
 import time
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECTS = Path.home() / ".claude" / "projects"
 
 
-def slug_dir(project: Path) -> Path | None:
-    """Claude Code's per-project transcript directory.
+def slug_dirs(project: Path) -> list[Path]:
+    """Every transcript directory Claude Code writes for this project.
 
     The slug is the absolute path with separators replaced, and non-ASCII
-    mangled, so match on the trailing project name rather than rebuilding it.
+    mangled, so match on the project name rather than rebuilding it. A worker
+    started `--worktree current` shares the project's own slug; one started in a
+    new worktree gets its own, `...-workspaces-<project>-<branch>`, where the
+    name sits in the middle -- so the test is containment, not a suffix.
+
+    F-073: this used to end `max(hits, key=st_mtime)` and hand back one
+    directory. Run 3 matched twelve, eleven of them builder worktrees, and the
+    scorecard read the coordinator's alone -- so no dispatched builder has ever
+    been scored, and the `skills invoked` line was coordinator-only while
+    reading as the run's. Merge them all instead.
     """
     name = project.resolve().name
-    hits = [d for d in PROJECTS.iterdir() if d.is_dir() and d.name.endswith(name)]
-    return max(hits, key=lambda d: d.stat().st_mtime) if hits else None
+    return sorted(d for d in PROJECTS.iterdir() if d.is_dir() and name in d.name)
 
 
-def sessions(d: Path) -> list[Path]:
-    return sorted(d.glob("*.jsonl"), key=lambda p: p.stat().st_mtime)
+def started_at(path: Path) -> str:
+    """When a session really began, taken from the transcript's own clock.
+
+    F-073: ordering came from `st_mtime`, which records the *last* append, so a
+    session that ran nine hours sorted behind short ones that started long after
+    it -- and every "X before Y" row could be inverted by how long a session
+    ran, not by when anything happened. Transcript timestamps are ISO-8601 in a
+    fixed shape, so string order is time order. Summary records carry no clock
+    and can sit at the head of a resumed file, hence the scan.
+
+    The mtime fallback is for a file with no clock anywhere: it keeps such a
+    session roughly in place rather than sorting it to the front of the run.
+    """
+    with path.open(encoding="utf-8", errors="replace") as f:
+        for line in f:
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            stamp = r.get("timestamp")
+            if isinstance(stamp, str) and stamp:
+                return stamp
+    when = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+    return when.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def sessions(dirs: list[Path]) -> list[Path]:
+    """Every session across every matching slug, in real chronological order."""
+    return sorted((p for d in dirs for p in d.glob("*.jsonl")), key=started_at)
 
 
 def rows(path: Path) -> list[dict]:
@@ -155,13 +191,19 @@ def _before(ev, marker, skills=None, kind=None):
 # One row per thing we shipped, so a run scores the fixes rather than vibes.
 SCORECARD = [
     # intake
-    # Only the underlying skills count. v2 routes intake through
-    # `grill-with-lavish`, which invokes `grilling` and `domain-modeling`
-    # itself, so the real calls appear here either way. The wrappers this row
-    # used to allow for -- `grill-me`, `grill-with-docs` -- are out of the
-    # payload entirely: crediting a wrapper only ever hid that it was refused.
+    # `grill-with-lavish` credits this row exactly as a direct `grilling` call
+    # does. The comment that stood here assumed the wrapper always nests a
+    # literal `grilling` call, so crediting the underlying skill alone was
+    # enough. F-072 measured that false: of run 3's two wrapper calls only the
+    # second nested one, and the one that did not was the intake -- two hours
+    # before the first dispatch. So the row that certifies the approval gate,
+    # the single thing this monitor most exists to prove, scored a correct run
+    # a silent FAIL.
+    # This is not the bug that got `grill-me` and `grill-with-docs` dropped: a
+    # refused call cannot reach this row, because `events()` files it as
+    # `skill-refused` rather than `SKILL`.
     ("grilled before dispatching",
-     lambda e: _before(e, "DISPATCH", {"grilling"})),
+     lambda e: _before(e, "DISPATCH", {"grilling", "grill-with-lavish"})),
     # Was one row called "wrote the glossary (domain-modeling)" while measuring
     # only the skill call. Run 2 is exactly where those diverge: CONTEXT.md was
     # written -- by hand -- and `domain-modeling` was never invoked once in six
@@ -266,14 +308,15 @@ def _milestone(project: Path) -> bool | None:
 
 
 def report(project: Path, verbose: bool) -> int:
-    d = slug_dir(project)
-    if d is None:
+    dirs = slug_dirs(project)
+    if not dirs:
         print(f"! no transcripts yet for {project.name}", file=sys.stderr)
         return 1
 
     all_events: list[tuple[str, str]] = []
-    print(f"{project.name}  ({len(sessions(d))} session(s))\n")
-    for s in sessions(d):
+    found = sessions(dirs)
+    print(f"{project.name}  ({len(found)} session(s) across {len(dirs)} slug(s))\n")
+    for s in found:
         ev = events(rows(s))
         if not ev:
             continue

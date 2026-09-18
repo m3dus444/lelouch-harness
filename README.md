@@ -258,7 +258,6 @@ your-project/
 ├── AGENTS.md                        pointer to it, for non-Claude harnesses
 ├── docs/agents/
 │   ├── issue-tracker.md             tasks-axi + GitHub split
-│   ├── domain.md                    how to read CONTEXT.md and ADRs
 │   └── dispatch-templates.md        Scout / Build / Fix specs + the loop
 └── .claude/
     ├── settings.json                SessionStart hook (merged, not clobbered)
