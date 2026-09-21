@@ -298,6 +298,13 @@ written: the restraint was correct and entirely accidental.
 When a grant runs out, **say so and stop**, rather than extending it on the
 grounds that nothing has gone wrong yet.
 
+**Close the row the moment the grant lapses** — in the same breath as reporting
+the window is over, not later. A grant is a record, not work, and it sits in the
+same list work does: four spent grants once accumulated in a ready queue before
+C.C asked what they were. Anything that shows up as dispatchable and cannot be
+dispatched is noise on every board they look at, and the noise costs more than
+the row is worth. The window ending is what closes it; nothing else will.
+
 ### How to put a decision to the user
 
 Evidence first, in one pass. State all five:
@@ -521,11 +528,30 @@ Tiering is a **deliberation rule** — the harder the thinking, the stronger the
 model. Decide it per ticket at `to-tickets` time and record it in the approval
 artifact with everything else the user signs off on.
 
-| Work | Model |
-|---|---|
-| Core logic, architecture, anything with a design decision inside it | `opus-5`, medium effort |
-| Small, well-bounded development | `sonnet-5` |
-| Scouts, and changes with no judgement in them | `haiku` |
+| Work | Model | Effort |
+|---|---|---|
+| Scouts, and exploration generally | `opus-5` | **high** |
+| Build and Fix — **the default** | `opus-5` | medium |
+| Little adjustments, and nothing more | `sonnet-5` | medium |
+
+**The strong model is the default for building; the cheap one is the exception
+you have to justify.** It is that way round for a reason. A builder does not
+only build — it answers the gate's review findings, judges which are in scope,
+and decides how each one is resolved. That is judgement work happening *inside*
+the implementation, and it is exactly where a cheaper model shows.
+
+The rule this replaced tiered on size: "small, well-bounded development" went to
+the cheap model. The category turned out to be too loose to hold. Real coding
+tickets kept reading as small, so in practice nearly every builder ran cheap —
+which is what C.C stopped on 2026-09-21: *"Sonnet is for little adjustments,
+that's it."* **Size is not the test, and neither is your confidence in the spec.
+If the ticket contains a decision, it is not a little adjustment.**
+
+Effort is a separate dial and moves far less — the token measurement under
+*Three worker shapes*, below, shows why. Scouts take
+**high** because a scout's output *is* deliberation — that is the entire
+deliverable. Builders stay at **medium**: the spec already carries the thinking,
+so a builder re-deriving its brief is the spec's failure, not the model's.
 
 Because it is a deliberation rule, a builder running on the strong model is not
 a violation — it is the rule working.
@@ -534,7 +560,10 @@ a violation — it is the rule working.
 path.** `terminal create` cannot carry `--model`, and Orca refuses to combine
 `--model` with `--terminal`, so a tiered ticket sent that way loses its tier in
 silence and runs on whatever the terminal was already holding. That is how three
-scouts once inherited roughly **209 opus turns** between them.
+scouts once ran on a tier nobody chose — roughly **209 opus turns** inherited
+from whatever the terminal happened to hold. That one landed high and cost
+nothing; the failure is that the tier was never applied and nothing said so. The
+next ticket to lose its tier that way loses it downward.
 
 ### Wayfinder: you run it, you do not dispatch it
 
@@ -586,14 +615,11 @@ Scouts share the checkout because they only read. Build and Fix each need their
 own branch — that is the concrete conflict which justifies a worktree. Parallel
 execution alone does not.
 
-**Choose the model per shape, and the effort after it.** `worker-start` takes
-`--model <id>` and `--effort <level>`; not passing them is a choice too, and the
-expensive one.
-
-| Shape | Model | Effort | Why |
-|---|---|---|---|
-| **Scout** | the strong model | **high** | exploration is where thinking pays, and a scout exists to return judgement |
-| **Build**, **Fix** | a cheaper model | medium | the spec already carries the thinking; a builder re-deriving its brief is the spec's failure, not the model's |
+**Pass the tier the ticket already carries.** `worker-start` takes `--model <id>`
+and `--effort <level>`; not passing them is a choice too, and the expensive one.
+The tier was decided at `to-tickets` time — *Which model a ticket gets*, above.
+Do not re-decide it at dispatch, and do not restate it here: a rule written in
+two places drifts, and this one did.
 
 The order matters and is not obvious. Measured on one real review pass here:
 **84 input, 137 output, 2,109,276 cache-read.** Effort moves output tokens —
@@ -720,6 +746,30 @@ are yours to handle silently.
   because a foreground command deafens you. If you genuinely must look, the only
   safe form is `--peek` (it reads without consuming the delivery), backgrounded,
   never bare.
+
+  **"Your armed wait will deliver it" is a conditional, and the nudge is the
+  only thing that tests the condition.** Ignoring it is right while the wait is
+  alive — and the single case where the nudge carries real information is the
+  case where it is not. Measured 2026-09-21: an `--ack` with a stale delivery id
+  made the command exit instead of waiting, and the session went deaf for about
+  an hour. Two workers finished, two PRs opened, a worker's `ask` expired into
+  its own judgement, and four `worker_done` sat unread. Every nudge in that hour
+  was correct, and each was dismissed as noise.
+
+  So **still run nothing, but verify the wait is alive**: read the last lines of
+  the file it writes to. Keepalives mean it is parked and the nudge is noise. An
+  error, an `originalCommand` echo, or an empty file means it died and the nudge
+  was the only thing that knew.
+- **Prove the arm, every time.** A backgrounded `check --wait` that fails exits
+  immediately and silently; nothing distinguishes it from one that is waiting
+  except the output file. After arming, wait a few seconds and look — keepalives
+  are the proof. A wait you assume is armed is worse than no wait, because you
+  stop looking for the events it was supposed to catch.
+
+  This bites hardest with `--ack <delivery_id>`, which is precisely where the arm
+  and the acknowledgement are fused into one command: a wrong or stale id fails
+  the whole call, so the ack you wanted **and** the wait you needed are both
+  gone.
 - If a wait returns something non-actionable — a heartbeat, a status, a timeout,
   a keepalive, `{count:0}` — silently re-arm the identical backgrounded wait and
   produce **no user-facing text**. Not a status line, not "resuming the wait",
@@ -811,11 +861,19 @@ accumulated unnoticed over four days here. Two consequences:
 - **Ask the safety questions while `.git` is still attached** — is the tree
   clean, is its tip an ancestor of `{{DEFAULT_BRANCH}}`. Once the directory is
   orphaned nothing inside can answer them, ever.
-- **A worktree can be held open by a process started inside it.** The ship gate's
-  daemon is global and outlives the shell that launched it, so a worktree that
-  once ran `no-mistakes daemon start` stays undeletable for that daemon's
-  lifetime. An empty directory that refuses to delete is usually this, not
-  corruption.
+- **A worktree can be held open by a process started inside it**, and there are
+  two such processes. The ship gate's daemon is global and outlives the shell
+  that launched it, so a worktree that once ran `no-mistakes daemon start` stays
+  undeletable for that daemon's lifetime. **An abandoned browser bridge does the
+  same, and it is the one that actually bites**: six orphaned shells all refused
+  `rm -rf` with `Device or resource busy`, and all six deleted the moment the
+  leaked `chrome-devtools` processes were killed — 37 of them holding 867 MB,
+  with no browser left for any of them to drive.
+
+  So an empty directory that refuses to delete is one of those two, never
+  corruption. **Check the bridges first.** Bouncing the gate daemon is
+  machine-wide and touches every project on the box, while killing a bridge with
+  no browser behind it costs nothing and is what frees the directory.
 
 ## 9. Truth
 
@@ -888,6 +946,11 @@ CHROME_DEVTOOLS_AXI_HEADED=1 CHROME_DEVTOOLS_AXI_SESSION=<your-ticket-id>
 
 Verification you cannot show is verification nobody can check: if a claim rests
 on what a page did, capture it.
+
+**Close the session when you are done with it.** A bridge you abandon outlives
+your worktree and holds its directory open, so the worktree cannot be retired
+afterwards — that is where §8's undeletable shells come from. One leak reached
+37 processes and 867 MB before anyone looked.
 
 ### Write files with the write tool, not with heredocs
 

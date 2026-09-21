@@ -179,3 +179,66 @@ against your worker map. And never drop the armed `check --wait` to save
 memory: without it nothing acknowledges heartbeats, they pile up, every new one
 re-triggers the notice, and you pay a turn per heartbeat *while* losing the
 signal that would have shown the stall.
+
+## The nudge cannot be silenced, and a filtered wait is why it keeps firing
+
+Measured 2026-09-21, after C.C asked whether the injected `You have N
+orchestration messages` prompts could be turned off. They interrupt whatever the
+user is typing — the line is injected as if they had typed it, so an unfinished
+sentence gets submitted along with it. That is the real cost, and it is theirs,
+not yours.
+
+**There is no switch.** `orca` exposes no settings command, and the only
+`inject` in the machine-readable schema is `dispatch --inject`, which pushes a
+spec at a worker. The nudge is emitted by the runtime whenever the bound Run
+holds mail the coordinator has not consumed.
+
+**So it can only be starved, and a filtered wait is what prevents that.** The
+only consumer of the queue is your `check --wait`. It returns *only* when a
+matching type arrives, and it **holds the delivery** while parked — so
+everything non-matching stacks up unread behind it, which is exactly the
+condition that fires the nudge. Draining and waiting are mutually exclusive on
+one Run: you cannot empty the queue without letting the wait return or killing
+it.
+
+The consequence worth internalising: **filtering `--types` buys quiet in your
+context and buys the user nothing.** The messages still arrive; they simply
+accumulate instead of being read.
+
+What is actually available, in the order worth trying:
+
+- **Drop the type filter and drain.** Every message returns, you ack and re-arm,
+  the queue stays near zero, and the nudge starves. The cost is a full context
+  re-entry per message — §7's 12x figure — and it is yours rather than the
+  user's.
+- **Reduce what workers emit.** Heartbeat cadence comes from the dispatch
+  preamble; fewer messages is fewer nudges at no context cost. Not yet checked
+  whether it is tunable.
+- **Ask Orca for a coordinator-quiet mode.** The real fix, and not ours to make.
+
+**One thing remains unestablished, so do not assert it:** whether heartbeats
+*alone* trigger the nudge, or only actionable mail does. On the night this was
+written the queue held four `worker_done` and one `question` and no heartbeats
+at all, so the clean case has never been observed. Settle it the next time a
+worker runs with a wait armed — if a nudge fires while only heartbeats are
+queued, the filter is the cause; if nothing fires, the cause was always unread
+reports, which means a dead listener rather than a noisy runtime.
+
+## A green test summary can hide files that never ran
+
+Observed under vitest on a WSL worktree, and the shape generalises: a runner
+that drops test files on a worker-start timeout can still print a green summary
+for the files it *did* run. Three files vanished that way while the run reported
+success, and the full suite only appeared once the tree was on a native path.
+
+The cause was the crossing rather than the tests — loading a heavy test
+environment across the Windows/WSL boundary took roughly **two minutes** against
+a hardcoded **60s** worker-start timeout. A native `node_modules` symlink helped
+and **was not sufficient**.
+
+So: **a test claim is worth what its file count is worth.** A worker reporting
+green reports how many files ran, and says so plainly when that number is below
+the suite. Colour is not evidence; the count is. If a project's runner can be
+made to fail loudly on a dropped file, that is worth doing once — and note that
+a `--reporter` override on the command line puts you back to trusting the
+summary.
