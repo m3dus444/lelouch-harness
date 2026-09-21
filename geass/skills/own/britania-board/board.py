@@ -152,8 +152,29 @@ def age(ts) -> str:
 # ------------------------------------------------------------------ the gate
 
 
-def gate_rows() -> dict[str, dict]:
-    """Latest gate run per branch, with the step it is actually sitting on.
+def ticket_of(branch: str | None, ticket_ids: set[str]) -> str:
+    """Map a gate branch back to the ticket it belongs to.
+
+    The branch leaf looked like a safe key until a branch was renamed
+    mid-flight: `dc-6` became `dc-6-ship`, and the board then carried that
+    ticket twice -- its real row, plus an orphan under the new leaf that sat in
+    NEEDS ATTENTION long after the PR had merged. The ticket id is the stable
+    identity here; a branch name is something a person can change at any point.
+
+    Falls back to the leaf when no ticket claims it, so a branch gated outside
+    the backlog is still visible rather than silently dropped.
+    """
+    leaf = (branch or "").rsplit("/", 1)[-1]
+    if leaf in ticket_ids:
+        return leaf
+    # Longest match wins, and only on a `-` boundary: a bare prefix test would
+    # let `dc-6` swallow `dc-60`.
+    hits = [t for t in ticket_ids if leaf.startswith(t + "-")]
+    return max(hits, key=len) if hits else leaf
+
+
+def gate_rows(ticket_ids: set[str] | None = None) -> dict[str, dict]:
+    """Latest gate run per ticket, with the step it is actually sitting on.
 
     Schema, documented here so nobody has to rediscover it (the supported
     `axi` view truncates, which is why agents keep ending up in this file):
@@ -202,9 +223,9 @@ def gate_rows() -> dict[str, dict]:
             # would be worse than reporting nothing.
             return {}
         for rid, branch, status, pr_url, pr_state, observed, awaiting, error in runs:
-            key = (branch or "").rsplit("/", 1)[-1]
+            key = ticket_of(branch, ticket_ids or set())
             if key in out:
-                continue  # newest run per branch wins
+                continue  # newest run per ticket wins -- runs are newest-first
             steps = con.execute(
                 "select step_name, status, last_activity_at"
                 "  from step_results where run_id = ? order by step_order",
@@ -313,9 +334,13 @@ def main() -> int:
     ap.add_argument("--all", action="store_true", help="include done and queued, not just live")
     args = ap.parse_args()
 
-    gate = gate_rows()
     crew = workers(args.run)
     flight, queued, held = backlog()
+    # The backlog is read first so the gate can be keyed by ticket id rather
+    # than by branch name (see `ticket_of`).
+    known = {t.get("id") for group in (flight, queued, held) for t in group if t.get("id")}
+    known |= set(crew)
+    gate = gate_rows(known)
 
     # A task or run in a terminal state is history, not work in flight. Orca's
     # task-list returns every task the Run ever had, so without this the board

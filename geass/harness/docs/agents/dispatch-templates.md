@@ -51,8 +51,8 @@ Board status transitions Lelouch owns:
 orca worktree set --worktree name:<ticket-id> --workspace-status in-review --json
 ```
 
-Workers update `--comment` themselves at checkpoints (`CLAUDE.md` §W.3); Lelouch
-owns the status column.
+Workers update `--comment` themselves at checkpoints — it is one of the standing
+duties below; Lelouch owns the status column.
 
 ## Spec skeleton
 
@@ -77,6 +77,57 @@ Done means:
 
 Ship gate:
   <no-mistakes | a report file | nothing>
+
+Model:
+  <the tier from `CLAUDE.md` §6, named per ticket at `to-tickets` time>
+
+Your duties:
+  <the standing block below, verbatim>
+```
+
+A ticket that names a `Model:` **cannot be pre-warmed.** `terminal create` takes
+no `--model`, and Orca refuses `--model` together with `--terminal`, so the
+worker silently inherits whatever the tab was already running. Dispatch it with
+`--agent` and `--model` on `worker-start` and pay the boot race instead.
+
+## Standing duties
+
+Every spec carries this block verbatim. It is the contract for a dispatched
+worker — the payload is the only thing a worker reliably reads, so this is where
+the duties live rather than in a section of `CLAUDE.md` addressed to no one who
+opens it.
+
+```
+Your duties:
+  Use the skills named above. They were chosen deliberately; if you substitute
+  your own approach, say so.
+  Read CONTEXT.md and any relevant docs/adr/** before naming things. You did
+  not see the conversation that produced this ticket, and the glossary is the
+  vocabulary you share with it.
+  Report progress on your card at meaningful checkpoints, so your state is
+  visible without opening your terminal:
+    orca worktree set --worktree active --workspace-status in-progress --json
+    orca worktree set --worktree active --comment "<short state>" --json
+  Escalate a blocker; `ask` only what can wait. `orca orchestration ask` times
+  out in minutes while the coordinator waits on the hour, so an ask that gates
+  your work expires into your own judgement and you proceed on a decision
+  nobody made. Anything that stops you uses --type escalation.
+  Do not dispatch sub-workers. Nested depth is 1. Do the work yourself; do not
+  route around nested_worker_depth_exceeded.
+  Report exactly once when done, with an honest outcome:
+    orca orchestration send --type worker_done --outcome succeeded|failed \
+      --task-id <id> --dispatch-id <id> --subject "<status>" \
+      --body "<what changed, what remains>" --files-modified "a,b" --json
+  Never encode failure only in prose. --outcome failed is not a disappointment;
+  a false succeeded is a real problem. And `succeeded` means the work is on the
+  remote, not that a step went green: check `git log origin/<branch> -1`
+  against your own HEAD before you claim it. A gate can pass and a PR can show
+  green while the commit sits only in your worktree.
+  On wake, say which ticket you are on and resume it. A worker that wakes and
+  does nothing is indistinguishable from a dead one.
+  A report you link must exist where you say it does. Verify the path after
+  writing it — this failure mode reports success, so the link is worth only
+  what the check behind it is worth.
 ```
 
 ## Scout
@@ -112,7 +163,11 @@ Skills to use:
 
 Done means:
   A cited Markdown report at docs/research/<slug>.md.
-  ZERO changes to any other file. You are read-only outside that report.
+  Optionally a Lavish artifact at .lavish/<slug>.html presenting it.
+  ZERO changes to any other file — those two paths are the only writes you
+  may make.
+  Scratch files count. Write intermediates to a temp directory outside the
+  repo, never beside the report.
 
 Ship gate:
   None. Report the file path in your worker_done body.
@@ -139,10 +194,24 @@ Spec body:
 ```
 Skills to use:
   Use the `implement` skill to drive the work.
-  Use `tdd` at the seams named below - failing test first, then the code.
+  Use `tdd` where the seam earns it - failing test first, then the code at
+  the seams named below. It is advisory: `no-mistakes`' test-quality rule is
+  the one that binds.
   Use `codebase-design` if you need to place a new seam.
   Close with `prod-review` against this ticket. Do NOT also run a standards
   or lint review; the no-mistakes gate owns that axis.
+
+Visual work:            <only when the ticket changes what a person sees>
+  Build from the project design system - its tokens, its components, its
+  guidelines. Use a component that already exists rather than restyling one
+  locally, and take every colour, space and type size from the tokens rather
+  than picking a number. You are not waiting for a mock and you do not need
+  one: following the system IS the design, per CLAUDE.md §6.
+  If the ticket has a signed-off design for its surface, name it here and it
+  wins over your own judgement where the two differ.
+  If you find yourself inventing a look the system does not cover, that is a
+  design question rather than a styling choice - send an escalation instead of
+  deciding it.
 
 Seams to test at:
   <the highest existing seam, named. Prefer one.>
@@ -180,7 +249,8 @@ Skills to use:
   loop that goes red on THIS bug, minimise, hypothesise, instrument, fix.
   Do not jump to a fix before you have a reproduction.
   Use `chrome-devtools-axi` if reproducing needs a real browser.
-  Use `tdd` to lock the fix with a regression test.
+  Lock the fix with a regression test - that part is required. Reach for
+  `tdd` to write it where the seam earns it.
 
 Reported symptom:
   <verbatim, including any error text>
@@ -263,9 +333,26 @@ A `check --wait` timeout or `{count:0}` is a checkpoint; tasks routinely run
 ## Cleanup
 
 Once a PR is merged, set the board and remove the worktree — they accumulate
-otherwise:
+otherwise. **Order matters, and so does the selector.**
+
+**Close the terminal first, then check nothing is still running in the
+directory, and only then remove the worktree.** Removal de-registers from Orca
+and git *before* it deletes, so a delete that fails partway leaves both
+registries correct and the directory invisible to both. Two half-removals in one
+run left exactly that behind. A worktree can also be held open by a process
+started inside it — the ship gate's daemon is global and outlives the shell that
+launched it.
+
+**`name:` does not select a worktree that `worker-start` created.** It is null on
+those, so the obvious cleanup command cannot work and fails in a way that looks
+like a transient error; one ticket spent four retries rediscovering that. Select
+by path instead, or by the fully qualified form:
 
 ```
-orca worktree set --worktree name:<ticket-id> --workspace-status completed --json
-orca worktree rm --worktree name:<ticket-id> --force --json
+orca terminal close --terminal <handle> --json
+orca worktree set --worktree path:<path> --workspace-status completed --json
+orca worktree rm --worktree path:<path> --force --json
 ```
+
+`id:<repo>::<path>` works wherever `path:` does, and is the unambiguous form when
+two repos have a worktree at the same relative path.

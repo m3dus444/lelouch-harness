@@ -161,7 +161,6 @@ PAYLOAD = [
     ("CLAUDE.md", "CLAUDE.md"),
     ("AGENTS.md", "AGENTS.md"),
     ("docs/agents/issue-tracker.md", "docs/agents/issue-tracker.md"),
-    ("docs/agents/domain.md", "docs/agents/domain.md"),
     ("docs/agents/dispatch-templates.md", "docs/agents/dispatch-templates.md"),
     # Harness behaviour nobody can derive from the docs, learned by paying for
     # it. It ships because the alternative is what run 2 did: eleven such facts
@@ -174,7 +173,7 @@ PAYLOAD = [
 # Paths geass adds to the target's .gitignore, with the reason as a comment.
 GITIGNORE_ENTRIES = [
     (".lavish/", "Lavish review artifacts: transient per-session review surfaces"),
-    (".lelouch/", "Orchestrator session state: the AFK marker and its event log"),
+    (".lelouch/", "Orchestrator session state: the AFK marker, its event log, and the watcher's latch"),
 ]
 
 # Text file suffixes that get placeholder substitution.

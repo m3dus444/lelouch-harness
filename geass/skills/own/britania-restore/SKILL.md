@@ -14,8 +14,31 @@ its own to rebuild its context is one step away from a session that decides to
 clear it.
 
 ```
-python <skill>/restore.py
+python <skill>/restore.py --mode clear|crash
 ```
+
+## The mode is theirs to state, and you ask for it
+
+**A `/clear` and a crash leave different machines behind, and nothing on disk
+tells you which one happened.** So the mode is an input, not a deduction. If it
+was omitted, **ask** — one line, before anything else. Do not infer it from the
+evidence, however suggestive the evidence looks.
+
+That prohibition is the finding, not a precaution around it. A live wait looks
+like an orphaned one; an armed waiter looks like a dead session's leftovers.
+Reading `waiter_exists` as "orphaned" after a `/clear` once put `orchestration
+reset` one keystroke away from a run with a worker still building in it.
+
+**In `clear` mode your background tasks are still yours.** The process survived;
+only the conversation went. A `waiter_exists` is *your own* armed wait, working
+exactly as intended, and:
+
+> **`reset` is never the remedy in `clear` mode. Re-binding is.** Use run-use to
+> pick the existing Run back up. `reset` throws away live state to fix a problem
+> you do not have.
+
+In `crash` mode the waits really are gone with the process, and re-arming is
+part of the rebuild.
 
 ## What to do with the output, in order
 
@@ -49,8 +72,27 @@ because the case this exists for is exactly the case where it never got to.
 | `~/.no-mistakes/state.sqlite` | where each branch stands in the gate |
 | `git` | branch, uncommitted work, unpushed commits |
 | `CONTEXT.md` | the vocabulary the tickets are written in |
+| `docs/adr/**` | every decision the project actually settled |
 
 It reuses `britania-board` for the work itself rather than re-deriving it.
+
+### Read the whole project state, not one fact
+
+The ADRs are read, not skimmed for one answer. A project's settled decisions
+survive only because someone chose to write them down, and a restored session
+that reads none of them starts by re-litigating them.
+
+**The milestone is one of those decisions, and it is derived here rather than
+read.** There is no stored "milestone reached" to look for — by design, nothing
+is stored, so nothing can be lost. Compare the numbered **MVP ADR** against the
+tickets that are actually done, in `backlog.md` **and** `done-archive.md` since
+pruning moves them there, and conclude.
+
+This failed once in a way worth stating, because the obvious diagnosis was
+wrong. The record was not missing: the closed tickets were all there and so was
+the milestone sentence. What nothing stated was **which tickets constituted the
+milestone** — so the two could not be compared. The MVP ADR exists to close
+exactly that gap, and it only works if this step reads it.
 
 ## The Run is the part to read carefully
 
@@ -89,7 +131,7 @@ between them.
 
 A restored session does not know which source is right, and guessing turns a
 visible inconsistency into an invisible one. That is not caution for its own
-sake; here is a real instance from run 2:
+sake; here is a real instance:
 
 ```
 wa-06a-paging: closed in the backlog, gate run is ci_monitor_interrupted
@@ -114,6 +156,26 @@ is the only one who can fill it. This is also the whole reason the contract puts
 decisions in held rows rather than leaving them in chat: the backlog is the only
 layer that survives a session ending.
 
+## Read each builder's last terminal lines
+
+The briefing classifies every builder as **building / idle / capped**, from the
+last lines its terminal is actually showing. That reading is not decoration: the
+alternative — inferring liveness from mail, handles or timestamps — has been
+wrong in **both directions here**, reporting live workers as dead and frozen
+ones as alive. One instrument that looks at the screen settles both.
+
+- **building** — leave it alone.
+- **idle** — it finished, or it is waiting on something it never told you about.
+  Read the last lines before deciding which.
+- **capped** — it hit a limit and cannot answer. Nothing you send it will help
+  until the window resets.
+
+**A frozen TUI is unstuck with `orca terminal send`, and the reply lies to you
+if you let it.** `ok:true` on that call acknowledges **the courier, not the
+recipient** — the keystroke was delivered, which is not the same as the agent
+having acted on it. Confirm recovery by looking at the terminal again, never by
+the send's own return value.
+
 ## Two things the briefing will tell you that are worth acting on
 
 - **`CONTEXT.md NOT TRACKED BY GIT`** — the glossary exists but no worker can
@@ -122,3 +184,20 @@ layer that survives a session ending.
 - **`NEEDS ATTENTION`** rows — runs that finished, but not cleanly. A failed
   step nobody looked at, a PR left open, a run that cannot close. These are what
   a crash leaves behind and what nobody notices on their own.
+
+## This reports; `britania-resume` acts
+
+The two divide on that axis and nothing in either of them used to say so, which
+left a gap each assumed the other covered.
+
+**This skill rebuilds your understanding and changes nothing.** It reads durable
+state, reconciles the sources, and hands you a briefing. Every repair it
+identifies is yours to carry out deliberately.
+
+**`britania-resume` is the one that moves things** — picking workers back up,
+fast-forwarding branches, re-dispatching what genuinely died. Run it *after*
+this, on a briefing you have actually read, because it acts on conclusions and
+this is where the conclusions come from.
+
+So: restore to know, resume to act. If you have not restored, you are resuming
+on a guess.

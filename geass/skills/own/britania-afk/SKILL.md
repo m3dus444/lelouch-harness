@@ -51,6 +51,31 @@ queue `afk` right behind a prompt they just sent you.** If your answer to that
 prompt was a question, it was asked into an empty room. Record it with `ask` and
 it comes back at the top of the digest, to be asked again properly.
 
+**`afk.log` is a buffer, not a record.** Every `start` clears it, so anything
+written here has a lifetime of exactly one window. That is fine for what the
+digest needs — the digest is derived, and the log only annotates it. It is not
+fine for anything else.
+
+**The lifetime is one window whether or not the last one closed cleanly.** This
+is the part that surprises people, because it is not a crash bug: a milestone
+was once written to a window that then closed perfectly normally, and the next
+`start` four and a half hours later erased it anyway. A clean shutdown does not
+promote a buffer into a record.
+
+`start` retires a non-empty buffer to `.lelouch/afk-<since>.log` rather than
+destroying it, and says so — loudly when the window it is retiring never closed.
+Treat that as a way to read back what just happened, **not** as storage:
+`.lelouch/` is gitignored, so nothing in it has history, a remote copy, or any
+way back once the directory does.
+
+**So anything that must outlive the window gets written somewhere else at the
+same moment.** Not afterwards, when you remember: at the same moment, in the
+same breath as the `decision` line. A milestone being reached, a decision that
+changes the backlog, a fact the next session needs — those go to their real
+homes, and the log line is a copy for the digest rather than the only copy. A
+"MILESTONE REACHED" recorded here and nowhere else has already been lost to the
+next `start`.
+
 ## The merge criteria, in autopilot
 
 Merge only when **all four** hold. Anything else is recorded and left:
@@ -67,9 +92,28 @@ marker is cleared by `back`.
 
 ## Coming back
 
-**Any message from them ends it.** They do not have to remember a command — if
-they type anything, run `back` before answering, and answer in the digest's
-terms.
+**What ends the window depends on what they sent.** They do not have to remember
+a command, so read the message and decide between three cases:
+
+- **A read-only status question** — "how's it going", "anything waiting on me" —
+  is **neutral.** Answer it and leave the window open. They are checking on the
+  work, not returning to it, and ending the window here throws away the digest
+  they will actually want later.
+- **A quick instruction they have marked as such** — they say to keep going, to
+  stay on it, that this is just one thing — **continues the window, and its
+  outcome is recorded** like anything else that happened while they were away.
+  It becomes a line in the digest, not an exception to it.
+- **Anything else ends it.** Run `back` before answering, and answer in the
+  digest's terms.
+
+When the message genuinely does not fall cleanly into one of those, end the
+window. A digest delivered slightly early costs a paragraph; a window that
+silently outlives their return means everything after it was recorded for a
+reader who was already in the room.
+
+This is a reading of the message, not a new mode, and it must stay that way: a
+slash command would re-inject the skill mid-flight, and an injected skill has
+been observed cancelling a coordinator tool call in progress.
 
 The digest is derived first and annotated second: merged PRs and landed commits
 from git, live state from `britania-board`, then your log joined on top. If the
