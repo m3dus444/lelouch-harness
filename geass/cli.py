@@ -196,7 +196,7 @@ def resolve_skills() -> list[tuple[str, Path, str]]:
 
 
 def merge_settings(project: Path) -> str:
-    """Add our SessionStart hook and permission grants, keeping the project's own.
+    """Add our hooks and permission grants, keeping the project's own.
 
     Two things merge here, independently, because they fail independently: the
     hook that loads project state at session start, and the allow-list this
@@ -216,14 +216,20 @@ def merge_settings(project: Path) -> str:
     existing = json.loads(target.read_text(encoding="utf-8"))
     notes = []
 
-    ours = fragment["hooks"]["SessionStart"][0]["hooks"][0]["command"]
-    session_start = existing.setdefault("hooks", {}).setdefault("SessionStart", [])
-    if any(hook.get("command") == ours
-           for group in session_start for hook in group.get("hooks", [])):
-        notes.append("hook already present")
-    else:
-        session_start.extend(fragment["hooks"]["SessionStart"])
-        notes.append("hook merged")
+    # Every event the fragment names, not just SessionStart: a merge that knew one
+    # event by name would cast a second hook's file and never register it, and a
+    # hook that is on disk but not in settings looks installed and does nothing.
+    # A group is identified by its commands, so a re-cast adds nothing twice.
+    hooks = existing.setdefault("hooks", {})
+    merged = 0
+    for event, groups in fragment["hooks"].items():
+        theirs = hooks.setdefault(event, [])
+        have = {hook.get("command") for group in theirs for hook in group.get("hooks", [])}
+        for group in groups:
+            if not all(hook.get("command") in have for hook in group.get("hooks", [])):
+                theirs.append(group)
+                merged += 1
+    notes.append(f"{merged} hook(s) merged" if merged else "hooks already present")
 
     # Unioned, never replaced: a project's own grants outrank ours and survive.
     wanted = fragment.get("permissions", {}).get("allow", [])

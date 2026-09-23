@@ -459,6 +459,15 @@ def user_is_away(project: str) -> bool:
         return False
 
 
+def autopilot_window(project: str) -> bool:
+    """Is the user away AND has granted autopilot? Same marker, one field more."""
+    try:
+        marker = json.loads((Path(project) / ".lelouch" / "afk.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return isinstance(marker, dict) and bool(marker.get("autopilot"))
+
+
 def session_can_reply(v: dict) -> bool:
     """Is there anyone home to hear a wake?
 
@@ -582,10 +591,16 @@ def tick(args, handle: str | None) -> dict:
         detail = next(b for b in v["blocks"] if b.startswith(kind))
         say(detail, f"britania-vitals: {detail}. Stop dispatching and park the run.", "BREACH")
 
+    # In autopilot nobody is there to type the resume, so the all-clear says what
+    # to do rather than what is allowed. Resume is otherwise C.C's to run, so a
+    # bare "you may resume" reads as permission to wait for them -- which, with
+    # them asleep, parks the crew until morning. Run 3 needed a grant for this.
+    resume = ("AUTOPILOT: resume the crew now -- britania-resume's resume.py --wake"
+              if autopilot_window(args.path) else "you may resume")
     for kind in sorted(parked & recovered):
         detail = next(c for c in v["clears"] if c.startswith(kind))
         say(detail, f"britania-vitals: {detail}. If the run was parked for it, "
-                    f"the hold is lifted and you may resume.", "CLEAR ")
+                    f"the hold is lifted -- {resume}.", "CLEAR ")
 
     if v["quota_pct"] is not None and v["quota_pct"] < QUOTA_FLOOR and v["resets_at"]:
         print(f"{datetime.now():%H:%M:%S}  quota resets in {v['resets_in']}", flush=True)

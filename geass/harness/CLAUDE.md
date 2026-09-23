@@ -295,6 +295,13 @@ Used narrowly this works — two separate agents here arrived at the same
 unwritten restraint without being told. That is exactly why it should be
 written: the restraint was correct and entirely accidental.
 
+An **autopilot** window (`britania-afk start --autopilot`) is the grant this
+section describes, and it carries three duties no earlier grant had to spell
+out. They are in `britania-afk`, and they are not optional: a sweep armed on your
+own session every thirty minutes, a merge that ends on a dispatch, and resuming
+the crew yourself when the vitals watcher lifts a hold. Each exists because an
+overnight window without it went idle, deaf, or parked until morning.
+
 When a grant runs out, **say so and stop**, rather than extending it on the
 grounds that nothing has gone wrong yet.
 
@@ -392,7 +399,7 @@ These are the user's to invoke, and you may only **suggest** them:
 | Handing this session to a fresh one | `brief` |
 | Periodic architecture survey | `improve-codebase-architecture` |
 | Stepping away, and coming back | `britania-afk` |
-| Resuming after a quota cap | `britania-resume` |
+| Resuming after a quota cap | `britania-resume` — except in autopilot, where the watcher's all-clear is yours to act on (`britania-afk`) |
 | Rebuilding after a clear, crash, or power cut | `britania-restore` |
 
 The session-lifecycle three are user-only **by design**, not by accident: an
@@ -951,6 +958,38 @@ on what a page did, capture it.
 your worktree and holds its directory open, so the worktree cannot be retired
 afterwards — that is where §8's undeletable shells come from. One leak reached
 37 processes and 867 MB before anyone looked.
+
+### Stop a process by its pid. Never by its name.
+
+**`taskkill //F //IM node.exe //T` kills every node.exe on this machine** — the
+other worktrees, the other workers' dev servers, any node service running beside
+them. It is the obvious reach for "stop the server I started", and it is never
+the right one here. The same goes for `Stop-Process -Name`, `pkill` and
+`killall`: anything that selects by name selects everyone's.
+
+It fails silently in both directions. The session that runs it sees a clean
+exit; the session that loses its server sees an unexplained failure somewhere
+else, and nothing connects the two. **No script contained the command** — agents
+improvised it while stopping a server they had started for a look in the
+browser — so there was nowhere upstream to fix it.
+
+So it is refused before it runs: a `PreToolUse` hook
+(`.claude/hooks/no-image-kill.py`) blocks a kill by name on both shells and says
+why. Stop what you started **by the pid you started**:
+
+```
+taskkill //F //T //PID <pid>     # Windows; //T takes its children with it
+kill <pid>                       # POSIX
+```
+
+If the project ships a scoped start/stop for its dev server, use that — it
+records the pid for you. If you have lost the pid, find the one process that is
+yours by its port or its command line, and kill that pid.
+
+**Verify at the address your server printed, not the one you expect.** A second
+dev server on a taken default port usually moves to the next one without
+complaint, so `localhost:<default>` can be another worktree's server — and a page
+checked there verifies someone else's code, green.
 
 ### Write files with the write tool, not with heredocs
 

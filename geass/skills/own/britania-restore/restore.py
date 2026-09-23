@@ -430,6 +430,29 @@ def ask_for_mode() -> int:
     return 2
 
 
+def sweep_note(project: Path, mode: str) -> list[str]:
+    """An autopilot window still open means a sweep that may not be.
+
+    The sweep is a session-scoped cron job: a /clear keeps it, because the
+    process survived, and a crash takes it. Either way the marker still names
+    an id, and after a crash that id points at nothing.
+    """
+    try:
+        marker = json.loads((project / ".lelouch" / "afk.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(marker, dict) or not marker.get("autopilot"):
+        return []
+    job = marker.get("sweep") or "none recorded"
+    if mode == "clear":
+        return [f"An autopilot window is open (sweep {job}). A /clear keeps the sweep:",
+                "CronList to confirm it is still scheduled, and re-arm only if not."]
+    return [f"An autopilot window is open, and its sweep ({job}) died with the",
+            "process. Re-arm it -- `afk.py start --autopilot` printed the exact",
+            "CronCreate call, and afk.py's SWEEP_PROMPT holds it -- then record the",
+            "new id with `afk.py sweep <job-id>`."]
+
+
 def session_note(mode: str, run_id: str | None) -> list[str]:
     """What this restart did, and did not, take away -- and the remedy for it.
 
@@ -556,6 +579,8 @@ def main() -> int:
     print(f"  After a {args.mode}")
     for line in session_note(args.mode, run_id):
         print(f"    {line}" if line else "")
+    for line in sweep_note(project, args.mode):
+        print(f"    {line}")
 
     print()
     print(board(project))
