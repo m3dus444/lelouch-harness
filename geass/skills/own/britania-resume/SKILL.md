@@ -9,13 +9,22 @@ metadata:
 
 # britania-resume
 
-**The user runs this. It acts — it does not just describe.**
+**The user runs this. It acts — it does not just describe.** The one exception is
+an autopilot window: when the vitals watcher lifts a hold, nobody is there to
+type it, so you run the script yourself, with `--wake` (see `britania-afk`).
 
 ```
 python <skill>/resume.py              # resume the work
 python <skill>/resume.py --dry-run    # show what it would do, touch nothing
 python <skill>/resume.py --all        # include settled workers too
+python <skill>/resume.py --wake       # also type one line into each live worker
 ```
+
+**Mail is pull, and a worker frozen at a cap does not pull.** Without `--wake`
+its position sits queued until something types into its terminal — fine when
+C.C is at the keyboard to do it, useless at 03:00. `--wake` waits for the
+terminal to reach a turn boundary and sends one line telling it to read its
+mail. A terminal that is not idle within a minute is working, and is left alone.
 
 ## What it actually does
 

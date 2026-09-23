@@ -168,6 +168,10 @@ PAYLOAD = [
     # started blind and relearned them at full price.
     ("docs/agents/harness-gotchas.md", "docs/agents/harness-gotchas.md"),
     ("hooks/session-start.py", ".claude/hooks/session-start.py"),
+    # Refuses a kill by process name before it runs. A contract rule reaches only
+    # the agents that read it; the image-wide `taskkill //IM node.exe` it stops
+    # was improvised by agents that had not.
+    ("hooks/no-image-kill.py", ".claude/hooks/no-image-kill.py"),
 ]
 
 # Paths geass adds to the target's .gitignore, with the reason as a comment.

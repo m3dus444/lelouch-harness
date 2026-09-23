@@ -270,7 +270,42 @@ def ff_possible(path: str, branch: str) -> tuple[bool, str]:
     return True, f"HEAD is an ancestor of {ref}"
 
 
-def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
+WAKE_LINE = ("You were parked, not cancelled. Your position is in your mail: run "
+             "`orca orchestration check` and carry on from it.")
+
+
+def wake(handle: str | None, dry: bool) -> str:
+    """Type one line into a worker's terminal, so it reads the mail just queued.
+
+    Mail is pull. A worker frozen at a usage cap is sitting at its prompt and
+    will not run `orchestration check` until something types into it -- so
+    without this, a resume done while nobody is at the keyboard queues positions
+    that nobody reads until morning.
+
+    **Only at a turn boundary, and only if one comes.** Injecting mid-turn
+    corrupts whatever the agent was doing. A terminal that does not reach
+    tui-idle within the wait is working, which is the state a wake exists to
+    produce, so it is left alone rather than typed into late.
+    """
+    if not handle:
+        return "no terminal handle, so no wake -- it reads the mail on its next check"
+    if dry:
+        return f"would wake terminal {handle} with one line, once it is idle"
+    idle = sh(["orca", "terminal", "wait", "--terminal", handle, "--for", "tui-idle",
+               "--timeout-ms", "60000"], timeout=90)
+    if idle is None:
+        return f"did NOT wake {handle}: not idle within 60s, so it is working -- left alone"
+    sent = sh(["orca", "terminal", "send", "--terminal", handle,
+               "--text", WAKE_LINE, "--enter"], timeout=30)
+    # `ok` acknowledges the courier, not the recipient: a wake spent while the
+    # window was still capped once returned ok and two builders sat frozen four
+    # more hours. So this reports a delivery, and recovery is read off the screen.
+    return (f"wake line delivered to {handle} -- delivered, not acted on: read its screen "
+            f"on the next sweep before calling it recovered" if sent is not None else
+            f"the wake to {handle} did NOT land; the mail is still queued for it")
+
+
+def act(w: dict, g: dict, pos: dict, dry: bool, wake_terminal: bool = False) -> list[str]:
     """Do the safe half of resuming, and report what it did.
 
     **`merge --ff-only` is the guard, not a risk.** It advances a branch only
@@ -345,6 +380,8 @@ def act(w: dict, g: dict, pos: dict, dry: bool) -> list[str]:
                 "`orca terminal list`, and that still shows this terminal live. Do not replace a "
                 "worker on a failed delivery."
             )
+        if wake_terminal and (dry or sent):
+            done.append(wake(w.get("handle"), dry))
     elif live_terminal and not dispatch:
         done.append(
             f"its terminal is LIVE but `worker-list` carries no dispatch id for it, so it has no "
@@ -482,6 +519,9 @@ def main() -> int:
     ap.add_argument("--all", action="store_true", help="include settled workers")
     ap.add_argument("--dry-run", action="store_true",
                     help="show what it would do without touching anything")
+    ap.add_argument("--wake", action="store_true",
+                    help="after queuing a worker's position, type one line into its terminal "
+                         "so a worker frozen at a cap reads it (autopilot uses this)")
     args = ap.parse_args()
     project = str(Path(args.path).resolve())
 
@@ -508,7 +548,7 @@ def main() -> int:
             "head": "?", "gate_head": "", "behind": [], "mine": [], "dirty": [], "files": []}
         report.append({
             "worker": w, "gate": g, "position": pos,
-            "did": act(w, g, pos, args.dry_run),
+            "did": act(w, g, pos, args.dry_run, args.wake),
             "verdict": verdict(w, g, pos),
         })
 

@@ -260,8 +260,9 @@ your-project/
 │   ├── issue-tracker.md             tasks-axi + GitHub split
 │   └── dispatch-templates.md        Scout / Build / Fix specs + the loop
 └── .claude/
-    ├── settings.json                SessionStart hook (merged, not clobbered)
+    ├── settings.json                both hooks (merged, not clobbered)
     ├── hooks/session-start.py       injects ready queue + live workers
+    ├── hooks/no-image-kill.py       refuses a process kill by name
     └── skills/                      19 skills, project-scoped
 ```
 

@@ -14,6 +14,7 @@ metadata:
 ```
 python <skill>/afk.py start               they are away; questions wait for them
 python <skill>/afk.py start --autopilot   they are away; decide and merge for them
+python <skill>/afk.py sweep <job-id>      record the autopilot sweep you just armed
 python <skill>/afk.py back                render the digest, clear the marker
 ```
 
@@ -32,6 +33,8 @@ stop interrupting an empty room and start accumulating into one digest.
 | an `ask-user` finding from a worker | recorded, worker told to wait | answered with your recommendation |
 | a PR ready to merge | recorded | merged, if it meets every criterion below |
 | an escalation you can resolve | resolve it, record it | resolve it, record it |
+| the watcher lifts a hold after a cap | recorded; resume waits for them | **resume the crew yourself** — below |
+| a merge | — | **ends on a dispatch** — below |
 | something you genuinely cannot resolve | recorded as a problem — **it is the first thing in the digest** | same |
 
 ## While they are away
@@ -89,6 +92,111 @@ Merge only when **all four** hold. Anything else is recorded and left:
 
 Autopilot is a grant, not a habit. It lapses the moment they return, because the
 marker is cleared by `back`.
+
+## A merge ends on a dispatch
+
+**Merging is half a turn. The other half is putting the next thing out**, and
+the queue is where autopilot earns its keep — an idle machine at 04:00 is the
+one thing the grant exists to prevent.
+
+The trap is subtle and has fired: a worker's report yields findings, you file
+them, you write them into the digest — and having just *written them down* you
+stop seeing them as work. **A ticket you filed ten minutes ago is as
+dispatchable as one filed last week.** That holds for a ticket that came out of
+a builder's own findings or a question it raised, once the question is answered:
+where it came from does not make it less ready.
+
+So the merge is not finished until you have either dispatched, or can say which
+of these stopped you:
+
+- **Every remaining row is a decision.** Those go in the digest, never out to a
+  worker. Say so and stop; that is a clean board, not an idle one.
+- **The machine or the window cannot take it** — `britania-vitals`, checked, not
+  assumed.
+- **What is left collides with what is running.** Sequence it and say so.
+
+### The order is by how invisibly wrong each thing is
+
+Within the milestone-first order of §3, and after any order they named when they
+granted the window — theirs wins — rank what is dispatchable. Not by priority
+number, not by what the last worker happened to touch:
+
+1. **Wrong where nobody can see it.** A guard that passes when it should not, a
+   number that moves unannounced, a name that compares unequal to itself. These
+   go first however small they look — a one-line fix to an invisible hole beats
+   a day's work on a visible annoyance.
+2. **Wrong in plain sight.** Slow, misaddressed, mislabelled. It costs the
+   person something, and they can at least see what it is costing them.
+3. **Not wrong, merely worse than it could be.** Improvements to things that
+   already behave honestly. Real work, last.
+
+Say the rank when you report the dispatch, so the ordering is auditable rather
+than asserted.
+
+## The sweep, in autopilot
+
+Mail wakes you when a worker finishes. **Three things send no mail at all**, and
+each one looks exactly like a quiet night:
+
+- a worker frozen at a usage cap — it sits at its prompt and stops reading mail;
+- a worker silent for any other reason — a diverged branch, a question it gave
+  up on;
+- **your own wait, dead** — which makes you deaf to the mail that does arrive.
+  One hour went that way: two PRs opened, four `worker_done` unread, and an
+  `ask` expired into a worker's own judgement.
+
+So an autopilot window arms a **sweep**: a recurring prompt into your own
+session, every thirty minutes. `start --autopilot` prints the exact `CronCreate`
+call — the schedule and the prompt are fixed in `afk.py`, so the sweep is the
+same one every window rather than whatever you improvise tonight. Arm it, then
+record the id it returns:
+
+```
+python <skill>/afk.py sweep <job-id>
+```
+
+**Record it.** The id lives on the marker so `back` can name it for deletion and
+a rebuilt session can find it. `back` prints `CronDelete <id>` before the digest
+— run it first. A sweep left running keeps acting for someone who is back.
+
+Three properties of the scheduler to know rather than discover:
+
+- **It lives in this session only.** A `/clear` keeps it — the process
+  survived — but a crash or restart loses it. `britania-restore` says so when an
+  autopilot window is still open; re-arm and record the new id.
+- **It fires only while you are idle.** A sweep that lands mid-turn waits. That
+  is correct: if you are busy, you are already working.
+- **A recurring job expires after seven days.** No away window lasts that long;
+  if one ever does, re-arm.
+
+A sweep that finds nothing to do says so in one line and ends the turn. It is a
+check, not a report.
+
+## When the watcher lifts a hold
+
+The vitals watcher already covers caps. When the quota runs out it tells you to
+park; after the reset it tells you *"the hold is lifted and you may resume."* At
+exactly 0% it stays silent on purpose — you are capped too, and cannot read it —
+but it remembers the park, so the all-clear still comes.
+
+Without autopilot, *may resume* means **wait for them**: `britania-resume` is
+theirs to run. **In autopilot it means run it now, yourself** — nobody is there
+to type it, and a cap that parks the crew mid-window otherwise parks it until
+morning:
+
+```
+python <britania-resume>/resume.py --dry-run     # read it first
+python <britania-resume>/resume.py --wake
+```
+
+`--wake` matters. Resume queues each worker's position as mail, and **a worker
+frozen at a cap does not read mail** until something types into its terminal.
+`--wake` sends that one line after the mail, at a turn boundary.
+
+The same grant covers what `resume.py` hands back to you: a worker whose branch
+diverged from the gate's is told to let the gate drive, never to rebase itself.
+A terminal that is gone is still a replacement dispatch, and still yours to
+write — autopilot does not make it a free one.
 
 ## Coming back
 

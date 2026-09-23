@@ -5,6 +5,7 @@
     afk.py decision "<line>"     something you decided on their behalf
     afk.py event "<line>"        something that happened
     afk.py ask "<question>"      a question asked into an empty room
+    afk.py sweep <job-id>        record the autopilot sweep's cron job id
     afk.py back                  render the digest, clear the marker
     afk.py status [--json]       is anyone away? (britania-vitals reads this)
 
@@ -55,6 +56,32 @@ BUFFER_NOTE = (
     "it. Anything that must outlive this absence -- a milestone, a decision that\n"
     "changes the plan -- write it to its durable home (backlog, an ADR, a\n"
     "commit, a tag) in the same breath as recording it here."
+)
+
+# The autopilot sweep. Mail wakes the session when a worker finishes, but three
+# things send no mail at all: a worker frozen at a usage cap, a worker gone
+# silent for any other reason, and a wait that died -- which makes the session
+# deaf to the mail that does arrive. Run 3's overnight windows needed a sweep for
+# all three, and the one that worked was improvised, unrecorded and unknown to
+# the contract. So the schedule and the text are fixed here, not reinvented.
+#
+# Off the :00/:30 marks on purpose. Every firing costs one turn; at two an hour
+# that is about fifty across a full day away. Thirty minutes is the interval run
+# 3 used and nothing has argued for another; change it here, not per window.
+SWEEP_CRON = "11,41 * * * *"
+SWEEP_PROMPT = (
+    "Autopilot sweep (britania-afk). Nobody is at the keyboard. All five, in "
+    "order:\n"
+    "1. Prove the armed wait is alive: read its output file. Keepalives with "
+    "elapsedMs still climbing = alive. Returned, errored, echoed or empty = dead: "
+    "read what it delivered, then re-arm it.\n"
+    "2. Merge every PR that meets all four merge criteria in britania-afk.\n"
+    "3. Parked or silent workers: run britania-resume's resume.py --wake. Read a "
+    "screen before calling a worker capped or idle.\n"
+    "4. britania-vitals --gate, then dispatch by the order in 'A merge ends on a "
+    "dispatch' -- or name which of its three reasons stopped you.\n"
+    "5. Record what you did with afk.py decision/event. If nothing changed, say "
+    "so in one line and end the turn."
 )
 
 
@@ -170,7 +197,32 @@ def start(project: Path, autopilot: bool) -> int:
     if not autopilot:
         print("Questions and escalations will be recorded and re-asked, not decided.")
     print("The vitals watcher will now act on a breach rather than only warn.")
+    if autopilot:
+        print()
+        print("ARM THE SWEEP NOW -- a script cannot, only your session can:")
+        print(f"  CronCreate  cron: \"{SWEEP_CRON}\"  recurring: true  prompt:")
+        for line in SWEEP_PROMPT.splitlines():
+            print(f"    {line}")
+        print("  then record its id:  afk.py sweep <job-id>")
     print(BUFFER_NOTE)
+    return 0
+
+
+def record_sweep(project: Path, job: str) -> int:
+    """Keep the sweep's job id on the marker, where `back` and a rebuilt session
+    look for it. Held in the conversation alone, it is lost to exactly the
+    session boundary that makes re-arming necessary."""
+    marker = read_marker(project)
+    if not marker:
+        print("not away -- no window to attach a sweep to", file=sys.stderr)
+        return 1
+    if not marker.get("autopilot"):
+        print("this window is not autopilot -- nothing is authorised to act on a sweep",
+              file=sys.stderr)
+        return 1
+    marker["sweep"] = job
+    (state_dir(project) / MARKER).write_text(json.dumps(marker, indent=2), encoding="utf-8")
+    print(f"sweep {job} recorded; `back` will name it for CronDelete")
     return 0
 
 
@@ -249,6 +301,16 @@ def back(project: Path) -> int:
     except ValueError:
         gone = "?"
 
+    # First, before anything is rendered: the sweep exists only for an empty
+    # room, and one left running keeps acting for a person who is back.
+    if marker.get("sweep"):
+        print(f"DELETE THE SWEEP FIRST:  CronDelete {marker['sweep']}")
+        print()
+    elif marker.get("autopilot"):
+        print("No sweep id was recorded for this window. CronList, and delete any")
+        print("britania-afk sweep still scheduled -- it outlives this marker.")
+        print()
+
     print(f"WHILE YOU WERE AWAY -- {gone}"
           + ("   (autopilot)" if marker.get("autopilot") else ""))
     print()
@@ -309,7 +371,8 @@ def status(project: Path, as_json: bool) -> int:
         print("present")
         return 1
     print(f"away since {marker['since']}"
-          + ("  (autopilot)" if marker.get("autopilot") else ""))
+          + ("  (autopilot)" if marker.get("autopilot") else "")
+          + (f"  sweep {marker['sweep']}" if marker.get("sweep") else ""))
     return 0
 
 
@@ -323,7 +386,7 @@ def main() -> int:
         epilog=BUFFER_NOTE,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("mode", choices=["start", "decision", "event", "ask", "back", "status"])
+    ap.add_argument("mode", choices=["start", "decision", "event", "ask", "sweep", "back", "status"])
     ap.add_argument("text", nargs="*", default=[])
     ap.add_argument("--autopilot", action="store_true",
                     help="decide on your own recommendation, and merge what qualifies")
@@ -340,6 +403,11 @@ def main() -> int:
             print(f"{args.mode} needs something to record", file=sys.stderr)
             return 2
         return append(project, args.mode, text)
+    if args.mode == "sweep":
+        if not text:
+            print("sweep needs the job id CronCreate returned", file=sys.stderr)
+            return 2
+        return record_sweep(project, text)
     if args.mode == "back":
         return back(project)
     return status(project, args.json)
